@@ -1,0 +1,4 @@
+<tool_call>
+<function=read_agent_template>
+</function>
+</tool_call>

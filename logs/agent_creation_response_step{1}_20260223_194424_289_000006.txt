@@ -1,0 +1,62 @@
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Read standard agent template to understand structure",
+        "status": "pending",
+        "result": ""
+      },
+      {
+        "step": 2,
+        "planitem": "Check current database schema to identify existing tables",
+        "status": "pending",
+        "result": ""
+      },
+      {
+        "step": 3,
+        "planitem": "Design database schema for task management (tasks table, notes table if needed)",
+        "status": "pending",
+        "result": ""
+      },
+      {
+        "step": 4,
+        "planitem": "Create database tables (ask permission before executing SQL)",
+        "status": "pending",
+        "result": ""
+      },
+      {
+        "step": 5,
+        "planitem": "Write agent prompt using template with task management capabilities",
+        "status": "pending",
+        "result": ""
+      },
+      {
+        "step": 6,
+        "planitem": "Save new agent configuration",
+        "status": "pending",
+        "result": ""
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "read_agent_template",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I'll create a task management AI agent. Let me first read the standard agent template to understand the required format."
+  },
+  "reasoning": {
+    "summary": "Need to understand the strict agent template structure before designing the task management agent."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Reading agent template..."
+  }
+}
+```

@@ -1,0 +1,50 @@
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Verify database schema - confirm tasks and notes tables exist and understand structure",
+        "status": "in_progress",
+        "result": "Need to fetch schema to understand available columns and relationships"
+      },
+      {
+        "step": 2,
+        "planitem": "Read the standard agent template",
+        "status": "pending",
+        "result": ""
+      },
+      {
+        "step": 3,
+        "planitem": "Design complete prompt incorporating all requested features",
+        "status": "pending",
+        "result": "Features: create tasks, schedule tasks, close tasks, add notes, list tasks, search tasks, bulk task creation from text"
+      },
+      {
+        "step": 4,
+        "planitem": "Save the new team task manager agent",
+        "status": "pending",
+        "result": ""
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I'll help you create the team task manager agent. First, let me verify the database schema to understand the existing tasks and notes tables structure."
+  },
+  "reasoning": {
+    "summary": "Verifying database schema before designing agent prompt. Tables were reportedly created, but I need to see the actual structure to properly design the agent's capabilities."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching database schema..."
+  }
+}
+```

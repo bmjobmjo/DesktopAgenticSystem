@@ -1,0 +1,10 @@
+﻿{
+  "llm_provider": "mock",
+  "gemini_api_key": "",
+  "debug_mode": false,
+  "accessible_directories": [],
+  "default_directory": "",
+  "sqlite_db_path": "backend.db",
+  "custom_agents": [],
+  "file_storage_path": "storage/files"
+}

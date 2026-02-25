@@ -1,0 +1,8 @@
+{
+  "type": "agent_call",
+  "selected_agent": "agent_creation",
+  "confidence": "high",
+  "reason": "The user wants to design and create a new AI agent for team task management. The available 'agent_creation' agent is specifically designed to help admins create new AI agents by checking tools, planning DB schemas, and writing prompts, which matches this request perfectly.",
+  "instruction": "Design and create a new AI agent that manages team tasks. Required functionalities: 1) Create tasks (with title, description, assignee, due date, status), 2) Schedule tasks (integrate with calendar/scheduling), 3) Close/complete tasks, 4) Add notes/updates to tasks, 5) List tasks (with filters like status, assignee, due date), 6) Search tasks (by keyword, assignee, status), 7) Add tasks in bulk from a given text (parse structured or semi-structured text). Use the standard agent template. Check available tools for potential integrations (e.g., calendar, database). Plan necessary database schema (tables: tasks, notes, users/assignees). Provide a complete prompt for the new agent, ensuring it can handle all listed features and the bulk text parsing. Save the new agent using the save_new_agent tool.",
+  "response_to_user": "I'll help you design and create a new AI agent for team task management. This agent will be built with all the functionalities you specified, including bulk task creation from text."
+}

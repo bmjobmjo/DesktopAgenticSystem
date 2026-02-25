@@ -1,0 +1,40 @@
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve all tasks from database",
+        "status": "pending",
+        "result": ""
+      },
+      {
+        "step": 2,
+        "planitem": "Format and display results to user",
+        "status": "pending",
+        "result": ""
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT * FROM Tasks ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "I am querying all tasks from the database."
+  },
+  "reasoning": {
+    "summary": "The user requested to list all tasks. I need to fetch all rows from the Tasks table with proper ordering by priority (high>medium>low), due date ascending, and creation date descending."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching tasks from database..."
+  }
+}

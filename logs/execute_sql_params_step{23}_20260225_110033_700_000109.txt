@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "SELECT * FROM HolidayList ORDER BY holiday_date ASC;"
+  ]
+}

@@ -1,0 +1,5135 @@
+2026-02-25 10:47:30 - 
+--------------------------------------------------------------------------------
+AGENT:  Router
+PROMPT:
+﻿ROLE: ROUTER
+
+You are the routing agent. Choose the best agent for the user request.
+If the user input is not related to any of the agents, then send back a warm return greeting message.
+Or if you want more info to make decision you can ask that to the user.
+If the request requires multiple steps or agents, return a list of tasks.
+Order them by priority (lower number = higher priority). You shold call an agent if it is available, 
+otherwise you can call a tool directly now restricted to call file_embedding_tool only to process a file input.
+The system strictly expect exact type and schema as given below. Do not deviate from it.
+Return JSON only.
+Schema for Agent Task:
+{
+  "type": "greeting|request_user_input|agent_call|tool_call",
+  "selected_agent": "string-valid when type is agent_call",
+  "tool_name": "string-valid when type is tool_call",
+  "confidence": "low|medium|high",
+  "parameters": { ... valid when type is tool_call},
+  "reason": "string",
+  "instruction": "string (optional specific instruction for the agent)",
+  "response_to_user": "string",
+  "priority": 1
+}
+
+Schema for Multiple Tasks:
+[
+  { "type": "tool_call", "tool_name": "file_embedding_tool", "parameters": {"file_path": "..."} },
+  { "type": "agent_call", "selected_agent": "ExpenseAgent", "instruction": "Process the receipt...", "priority": 2 }
+]
+
+
+FILE HANDLING INSTRUCTIONS:
+If files are attached:
+1. ALWAYS create a 'tool_call' for 'file_embedding_tool' for EACH file first. This ensures the file is saved and embedded. If user just gave the file or just asked save then this 
+tool is all enough to do that task nothing else needed. 
+2. THEN, if the file content/type matches a specific agent's capabilities (e.g., receipt/invoice -> ExpenseAgent, work order -> WorkOrderAgent):
+   - Create a SECOND task to route the request to that agent.
+   - Use the 'instruction' field to tell the agent to process the file (refer to it by name).
+   - Set priority of the agent task lower (higher number) so it runs AFTER ingestion if possible, or just same batch.
+3. If no specific agent matches the file type, only the ingestion tool calls are needed.
+
+Available agents:
+[
+  {
+    "name": "file_manager",
+    "description": "Handle file listing, inspection, reading, copying, and moving."
+  },
+  {
+    "name": "attendance_manager",
+    "description": "Manage attendance, breaks, and leaves. Records check-ins/outs with timestamps and location."
+  },
+  {
+    "name": "holiday_manager",
+    "description": "Manage company-wide holiday list: create, list, update, and delete holidays."
+  },
+  {
+    "name": "agent_creation",
+    "description": "Helps admins design and create new AI agents by checking tools, planning DB schemas, and writing prompts."
+  },
+  {
+    "name": "TeamTaskManager",
+    "description": "AI agent for team task management: create, schedule, close tasks; add notes; list, search tasks; bulk add from text."
+  }
+]
+
+Available tools (for simple queries):
+- get_database_schema: Returns the full database schema including all tables and their columns.
+- list_available_tools: Returns a list of all tools currently registered in the system along with their descriptions and schemas.
+- read_agent_template: Reads the standard agent prompt template file that should be used as the base
+- save_new_agent: Saves a newly designed agent directly into the database so it can be used by the system.
+- execute_sql: Execute a list of SQL queries against the internal SQLite database.
+- call_tool: 
+- get_tool: 
+- list_tools: 
+- get_embedding_model: 
+- ingest_file: Ingest a file into the knowledge base (copy, index, and embed).
+- search_files: Search for files using semantic search (vector embeddings).
+- copy_file: Copy a file from source to destination.
+- inspect_file: Get detailed metadata about a file.
+- list_directory: List the contents of a directory.
+- move_file: Move a file from source to destination.
+- read_file: Read the content of a file (Text or PDF).
+- file_ingestion: Ingest a file into the knowledge base (copy, index, and embed).
+- file_embedding_tool: Ingest a file into the knowledge base (copy, index, and embed).
+
+Tool Output (if any):
+
+
+User prompt:
+List my tasks
+
+Chat history:
+
+
+RESULT:
+[  {
+    "type": "agent_call",
+    "selected_agent": "TeamTaskManager",
+    "confidence": "high",
+    "reason": "The user requested to list tasks, which directly matches the TeamTaskManager's core functionality for task listing and management.",
+    "instruction": "List the user's tasks.",
+    "response_to_user": "Retrieving your task list now...",
+    "priority": 1
+  }
+]
+--------------------------------------------------------------------------------
+
+2026-02-25 10:48:15 - 
+--------------------------------------------------------------------------------
+AGENT:  TeamTaskManager
+PROMPT:
+====================================================
+AGENT ROLE & IDENTITY
+====================================================
+You are the TASK MANAGEMENT  Agent**. You maintain the tasks created by user in databse tables 
+**Your Mission:**
+Convert natural language requests into precise tool calls.
+
+**Core Directives:**
+1. **Ownership:** You "own" the task until it is marked "Completed".
+2. **Persistence:** If you successfully complete the objective, your next action MUST be to report it to the user and set `action.type` to "complete".
+3. **Efficiency:** NEVER repeat a successful tool call. If `LAST_TOOL_RESULT` shows "Success", move to the next step.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List the user's tasks.
+USER_ID: 1
+USER_ROLE: USER_ROLE- not available
+USER_ROLE_ID: 
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:47:30
+
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+**Tasks table:**
+- id (INTEGER PRIMARY KEY)
+- title (TEXT NOT NULL)
+- description (TEXT)
+- status (TEXT DEFAULT 'open') - values: 'open', 'scheduled', 'in_progress', 'completed', 'cancelled'
+- scheduled_date (DATETIME)
+- due_date (DATETIME)
+- priority (TEXT DEFAULT 'medium') - values: 'low', 'medium', 'high'
+- assigned_to (TEXT)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- completed_at (DATETIME)
+- is_active (BOOLEAN DEFAULT 1)
+
+**TaskNotes table:**
+- id (INTEGER PRIMARY KEY)
+- task_id (INTEGER NOT NULL)
+- note_content (TEXT NOT NULL)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- is_internal (BOOLEAN DEFAULT 0)
+
+**Functions:**
+- CREATE TASK: Insert into Tasks with required title; optional fields: description, priority, assigned_to, due_date, scheduled_date. Set created_by=USERNAME, status='open'.
+- SCHEDULE TASK: Update Tasks set scheduled_date and status='scheduled' (if open). Use task id or title to identify.
+- CLOSE TASK: Update Tasks set status='completed', completed_at=CURRENT_TIMESTAMP.
+- ADD NOTE: Insert into TaskNotes (task_id, note_content, created_by, is_internal). First find task_id if not provided.
+- LIST TASKS: Select from Tasks with optional filters (status, assigned_to, priority, date ranges). Order by priority (high>med>low), due_date ASC, created_at DESC.
+- SEARCH TASKS: Use LIKE on title and description: WHERE title LIKE '%term%' OR description LIKE '%term%'.
+- BULK ADD: Parse text input where each line defines a task. Extract fields, then create tasks in a transaction.
+
+Use execute_sql tool. Always parameterize queries. Use CURRENT_TIMESTAMP for timestamps when appropriate.
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+- execute_sql
+  Description: Execute a list of SQL queries against the internal SQLite database.
+  Parameters: queries
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "execute_sql", "parameters": {"queries": "<queries>"}}}}
+- get_database_schema
+  Description: Returns the full database schema including all tables and their columns.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "get_database_schema", "parameters": {}}}}
+
+AGENT ACTIVITY LOG :- As Agent activity progresses agent return JSON and Tool call result and user inputs appended here
+for agent to track the statte properly
+Chat history:
+Step : 1
+UserInput : List the user's tasks.
+
+
+====================================================
+INTERNAL WORKFLOW (LOOP PREVENTION)
+====================================================
+1. **Analyze:** Check `LAST_TOOL_RESULT`. If it confirms your previous action succeeded, mark that step as "completed".
+2. **Termination:** Once the objective is met, immediately transition to `action.type = "complete"`.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return ONLY a valid JSON object DO NOT OUTPUT ANY TEXT OTHER THAN TH BELOW DEFINED JSON . Keep "action" as a dictionary. To call a tool, use `action.type` = "tool_call". To talk to the user, uset `action.type` = "request_user_input" and mark the task as completed with message to user set `action.type` = "completed"
+
+Example Tool Call:
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Analyze requirements",
+        "status": "done",
+        "result": "User wants an agent that builds other agents from natural language"
+      },
+      {
+        "step": 2,
+        "planitem": "Check required tools availability",
+        "status": "done",
+        "result": "All required tools exist: get_database_schema, read_agent_template, save_new_agent, execute_sql"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call|agent_call|request_user_input|completed",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I am checking the current database schema to determine whether new tables are required before creating the agent."
+  },
+  "reasoning": {
+    "summary": "Schema must be verified before generating or requesting table creation."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Inspecting database schema..."
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Query active tasks created by user 'bb'",
+        "status": "todo",
+        "result": ""
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT id, title, description, status, scheduled_date, due_date, priority, assigned_to, created_by, created_at, updated_at, completed_at FROM Tasks WHERE created_by = 'bb' AND is_active = 1 ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC"
+        ]
+      }
+    }
+  },
+  "conversation_update": "Fetching your tasks from the database...",
+  "reasoning": "The user requested to list their tasks. I query the Tasks table for active tasks created by the current user (bb), ordering by priority (high > medium > low), due date ascending, and creation date descending.",
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading tasks..."
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:48:46 - 
+--------------------------------------------------------------------------------
+AGENT:  TeamTaskManager
+PROMPT:
+====================================================
+AGENT ROLE & IDENTITY
+====================================================
+You are the TASK MANAGEMENT  Agent**. You maintain the tasks created by user in databse tables 
+**Your Mission:**
+Convert natural language requests into precise tool calls.
+
+**Core Directives:**
+1. **Ownership:** You "own" the task until it is marked "Completed".
+2. **Persistence:** If you successfully complete the objective, your next action MUST be to report it to the user and set `action.type` to "complete".
+3. **Efficiency:** NEVER repeat a successful tool call. If `LAST_TOOL_RESULT` shows "Success", move to the next step.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List the user's tasks.
+USER_ID: 1
+USER_ROLE: USER_ROLE- not available
+USER_ROLE_ID: 
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:47:30
+
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+**Tasks table:**
+- id (INTEGER PRIMARY KEY)
+- title (TEXT NOT NULL)
+- description (TEXT)
+- status (TEXT DEFAULT 'open') - values: 'open', 'scheduled', 'in_progress', 'completed', 'cancelled'
+- scheduled_date (DATETIME)
+- due_date (DATETIME)
+- priority (TEXT DEFAULT 'medium') - values: 'low', 'medium', 'high'
+- assigned_to (TEXT)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- completed_at (DATETIME)
+- is_active (BOOLEAN DEFAULT 1)
+
+**TaskNotes table:**
+- id (INTEGER PRIMARY KEY)
+- task_id (INTEGER NOT NULL)
+- note_content (TEXT NOT NULL)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- is_internal (BOOLEAN DEFAULT 0)
+
+**Functions:**
+- CREATE TASK: Insert into Tasks with required title; optional fields: description, priority, assigned_to, due_date, scheduled_date. Set created_by=USERNAME, status='open'.
+- SCHEDULE TASK: Update Tasks set scheduled_date and status='scheduled' (if open). Use task id or title to identify.
+- CLOSE TASK: Update Tasks set status='completed', completed_at=CURRENT_TIMESTAMP.
+- ADD NOTE: Insert into TaskNotes (task_id, note_content, created_by, is_internal). First find task_id if not provided.
+- LIST TASKS: Select from Tasks with optional filters (status, assigned_to, priority, date ranges). Order by priority (high>med>low), due_date ASC, created_at DESC.
+- SEARCH TASKS: Use LIKE on title and description: WHERE title LIKE '%term%' OR description LIKE '%term%'.
+- BULK ADD: Parse text input where each line defines a task. Extract fields, then create tasks in a transaction.
+
+Use execute_sql tool. Always parameterize queries. Use CURRENT_TIMESTAMP for timestamps when appropriate.
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+- execute_sql
+  Description: Execute a list of SQL queries against the internal SQLite database.
+  Parameters: queries
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "execute_sql", "parameters": {"queries": "<queries>"}}}}
+- get_database_schema
+  Description: Returns the full database schema including all tables and their columns.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "get_database_schema", "parameters": {}}}}
+
+AGENT ACTIVITY LOG :- As Agent activity progresses agent return JSON and Tool call result and user inputs appended here
+for agent to track the statte properly
+Chat history:
+Step : 1
+UserInput : List the user's tasks.
+
+
+====================================================
+INTERNAL WORKFLOW (LOOP PREVENTION)
+====================================================
+1. **Analyze:** Check `LAST_TOOL_RESULT`. If it confirms your previous action succeeded, mark that step as "completed".
+2. **Termination:** Once the objective is met, immediately transition to `action.type = "complete"`.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return ONLY a valid JSON object DO NOT OUTPUT ANY TEXT OTHER THAN TH BELOW DEFINED JSON . Keep "action" as a dictionary. To call a tool, use `action.type` = "tool_call". To talk to the user, uset `action.type` = "request_user_input" and mark the task as completed with message to user set `action.type` = "completed"
+
+Example Tool Call:
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Analyze requirements",
+        "status": "done",
+        "result": "User wants an agent that builds other agents from natural language"
+      },
+      {
+        "step": 2,
+        "planitem": "Check required tools availability",
+        "status": "done",
+        "result": "All required tools exist: get_database_schema, read_agent_template, save_new_agent, execute_sql"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call|agent_call|request_user_input|completed",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I am checking the current database schema to determine whether new tables are required before creating the agent."
+  },
+  "reasoning": {
+    "summary": "Schema must be verified before generating or requesting table creation."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Inspecting database schema..."
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve tasks created by the user",
+        "status": "in_progress"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT id, title, description, status, scheduled_date, due_date, priority, assigned_to, created_by, created_at, updated_at, completed_at, is_active FROM Tasks WHERE created_by = :username AND is_active = 1 ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END ASC, due_date ASC, created_at DESC"
+        ]
+      }
+    }
+  },
+  "conversation_update": "Fetching the user's tasks from the database...",
+  "reasoning": "The user requested to list their tasks. The agent maintains tasks created by the user. Therefore, I will query the Tasks table for records where created_by matches the current username 'bb' and is_active is true. The results will be ordered by priority (high > medium > low), due_date ascending, and creation date descending to present an organized view.",
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading your tasks..."
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:50:15 - 
+--------------------------------------------------------------------------------
+AGENT:  TeamTaskManager
+PROMPT:
+====================================================
+AGENT ROLE & IDENTITY
+====================================================
+You are the TASK MANAGEMENT  Agent**. You maintain the tasks created by user in databse tables 
+**Your Mission:**
+Convert natural language requests into precise tool calls.
+
+**Core Directives:**
+1. **Ownership:** You "own" the task until it is marked "Completed".
+2. **Persistence:** If you successfully complete the objective, your next action MUST be to report it to the user and set `action.type` to "complete".
+3. **Efficiency:** NEVER repeat a successful tool call. If `LAST_TOOL_RESULT` shows "Success", move to the next step.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List the user's tasks.
+USER_ID: 1
+USER_ROLE: USER_ROLE- not available
+USER_ROLE_ID: 
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:47:30
+
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+**Tasks table:**
+- id (INTEGER PRIMARY KEY)
+- title (TEXT NOT NULL)
+- description (TEXT)
+- status (TEXT DEFAULT 'open') - values: 'open', 'scheduled', 'in_progress', 'completed', 'cancelled'
+- scheduled_date (DATETIME)
+- due_date (DATETIME)
+- priority (TEXT DEFAULT 'medium') - values: 'low', 'medium', 'high'
+- assigned_to (TEXT)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- completed_at (DATETIME)
+- is_active (BOOLEAN DEFAULT 1)
+
+**TaskNotes table:**
+- id (INTEGER PRIMARY KEY)
+- task_id (INTEGER NOT NULL)
+- note_content (TEXT NOT NULL)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- is_internal (BOOLEAN DEFAULT 0)
+
+**Functions:**
+- CREATE TASK: Insert into Tasks with required title; optional fields: description, priority, assigned_to, due_date, scheduled_date. Set created_by=USERNAME, status='open'.
+- SCHEDULE TASK: Update Tasks set scheduled_date and status='scheduled' (if open). Use task id or title to identify.
+- CLOSE TASK: Update Tasks set status='completed', completed_at=CURRENT_TIMESTAMP.
+- ADD NOTE: Insert into TaskNotes (task_id, note_content, created_by, is_internal). First find task_id if not provided.
+- LIST TASKS: Select from Tasks with optional filters (status, assigned_to, priority, date ranges). Order by priority (high>med>low), due_date ASC, created_at DESC.
+- SEARCH TASKS: Use LIKE on title and description: WHERE title LIKE '%term%' OR description LIKE '%term%'.
+- BULK ADD: Parse text input where each line defines a task. Extract fields, then create tasks in a transaction.
+
+Use execute_sql tool. Always parameterize queries. Use CURRENT_TIMESTAMP for timestamps when appropriate.
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+- execute_sql
+  Description: Execute a list of SQL queries against the internal SQLite database.
+  Parameters: queries
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "execute_sql", "parameters": {"queries": "<queries>"}}}}
+- get_database_schema
+  Description: Returns the full database schema including all tables and their columns.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "get_database_schema", "parameters": {}}}}
+
+AGENT ACTIVITY LOG :- As Agent activity progresses agent return JSON and Tool call result and user inputs appended here
+for agent to track the statte properly
+Chat history:
+Step : 1
+UserInput : List the user's tasks.
+
+
+====================================================
+INTERNAL WORKFLOW (LOOP PREVENTION)
+====================================================
+1. **Analyze:** Check `LAST_TOOL_RESULT`. If it confirms your previous action succeeded, mark that step as "completed".
+2. **Termination:** Once the objective is met, immediately transition to `action.type = "complete"`.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return ONLY a valid JSON object DO NOT OUTPUT ANY TEXT OTHER THAN TH BELOW DEFINED JSON . Keep "action" as a dictionary. To call a tool, use `action.type` = "tool_call". To talk to the user, uset `action.type` = "request_user_input" and mark the task as completed with message to user set `action.type` = "completed"
+
+Example Tool Call:
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Analyze requirements",
+        "status": "done",
+        "result": "User wants an agent that builds other agents from natural language"
+      },
+      {
+        "step": 2,
+        "planitem": "Check required tools availability",
+        "status": "done",
+        "result": "All required tools exist: get_database_schema, read_agent_template, save_new_agent, execute_sql"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call|agent_call|request_user_input|completed",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I am checking the current database schema to determine whether new tables are required before creating the agent."
+  },
+  "reasoning": {
+    "summary": "Schema must be verified before generating or requesting table creation."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Inspecting database schema..."
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve tasks from database filtered by current user",
+        "status": "done",
+        "result": "SQL query constructed to fetch tasks where assigned_to or created_by equals the provided username"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": "[\"SELECT * FROM Tasks WHERE assigned_to = 'bb (vishnukolachery994@gmail.com)' OR created_by = 'bb (vishnukolachery994@gmail.com)' ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC\"]"
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching your tasks from the database..."
+  },
+  "reasoning": {
+    "summary": "The user asked to list their tasks. I will query the Tasks table for any tasks where the assigned_to or created_by field matches the current user's exact username 'bb (vishnukolachery994@gmail.com)'. Results are ordered by priority (high > medium > low), then by due date ascending, and finally by creation date descending to show the most urgent and overdue tasks first."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading tasks..."
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:50:29 - 
+--------------------------------------------------------------------------------
+AGENT:  TeamTaskManager
+PROMPT:
+====================================================
+AGENT ROLE & IDENTITY
+====================================================
+You are the TASK MANAGEMENT  Agent**. You maintain the tasks created by user in databse tables 
+**Your Mission:**
+Convert natural language requests into precise tool calls.
+
+**Core Directives:**
+1. **Ownership:** You "own" the task until it is marked "Completed".
+2. **Persistence:** If you successfully complete the objective, your next action MUST be to report it to the user and set `action.type` to "complete".
+3. **Efficiency:** NEVER repeat a successful tool call. If `LAST_TOOL_RESULT` shows "Success", move to the next step.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List the user's tasks.
+USER_ID: 1
+USER_ROLE: USER_ROLE- not available
+USER_ROLE_ID: 
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:50:15
+
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+**Tasks table:**
+- id (INTEGER PRIMARY KEY)
+- title (TEXT NOT NULL)
+- description (TEXT)
+- status (TEXT DEFAULT 'open') - values: 'open', 'scheduled', 'in_progress', 'completed', 'cancelled'
+- scheduled_date (DATETIME)
+- due_date (DATETIME)
+- priority (TEXT DEFAULT 'medium') - values: 'low', 'medium', 'high'
+- assigned_to (TEXT)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- completed_at (DATETIME)
+- is_active (BOOLEAN DEFAULT 1)
+
+**TaskNotes table:**
+- id (INTEGER PRIMARY KEY)
+- task_id (INTEGER NOT NULL)
+- note_content (TEXT NOT NULL)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- is_internal (BOOLEAN DEFAULT 0)
+
+**Functions:**
+- CREATE TASK: Insert into Tasks with required title; optional fields: description, priority, assigned_to, due_date, scheduled_date. Set created_by=USERNAME, status='open'.
+- SCHEDULE TASK: Update Tasks set scheduled_date and status='scheduled' (if open). Use task id or title to identify.
+- CLOSE TASK: Update Tasks set status='completed', completed_at=CURRENT_TIMESTAMP.
+- ADD NOTE: Insert into TaskNotes (task_id, note_content, created_by, is_internal). First find task_id if not provided.
+- LIST TASKS: Select from Tasks with optional filters (status, assigned_to, priority, date ranges). Order by priority (high>med>low), due_date ASC, created_at DESC.
+- SEARCH TASKS: Use LIKE on title and description: WHERE title LIKE '%term%' OR description LIKE '%term%'.
+- BULK ADD: Parse text input where each line defines a task. Extract fields, then create tasks in a transaction.
+
+Use execute_sql tool. Always parameterize queries. Use CURRENT_TIMESTAMP for timestamps when appropriate.
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+- execute_sql
+  Description: Execute a list of SQL queries against the internal SQLite database.
+  Parameters: queries
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "execute_sql", "parameters": {"queries": "<queries>"}}}}
+- get_database_schema
+  Description: Returns the full database schema including all tables and their columns.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "get_database_schema", "parameters": {}}}}
+
+AGENT ACTIVITY LOG :- As Agent activity progresses agent return JSON and Tool call result and user inputs appended here
+for agent to track the statte properly
+Chat history:
+Step : 1
+UserInput : List the user's tasks.
+LLM Result : {
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve tasks from database filtered by current user",
+        "status": "done",
+        "result": "SQL query constructed to fetch tasks where assigned_to or created_by equals the provided username"
+      }
+    ],
+    "current_step": "1"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": "[\"SELECT * FROM Tasks WHERE assigned_to = 'bb (vishnukolachery994@gmail.com)' OR created_by = 'bb (vishnukolachery994@gmail.com)' ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC\"]"
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching your tasks from the database..."
+  },
+  "reasoning": {
+    "summary": "The user asked to list their tasks. I will query the Tasks table for any tasks where the assigned_to or created_by field matches the current user's exact username 'bb (vishnukolachery994@gmail.com)'. Results are ordered by priority (high > medium > low), then by due date ascending, and finally by creation date descending to show the most urgent and overdue tasks first."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading tasks...",
+    "progress_hint": "Step: 1"
+  }
+}
+PlanStep : 1
+ToolResult : {
+  "success": false,
+  "error": "Database Error: unrecognized token: \"[\"",
+  "query_index": 0,
+  "failed_query": "[",
+  "partial_results": [],
+  "foreign_keys_on": true
+}
+Step : 2
+
+
+====================================================
+INTERNAL WORKFLOW (LOOP PREVENTION)
+====================================================
+1. **Analyze:** Check `LAST_TOOL_RESULT`. If it confirms your previous action succeeded, mark that step as "completed".
+2. **Termination:** Once the objective is met, immediately transition to `action.type = "complete"`.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return ONLY a valid JSON object DO NOT OUTPUT ANY TEXT OTHER THAN TH BELOW DEFINED JSON . Keep "action" as a dictionary. To call a tool, use `action.type` = "tool_call". To talk to the user, uset `action.type` = "request_user_input" and mark the task as completed with message to user set `action.type` = "completed"
+
+Example Tool Call:
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Analyze requirements",
+        "status": "done",
+        "result": "User wants an agent that builds other agents from natural language"
+      },
+      {
+        "step": 2,
+        "planitem": "Check required tools availability",
+        "status": "done",
+        "result": "All required tools exist: get_database_schema, read_agent_template, save_new_agent, execute_sql"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call|agent_call|request_user_input|completed",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I am checking the current database schema to determine whether new tables are required before creating the agent."
+  },
+  "reasoning": {
+    "summary": "Schema must be verified before generating or requesting table creation."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Inspecting database schema..."
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve tasks from database filtered by current user",
+        "status": "in_progress",
+        "result": "Previous call failed due to incorrect parameter format. Retrying with proper array format."
+      }
+    ],
+    "current_step": "1"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT * FROM Tasks WHERE assigned_to = 'bb (vishnukolachery994@gmail.com)' OR created_by = 'bb (vishnukolachery994@gmail.com)' ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching your tasks from the database..."
+  },
+  "reasoning": {
+    "summary": "The user asked to list their tasks. The previous attempt failed because the queries parameter was passed as a string instead of an array. I am now correcting that and executing the query again."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading tasks...",
+    "progress_hint": "Step: 1"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:50:42 - 
+--------------------------------------------------------------------------------
+AGENT:  TeamTaskManager
+PROMPT:
+====================================================
+AGENT ROLE & IDENTITY
+====================================================
+You are the TASK MANAGEMENT  Agent**. You maintain the tasks created by user in databse tables 
+**Your Mission:**
+Convert natural language requests into precise tool calls.
+
+**Core Directives:**
+1. **Ownership:** You "own" the task until it is marked "Completed".
+2. **Persistence:** If you successfully complete the objective, your next action MUST be to report it to the user and set `action.type` to "complete".
+3. **Efficiency:** NEVER repeat a successful tool call. If `LAST_TOOL_RESULT` shows "Success", move to the next step.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List the user's tasks.
+USER_ID: 1
+USER_ROLE: USER_ROLE- not available
+USER_ROLE_ID: 
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:50:29
+
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+**Tasks table:**
+- id (INTEGER PRIMARY KEY)
+- title (TEXT NOT NULL)
+- description (TEXT)
+- status (TEXT DEFAULT 'open') - values: 'open', 'scheduled', 'in_progress', 'completed', 'cancelled'
+- scheduled_date (DATETIME)
+- due_date (DATETIME)
+- priority (TEXT DEFAULT 'medium') - values: 'low', 'medium', 'high'
+- assigned_to (TEXT)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- completed_at (DATETIME)
+- is_active (BOOLEAN DEFAULT 1)
+
+**TaskNotes table:**
+- id (INTEGER PRIMARY KEY)
+- task_id (INTEGER NOT NULL)
+- note_content (TEXT NOT NULL)
+- created_by (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- is_internal (BOOLEAN DEFAULT 0)
+
+**Functions:**
+- CREATE TASK: Insert into Tasks with required title; optional fields: description, priority, assigned_to, due_date, scheduled_date. Set created_by=USERNAME, status='open'.
+- SCHEDULE TASK: Update Tasks set scheduled_date and status='scheduled' (if open). Use task id or title to identify.
+- CLOSE TASK: Update Tasks set status='completed', completed_at=CURRENT_TIMESTAMP.
+- ADD NOTE: Insert into TaskNotes (task_id, note_content, created_by, is_internal). First find task_id if not provided.
+- LIST TASKS: Select from Tasks with optional filters (status, assigned_to, priority, date ranges). Order by priority (high>med>low), due_date ASC, created_at DESC.
+- SEARCH TASKS: Use LIKE on title and description: WHERE title LIKE '%term%' OR description LIKE '%term%'.
+- BULK ADD: Parse text input where each line defines a task. Extract fields, then create tasks in a transaction.
+
+Use execute_sql tool. Always parameterize queries. Use CURRENT_TIMESTAMP for timestamps when appropriate.
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+- execute_sql
+  Description: Execute a list of SQL queries against the internal SQLite database.
+  Parameters: queries
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "execute_sql", "parameters": {"queries": "<queries>"}}}}
+- get_database_schema
+  Description: Returns the full database schema including all tables and their columns.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "get_database_schema", "parameters": {}}}}
+
+AGENT ACTIVITY LOG :- As Agent activity progresses agent return JSON and Tool call result and user inputs appended here
+for agent to track the statte properly
+Chat history:
+Step : 1
+UserInput : List the user's tasks.
+LLM Result : {
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve tasks from database filtered by current user",
+        "status": "done",
+        "result": "SQL query constructed to fetch tasks where assigned_to or created_by equals the provided username"
+      }
+    ],
+    "current_step": "1"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": "[\"SELECT * FROM Tasks WHERE assigned_to = 'bb (vishnukolachery994@gmail.com)' OR created_by = 'bb (vishnukolachery994@gmail.com)' ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC\"]"
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching your tasks from the database..."
+  },
+  "reasoning": {
+    "summary": "The user asked to list their tasks. I will query the Tasks table for any tasks where the assigned_to or created_by field matches the current user's exact username 'bb (vishnukolachery994@gmail.com)'. Results are ordered by priority (high > medium > low), then by due date ascending, and finally by creation date descending to show the most urgent and overdue tasks first."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading tasks...",
+    "progress_hint": "Step: 1"
+  }
+}
+PlanStep : 1
+ToolResult : {
+  "success": false,
+  "error": "Database Error: unrecognized token: \"[\"",
+  "query_index": 0,
+  "failed_query": "[",
+  "partial_results": [],
+  "foreign_keys_on": true
+}
+Step : 2
+LLM Result : {
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve tasks from database filtered by current user",
+        "status": "in_progress",
+        "result": "Previous call failed due to incorrect parameter format. Retrying with proper array format."
+      }
+    ],
+    "current_step": "1"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT * FROM Tasks WHERE assigned_to = 'bb (vishnukolachery994@gmail.com)' OR created_by = 'bb (vishnukolachery994@gmail.com)' ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching your tasks from the database..."
+  },
+  "reasoning": {
+    "summary": "The user asked to list their tasks. The previous attempt failed because the queries parameter was passed as a string instead of an array. I am now correcting that and executing the query again."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading tasks...",
+    "progress_hint": "Step: 1"
+  }
+}
+PlanStep : 1
+ToolResult : [
+  []
+]
+Step : 3
+
+
+====================================================
+INTERNAL WORKFLOW (LOOP PREVENTION)
+====================================================
+1. **Analyze:** Check `LAST_TOOL_RESULT`. If it confirms your previous action succeeded, mark that step as "completed".
+2. **Termination:** Once the objective is met, immediately transition to `action.type = "complete"`.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return ONLY a valid JSON object DO NOT OUTPUT ANY TEXT OTHER THAN TH BELOW DEFINED JSON . Keep "action" as a dictionary. To call a tool, use `action.type` = "tool_call". To talk to the user, uset `action.type` = "request_user_input" and mark the task as completed with message to user set `action.type` = "completed"
+
+Example Tool Call:
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Analyze requirements",
+        "status": "done",
+        "result": "User wants an agent that builds other agents from natural language"
+      },
+      {
+        "step": 2,
+        "planitem": "Check required tools availability",
+        "status": "done",
+        "result": "All required tools exist: get_database_schema, read_agent_template, save_new_agent, execute_sql"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call|agent_call|request_user_input|completed",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I am checking the current database schema to determine whether new tables are required before creating the agent."
+  },
+  "reasoning": {
+    "summary": "Schema must be verified before generating or requesting table creation."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Inspecting database schema..."
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve tasks from database filtered by current user",
+        "status": "completed",
+        "result": "Query executed successfully; returned an empty result set indicating no tasks exist for this user"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "completed",
+    "message": "Your task list is currently empty. No tasks were found where you are the assignee or creator."
+  },
+  "conversation_update": {
+    "content": "I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment."
+  },
+  "reasoning": {
+    "summary": "The SQL query returned zero rows, so there are no tasks for the given username 'bb (vishnukolachery994@gmail.com)' in either the assigned_to or created_by columns."
+  },
+  "ui_feedback": {
+    "status": "success",
+    "message": "No tasks found"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:52:38 - 
+--------------------------------------------------------------------------------
+AGENT:  Router
+PROMPT:
+﻿ROLE: ROUTER
+
+You are the routing agent. Choose the best agent for the user request.
+If the user input is not related to any of the agents, then send back a warm return greeting message.
+Or if you want more info to make decision you can ask that to the user.
+If the request requires multiple steps or agents, return a list of tasks.
+Order them by priority (lower number = higher priority). You shold call an agent if it is available, 
+otherwise you can call a tool directly now restricted to call file_embedding_tool only to process a file input.
+The system strictly expect exact type and schema as given below. Do not deviate from it.
+Return JSON only.
+Schema for Agent Task:
+{
+  "type": "greeting|request_user_input|agent_call|tool_call",
+  "selected_agent": "string-valid when type is agent_call",
+  "tool_name": "string-valid when type is tool_call",
+  "confidence": "low|medium|high",
+  "parameters": { ... valid when type is tool_call},
+  "reason": "string",
+  "instruction": "string (optional specific instruction for the agent)",
+  "response_to_user": "string",
+  "priority": 1
+}
+
+Schema for Multiple Tasks:
+[
+  { "type": "tool_call", "tool_name": "file_embedding_tool", "parameters": {"file_path": "..."} },
+  { "type": "agent_call", "selected_agent": "ExpenseAgent", "instruction": "Process the receipt...", "priority": 2 }
+]
+
+
+FILE HANDLING INSTRUCTIONS:
+If files are attached:
+1. ALWAYS create a 'tool_call' for 'file_embedding_tool' for EACH file first. This ensures the file is saved and embedded. If user just gave the file or just asked save then this 
+tool is all enough to do that task nothing else needed. 
+2. THEN, if the file content/type matches a specific agent's capabilities (e.g., receipt/invoice -> ExpenseAgent, work order -> WorkOrderAgent):
+   - Create a SECOND task to route the request to that agent.
+   - Use the 'instruction' field to tell the agent to process the file (refer to it by name).
+   - Set priority of the agent task lower (higher number) so it runs AFTER ingestion if possible, or just same batch.
+3. If no specific agent matches the file type, only the ingestion tool calls are needed.
+
+Available agents:
+[
+  {
+    "name": "file_manager",
+    "description": "Handle file listing, inspection, reading, copying, and moving."
+  },
+  {
+    "name": "attendance_manager",
+    "description": "Manage attendance, breaks, and leaves. Records check-ins/outs with timestamps and location."
+  },
+  {
+    "name": "holiday_manager",
+    "description": "Manage company-wide holiday list: create, list, update, and delete holidays."
+  },
+  {
+    "name": "agent_creation",
+    "description": "Helps admins design and create new AI agents by checking tools, planning DB schemas, and writing prompts."
+  },
+  {
+    "name": "TeamTaskManager",
+    "description": "AI agent for team task management: create, schedule, close tasks; add notes; list, search tasks; bulk add from text."
+  }
+]
+
+Available tools (for simple queries):
+- get_database_schema: Returns the full database schema including all tables and their columns.
+- list_available_tools: Returns a list of all tools currently registered in the system along with their descriptions and schemas.
+- read_agent_template: Reads the standard agent prompt template file that should be used as the base
+- save_new_agent: Saves a newly designed agent directly into the database so it can be used by the system.
+- execute_sql: Execute a list of SQL queries against the internal SQLite database.
+- call_tool: 
+- get_tool: 
+- list_tools: 
+- get_embedding_model: 
+- ingest_file: Ingest a file into the knowledge base (copy, index, and embed).
+- search_files: Search for files using semantic search (vector embeddings).
+- copy_file: Copy a file from source to destination.
+- inspect_file: Get detailed metadata about a file.
+- list_directory: List the contents of a directory.
+- move_file: Move a file from source to destination.
+- read_file: Read the content of a file (Text or PDF).
+- file_ingestion: Ingest a file into the knowledge base (copy, index, and embed).
+- file_embedding_tool: Ingest a file into the knowledge base (copy, index, and embed).
+
+Tool Output (if any):
+
+
+User prompt:
+list holidays
+
+Chat history:
+User: List my tasks
+Assistant: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+
+RESULT:
+{
+  "type": "agent_call",
+  "selected_agent": "holiday_manager",
+  "confidence": "high",
+  "reason": "The user requested to list holidays, which aligns perfectly with the holiday_manager agent's capability to manage and retrieve company-wide holiday lists.",
+  "instruction": "List all company holidays with their dates and names.",
+  "response_to_user": "I'm fetching the list of holidays for you.",
+  "priority": 1
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:52:51 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:52:38
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Fetch all holidays with dates and names from HolidayList table"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SELECT query for holiday_date and holiday_name\n2. Execute query ordered by holiday_date ASC\n3. Return results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Retrieving all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with their dates and names. I'm executing a SELECT query on the HolidayList table to retrieve only the holiday_date and holiday_name columns, ordered by date ascending for clarity."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list from database...",
+    "progress_hint": "Running SELECT query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:53:13 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:52:51
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["List all company holidays with dates and names"],
+    "completed_steps": [],
+    "current_step": "Execute SQL query",
+    "revised_plan": "1. Construct SELECT query for HolidayList 2. Execute via execute_sql tool 3. Format and present results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching all company holidays with dates and names from the database."
+  },
+  "reasoning": {
+    "summary": "User requested a list of all company holidays with dates and names. Executing a safe SELECT query on HolidayList, ordered by holiday_date ASC to meet the requirement."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday list...",
+    "progress_hint": "Running SQL query on HolidayList"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:53:25 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:53:13
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching the list of company holidays..."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names. We are executing a SELECT query to retrieve the required data, ordering by holiday_date as per guidelines."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:53:56 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:53:25
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["List all company holidays with dates and names"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SELECT query for HolidayList\n2. Order by holiday_date ASC\n3. Return results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching holiday list..."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with their dates and names. Executing a simple SELECT on HolidayList ordered by date to fulfill this request."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday calendar...",
+    "progress_hint": "Querying HolidayList table"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:54:07 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:53:56
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate user intent", "Execute SQL to fetch holidays", "Return formatted results"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SELECT query for holiday_date and holiday_name\n2. Order by holiday_date ASC\n3. Execute single SQL statement"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Retrieving all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with their dates and names. Simple SELECT query with date ordering provides the required information efficiently."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Querying HolidayList table"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:54:17 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:54:07
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["List all holidays from HolidayList table"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SELECT query for holidays ordered by date."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching all company holidays with dates and names..."
+  },
+  "reasoning": {
+    "summary": "User requested a list of all holidays; performing SELECT on HolidayList."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday list...",
+    "progress_hint": "Running SELECT query"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:54:37 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:54:17
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL for listing all holidays\n2. Execute SQL via tool\n3. Report results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching the complete holiday list for you..."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names. This is a simple SELECT operation requiring all rows from HolidayList, ordered by date."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday data from calendar...",
+    "progress_hint": "Executing database query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:54:44 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:54:37
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["List holidays"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SELECT query for HolidayList 2. Execute 3. Return results"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:55:57 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:54:45
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["Execute SQL", "Present results"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Execute SQL to fetch holidays.\n2. Format and present the results."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching the list of company holidays..."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names. Executing a SELECT query on HolidayList table to retrieve the required columns and ordering by date."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:56:08 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:55:57
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SELECT query\n2. Execute SQL\n3. Report result to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching all company holidays sorted by date."
+  },
+  "reasoning": {
+    "summary": "User requested a list of all holidays with dates and names. A single SELECT query with ORDER BY holiday_date ASC will retrieve this efficiently."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday list...",
+    "progress_hint": "Running database query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:56:35 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:56:08
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate user intent", "Execute SQL query", "Format and return results"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Execute SELECT query to retrieve all holidays with dates and names, ordered by date."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Retrieving all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested to see all company holidays with their dates and names. I will execute a SELECT query that retrieves only the requested columns (holiday_date and holiday_name) and orders them chronologically for clarity."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list from database...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:56:54 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:56:35
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["List all company holidays with dates and names"],
+    "completed_steps": [],
+    "current_step": "Execute SQL query to retrieve holidays",
+    "revised_plan": "1. Construct SQL to select holiday_date and holiday_name from HolidayList ordered by date. 2. Execute via tool_call. 3. Based on tool result, report to user with action.type 'complete'."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested to list all holidays; executing a SELECT query on HolidayList with ordering by holiday_date to provide dates and names."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday list from database...",
+    "progress_hint": "Running SQL query to fetch holidays"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:57:12 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:56:54
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL query to select all holidays ordered by date.\n2. Execute the query using execute_sql tool.\n3. After retrieving results, present them to the user with action.type = 'complete'."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with their dates and names. The appropriate operation is a SELECT query on the HolidayList table, ordered by holiday_date for chronological display."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:57:39 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:57:13
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Retrieve all holidays from the HolidayList table"],
+    "completed_steps": [],
+    "current_step": "Execute SQL query",
+    "revised_plan": "1. Execute SELECT query for holiday_date and holiday_name\n2. Order results by holiday_date ASC\n3. Return formatted results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching the holiday list now..."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names. The query selects only the required columns (holiday_date and holiday_name) from the HolidayList table and orders chronologically for clear presentation."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday data...",
+    "progress_hint": "Executing SQL query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:57:54 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:57:39
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["Retrieve holiday list from database"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL query to select holiday_date and holiday_name\n2. Execute SQL\n3. Return results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching holiday list..."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names. We are executing a SELECT query on HolidayList table to retrieve holiday_date and holiday_name, ordered by date."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:59:02 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:57:54
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL to retrieve holiday_date and holiday_name from HolidayList ordered by date ASC\n2. Execute the query\n3. Return formatted results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Retrieving all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested a list of all company holidays showing dates and names. Simple SELECT query from HolidayList with ordering by date ASC. Selecting only the requested columns (holiday_date, holiday_name) for clarity."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list from database...",
+    "progress_hint": "Executing SELECT query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:59:10 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:59:02
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": ["Validate intent"],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL query to fetch holidays\n2. Execute query to get holiday list\n3. Format results for user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested to see all holidays. Simple SELECT operation retrieves holiday_date and holiday_name ordered chronologically."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list from database...",
+    "progress_hint": "Running SELECT query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 10:59:28 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:59:10
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL query to select holiday_date and holiday_name from HolidayList ordered by holiday_date.\n2. Execute the query using execute_sql.\n3. Return the results to the user."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested a list of all company holidays with dates and names. Executing a SELECT query to retrieve holiday_date and holiday_name ordered by date."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:59:35 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:59:28
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["Execute SQL query to retrieve all holiday dates and names ordered by date"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SELECT query for holiday_date and holiday_name from HolidayList ordered by holiday_date ASC\n2. Execute single SQL query\n3. Report results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested a list of all company holidays including dates and names. This requires a simple SELECT query from HolidayList table with ordering by date."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list from database...",
+    "progress_hint": "Executing SELECT query on HolidayList"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 10:59:55 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:59:36
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": ["Validate intent"],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SELECT query for HolidayList with date and name columns, ordered by date\n2. Execute SQL\n3. Report formatted results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names. This is a straightforward SELECT operation on HolidayList table. We only need the holiday_date and holiday_name columns as specified, and we order by holiday_date ASC as per SQL rules."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday list from database...",
+    "progress_hint": "Executing SELECT query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 11:00:09 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 10:59:56
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["Validate user request", "Generate SQL query", "Execute query", "Return results"],
+    "completed_steps": [],
+    "current_step": "Execute query",
+    "revised_plan": "1. Build SELECT query for holiday_date and holiday_name\n2. Execute using execute_sql\n3. Return results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Retrieving the list of holidays with their dates and names."
+  },
+  "reasoning": {
+    "summary": "The user wants to see all company holidays with dates and names. I will query the HolidayList table to get these columns, ordered by date."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 11:00:17 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 11:00:09
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL query to select holiday_date and holiday_name from HolidayList ordered by date.\n2. Execute query using execute_sql.\n3. Return results to user."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching holiday list..."
+  },
+  "reasoning": {
+    "summary": "User requested a list of all company holidays with dates and names. Simple SELECT with ordering will satisfy this."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving holiday data...",
+    "progress_hint": "Running database query"
+  }
+}
+--------------------------------------------------------------------------------
+
+2026-02-25 11:00:33 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 11:00:17
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL query to fetch all holidays ordered by date.\n2. Execute the query via execute_sql tool.\n3. Present results to user."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT * FROM HolidayList ORDER BY holiday_date ASC;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing all holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested to see all company holidays with their dates and names. The appropriate operation is a SELECT on HolidayList with ordering by holiday_date."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list from database...",
+    "progress_hint": "Running SELECT query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 11:00:47 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 11:00:33
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL query to select holidays\n2. Execute query\n3. Return results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching holiday list from the database."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names. Executing a SELECT query on HolidayList table ordered by date."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading holidays...",
+    "progress_hint": "Running database query"
+  }
+}
+```
+--------------------------------------------------------------------------------
+
+2026-02-25 11:01:04 - 
+--------------------------------------------------------------------------------
+AGENT:  holiday_manager
+PROMPT:
+You are the **HolidayManager Agent**. You manage the company-wide holiday calendar.
+
+**Your Mission:**
+Convert natural language requests into safe, precise SQL operations for `HolidayList`.
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: List all company holidays with their dates and names.
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-25 11:00:47
+CHAT_HISTORY: User: List my tasks
+Agent: I've checked your tasks. You don't have any tasks assigned to you or created by you at the moment.
+User: list holidays
+
+ACTIVE_PLAN: PLAN- not available
+COMPLETED_STEPS: COMPLETED_STEPS- not available
+LAST_TOOL_RESULT: TOOL_OUTPUT- not available
+LAST_ACTION: LAST_ACTION- not available
+
+====================================================
+DATABASE SCHEMA REFERENCE
+====================================================
+Use this table:
+- HolidayList: (id, holiday_date, holiday_name, holiday_type, description, is_optional, created_by, updated_by, created_at, updated_at)
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+Tool Name (must match executor): `execute_sql`
+
+Expected parameters:
+- `queries`: array of SQL statements (strings)
+
+Expected result format:
+- Returns a list with one item per query.
+- For `SELECT`: item is a list of row objects (dictionaries).
+  - Example: `[{"holiday_date": "2026-01-26", "holiday_name": "Republic Day"}]`
+- For `INSERT`/`UPDATE`/`DELETE`/DDL: item is a success string.
+  - Example: `"Success. Rows affected: 1"`
+
+Tool-call contract:
+- Use:
+  - `action.type = "tool_call"`
+  - `action.tool_request.tool_name = "execute_sql"`
+  - `action.tool_request.parameters.queries = [...]`
+- Do not use any other tool name.
+
+====================================================
+ALLOWED OPERATIONS
+====================================================
+- List holidays (date range, month/year, all upcoming)
+- Add holiday
+- Update holiday
+- Delete holiday
+
+====================================================
+SQL RULES
+====================================================
+- Always target the `HolidayList` table only for holiday operations.
+- Optimize for minimum tool calls. Prefer one `tool_call` with batched SQL in `queries`.
+- For INSERT:
+  - Set `created_by = USER_ID`
+  - Use explicit date in `YYYY-MM-DD` format.
+- For UPDATE:
+  - Set `updated_by = USER_ID`
+  - Set `updated_at = CURRENT_TIMESTAMP`
+- For DELETE:
+  - Delete by `id` when possible; otherwise by exact `holiday_date`.
+- For LIST:
+  - Use ordered output by `holiday_date ASC`.
+
+====================================================
+BULK INPUT HANDLING (IMPORTANT)
+====================================================
+- If USER_INPUT includes multiple holidays in one message, process all of them in a single `tool_call`.
+- Put all SQL statements into one `queries` array and execute together.
+- Do not split one user request into many separate tool calls unless clarification is required.
+- Use bulk add as far as possible 
+-Include multiple UPDATE/DELETE statements in the same `queries` array.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return a valid JSON object and keep "action" as a dictionary.
+When reporting final results to the user, you MUST set `action.type` to `"complete"`.
+Never use `null`, `"none"`, or `"response"` for `action.type`.
+IT IS VERY IMPORTANT TO INCLUDE "action" segment in the response. OTHERWISE THE SYSTEM WILL NOT WORK.
+
+Example:
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL\n2. Execute SQL\n3. Report result"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT * FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Listing holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested holiday list retrieval."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query"
+  }
+}
+```
+RESULT:
+{
+  "plan": {
+    "original_plan": ["Retrieve holiday list from database"],
+    "completed_steps": [],
+    "current_step": "Execute SQL query",
+    "revised_plan": "1. Construct SQL query to select holiday_date and holiday_name from HolidayList ordered by holiday_date ASC.\n2. Execute the query using execute_sql tool.\n3. After execution, report results to user."
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching the list of company holidays now."
+  },
+  "reasoning": {
+    "summary": "User requested to list all company holidays with dates and names. I am executing a SELECT query on the HolidayList table to retrieve holiday_date and holiday_name, ordered by holiday_date ascending, as per SQL rules for listing."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list...",
+    "progress_hint": "Running SQL query to retrieve holidays"
+  }
+}
+--------------------------------------------------------------------------------
+

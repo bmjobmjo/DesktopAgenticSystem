@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "TeamTaskManager",
+  "confidence": "high",
+  "reason": "The user wants to bulk-add weekly tasks. TeamTaskManager agent specifically supports creating tasks from a given text.",
+  "instruction": "Please bulk-add the following tasks to the task manager. Parse the list to extract titles, descriptions, assignees (names like Bipin, Abhishek, Jishnu, Vishnu, Satheerth), and status notes (e.g., 'done', 'working', 'to complete'). The date '16-02-2026' is the week reference; you may use it for scheduling if appropriate. Add all tasks exactly as provided:\n\n2. Make arrangement with Bipin IVA\n15. Water pressure measurement kit\n23. Fix whatsapPA issue\n24. Test Kiwi K2 for sleep analysis\n26. Generic agent POC- working\n27. AI Camera ESP32 Thinker to complete\n28. AI Cam S3 Model to complete\n32. Pay House Tax online\n33. Pay land tax for all properties\n39. CNN training for synthesize PPG from PVDF--working continuing\n40. AIKON Alert Listing screen\n43. Stimulator suppressing spikes --working\n44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done\n45. NEERS New Stimulator schematic in propert software- Abhishek\n46. NEERS New Stimulator PCB - Abhishek\n47. PVDF PCB create inhouse- Jishnu\n48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu\n49. PVDF Training data collection make it wireless to reduce noise\n50. Alarm Interface design -Vishnu/Satheerth\n51. BP PCB to do inhouse-Satheerth\n52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration",
+  "response_to_user": "I'm adding your weekly tasks to the task manager now.",
+  "priority": 1
+}

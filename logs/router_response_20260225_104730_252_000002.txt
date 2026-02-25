@@ -1,0 +1,10 @@
+[  {
+    "type": "agent_call",
+    "selected_agent": "TeamTaskManager",
+    "confidence": "high",
+    "reason": "The user requested to list tasks, which directly matches the TeamTaskManager's core functionality for task listing and management.",
+    "instruction": "List the user's tasks.",
+    "response_to_user": "Retrieving your task list now...",
+    "priority": 1
+  }
+]

@@ -1,0 +1,56 @@
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Analyze requirements for the team task manager agent",
+        "status": "in_progress",
+        "result": "Agent needs: create, schedule, close tasks; add notes; list tasks; search tasks; bulk add from text. Requires database schema for tasks and notes, tools for database operations and file handling."
+      },
+      {
+        "step": 2,
+        "planitem": "Check current database schema",
+        "status": "pending",
+        "result": null
+      },
+      {
+        "step": 3,
+        "planitem": "Propose database table structure and request permission to create",
+        "status": "pending",
+        "result": null
+      },
+      {
+        "step": 4,
+        "planitem": "Read agent template after user approval",
+        "status": "pending",
+        "result": null
+      },
+      {
+        "step": 5,
+        "planitem": "Build agent prompt and save new agent",
+        "status": "pending",
+        "result": null
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I'm analyzing your requirements for a team task management agent. To build this agent, I'll need to check the current database schema to determine if new tables are required. Let me inspect the existing schema first."
+  },
+  "reasoning": {
+    "summary": "The agent requires persistent storage for tasks and notes. I need to see what tables already exist in the database to plan the schema properly."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Checking database schema..."
+  }
+}
+```

@@ -1,0 +1,7 @@
+{
+  "type": "request_user_input",
+  "confidence": "low",
+  "reason": "User message is unclear and may contain typos ('ha try gain' possibly meaning 'have you tried again' or 'hey try again', and 'mage tasks' likely meaning 'manage tasks'). It references enabling an agent for task management, but no specific action or clear request is provided.",
+  "response_to_user": "I understand you mentioned enabling an agent for task management. Could you please clarify what you'd like to do? For example, do you want to create, list, or update tasks using the TeamTaskManager agent? If you have a list of tasks from earlier, I can help process them.",
+  "priority": 1
+}

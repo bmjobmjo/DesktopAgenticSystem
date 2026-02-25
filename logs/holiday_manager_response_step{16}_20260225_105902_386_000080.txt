@@ -1,0 +1,30 @@
+```json
+{
+  "plan": {
+    "original_plan": ["Validate intent", "Execute SQL", "Confirm result"],
+    "completed_steps": [],
+    "current_step": "Execute SQL",
+    "revised_plan": "1. Build SQL to retrieve holiday_date and holiday_name from HolidayList ordered by date ASC\n2. Execute the query\n3. Return formatted results to user"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": ["SELECT holiday_date, holiday_name FROM HolidayList ORDER BY holiday_date ASC;"]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Retrieving all company holidays with dates and names."
+  },
+  "reasoning": {
+    "summary": "User requested a list of all company holidays showing dates and names. Simple SELECT query from HolidayList with ordering by date ASC. Selecting only the requested columns (holiday_date, holiday_name) for clarity."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Fetching holiday list from database...",
+    "progress_hint": "Executing SELECT query"
+  }
+}
+```

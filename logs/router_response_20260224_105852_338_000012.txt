@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "TeamTaskManager",
+  "confidence": "high",
+  "reason": "User wants to list their tasks.",
+  "instruction": "List all tasks from the database.",
+  "response_to_user": "",
+  "priority": 1
+}

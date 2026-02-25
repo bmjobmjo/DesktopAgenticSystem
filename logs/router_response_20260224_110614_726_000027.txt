@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "TeamTaskManager",
+  "confidence": "high",
+  "reason": "The user wants to mark specific tasks as closed, which is a task management operation handled by TeamTaskManager.",
+  "instruction": "Mark tasks with IDs 1, 11, and 13 as closed. Use the task IDs from the database.",
+  "response_to_user": "Marking tasks 1, 11, and 13 as closed.",
+  "priority": 1
+}

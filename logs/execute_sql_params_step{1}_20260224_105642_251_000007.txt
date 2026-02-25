@@ -1,0 +1,25 @@
+{
+  "queries": [
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Make arrangement with Bipin IVA', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Water pressure measurement kit', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Fix whatsapPA issue', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Test Kiwi K2 for sleep analysis', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Generic agent POC- working', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('AI Camera ESP32 Thinker to complete', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('AI Cam S3 Model to complete', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Pay House Tax online', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Pay land tax for all properties', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('CNN training for synthesize PPG from PVDF--working continuing', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('AIKON Alert Listing screen', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Stimulator suppressing spikes --working', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Luxi- Adjust code to shift MAT color grid top to bottom switching--done', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('NEERS New Stimulator schematic in propert software', 'scheduled', '2026-02-16', 'bb', 'Abhishek');",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('NEERS New Stimulator PCB', 'scheduled', '2026-02-16', 'bb', 'Abhishek');",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('PVDF PCB create inhouse', 'scheduled', '2026-02-16', 'bb', 'Jishnu');",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('VSM Motherboard design using STM32H723', 'scheduled', '2026-02-16', 'bb', 'Jishnu/Vishnu');",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('PVDF Training data collection make it wireless to reduce noise', 'scheduled', '2026-02-16', 'bb', NULL);",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('Alarm Interface design', 'scheduled', '2026-02-16', 'bb', 'Vishnu/Satheerth');",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('BP PCB to do inhouse', 'scheduled', '2026-02-16', 'bb', 'Satheerth');",
+    "INSERT INTO Tasks (title, status, scheduled_date, created_by, assigned_to) VALUES ('NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration', 'scheduled', '2026-02-16', 'bb', NULL);"
+  ]
+}

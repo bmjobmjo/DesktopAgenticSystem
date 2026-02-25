@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "error": "Database Error: near \"U\": syntax error",
+  "query_index": 0,
+  "failed_query": "U",
+  "partial_results": [],
+  "foreign_keys_on": true
+}

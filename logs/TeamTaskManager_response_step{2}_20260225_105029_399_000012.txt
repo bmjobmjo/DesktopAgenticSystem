@@ -1,0 +1,37 @@
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve tasks from database filtered by current user",
+        "status": "in_progress",
+        "result": "Previous call failed due to incorrect parameter format. Retrying with proper array format."
+      }
+    ],
+    "current_step": "1"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT * FROM Tasks WHERE assigned_to = 'bb (vishnukolachery994@gmail.com)' OR created_by = 'bb (vishnukolachery994@gmail.com)' ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Fetching your tasks from the database..."
+  },
+  "reasoning": {
+    "summary": "The user asked to list their tasks. The previous attempt failed because the queries parameter was passed as a string instead of an array. I am now correcting that and executing the query again."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Loading tasks...",
+    "progress_hint": "Step: 1"
+  }
+}
+```

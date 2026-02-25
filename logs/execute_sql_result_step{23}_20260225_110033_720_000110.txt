@@ -1,0 +1,148 @@
+[
+  [
+    {
+      "id": 1,
+      "holiday_date": "2026-01-26",
+      "holiday_name": "Republic Day",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 2,
+      "holiday_date": "2026-03-20",
+      "holiday_name": "Eid ul fitr",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 3,
+      "holiday_date": "2026-04-03",
+      "holiday_name": "Good Friday",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 4,
+      "holiday_date": "2026-04-15",
+      "holiday_name": "Vishu",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": "2026-02-19 12:15:14"
+    },
+    {
+      "id": 5,
+      "holiday_date": "2026-05-01",
+      "holiday_name": "May Day",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 6,
+      "holiday_date": "2026-06-26",
+      "holiday_name": "Muharam",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 7,
+      "holiday_date": "2026-08-25",
+      "holiday_name": "First Onam",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 8,
+      "holiday_date": "2026-08-26",
+      "holiday_name": "Thiruvonam (Onam)",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 9,
+      "holiday_date": "2026-10-02",
+      "holiday_name": "Gandhi Jayanti",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 10,
+      "holiday_date": "2026-10-20",
+      "holiday_name": "Maha Navami",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 11,
+      "holiday_date": "2026-10-21",
+      "holiday_name": "vijayadashami",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    },
+    {
+      "id": 12,
+      "holiday_date": "2026-12-25",
+      "holiday_name": "Christmas Day",
+      "holiday_type": "Company",
+      "description": null,
+      "is_optional": 0,
+      "created_by": 1,
+      "updated_by": 1,
+      "created_at": "2026-02-18 13:32:23",
+      "updated_at": null
+    }
+  ]
+]

@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "error": "Database Error: unrecognized token: \"[\"",
+  "query_index": 0,
+  "failed_query": "[",
+  "partial_results": [],
+  "foreign_keys_on": true
+}

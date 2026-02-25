@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "TeamTaskManager",
+  "confidence": "high",
+  "reason": "User requested to mark specific tasks as closed. TeamTaskManager is responsible for task updates and status changes.",
+  "instruction": "Update the status of tasks with IDs 13, 1, and 11 to 'closed'.",
+  "response_to_user": "Marking tasks 13, 1, and 11 as closed.",
+  "priority": 1
+}

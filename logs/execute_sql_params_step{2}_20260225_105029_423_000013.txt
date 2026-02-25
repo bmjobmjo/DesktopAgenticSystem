@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "SELECT * FROM Tasks WHERE assigned_to = 'bb (vishnukolachery994@gmail.com)' OR created_by = 'bb (vishnukolachery994@gmail.com)' ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, due_date ASC, created_at DESC"
+  ]
+}
