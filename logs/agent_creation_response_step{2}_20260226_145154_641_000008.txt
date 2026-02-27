@@ -1,0 +1,10 @@
+<tool_call>
+<function=call_tool>
+<parameter=name>
+read_agent_template
+</parameter>
+<parameter=parameters>
+{}
+</parameter>
+</function>
+</tool_call>

@@ -1,6 +1,0 @@
-{
-  "queries": [
-    "CREATE TABLE IF NOT EXISTS Tasks (\n    id INTEGER PRIMARY KEY,\n    title TEXT NOT NULL,\n    description TEXT,\n    status TEXT DEFAULT 'open',\n    scheduled_date DATETIME,\n    due_date DATETIME,\n    priority TEXT DEFAULT 'medium',\n    assigned_to TEXT,\n    created_by TEXT,\n    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n    completed_at DATETIME,\n    is_active BOOLEAN DEFAULT 1\n);",
-    "CREATE TABLE IF NOT EXISTS TaskNotes (\n    id INTEGER PRIMARY KEY,\n    task_id INTEGER NOT NULL,\n    note_content TEXT NOT NULL,\n    created_by TEXT,\n    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n    is_internal BOOLEAN DEFAULT 0,\n    FOREIGN KEY (task_id) REFERENCES Tasks(id) ON DELETE CASCADE\n);"
-  ]
-}

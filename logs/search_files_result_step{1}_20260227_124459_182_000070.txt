@@ -1,0 +1,11 @@
+[
+  {
+    "file_id": 12,
+    "filename": "VSM Smart Display UART AT Protocol.pdf",
+    "path": "..\\..\\..\\IVA\\VSM Smart Display UART AT Protocol.pdf",
+    "description": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "match_type": "text",
+    "snippet": "VSM Smart Display UART AT Protocol  \nEvent -Driven Display Interface Specification  \nVersion 1.1 \u2014 Revised  \n \n1. Purpose and Device Overview  \n1.1 System Objective  \nThis protocol defines a structure",
+    "score": 0.35949672776378505
+  }
+]

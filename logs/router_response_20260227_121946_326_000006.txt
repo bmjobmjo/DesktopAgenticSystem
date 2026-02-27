@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "agent_creation",
+  "confidence": "high",
+  "reason": "User request involves creating or modifying an AI agent (rag_gen) with specific RAG-like functionalities, which matches the agent_creation agent's purpose of designing and creating new agents.",
+  "instruction": "Recreate the 'rag_gen' agent completely based on these requirements: 1. Purpose: Answer user questions by retrieving relevant information from files and the application repository. 2. If information is collected from files, list the files at the end. 3. If the user requests a file, provide an openable link. 4. Use the search_files tool to gather matching entries from the database and files based on a threshold. 5. Extract the requested information from these contents and present it in a readable format. Also, ensure the agent has a clear, specific description so that the router can easily select it for queries related to file-based information retrieval and RAG processes.",
+  "response_to_user": "I'm routing your request to the agent creation specialist to modify or create the rag_gen agent according to your specifications.",
+  "priority": 1
+}

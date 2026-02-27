@@ -1,0 +1,1691 @@
+====================================================
+AGENT ROLE & IDENTITY
+====================================================
+You are the **AgentCreationAgent**. You help system administrators build and deploy new AI agents.
+
+**Your Mission:**
+Convert natural language requirements into new agent configurations, including prompt engineering and database schema creation.
+
+**Core Directives:**
+1. **Ownership:** You "own" the task until the new agent is successfully saved.
+2. **Efficiency:** Never repeat successful database checks or tool checks.
+3. **Inquiry Mode:** If the user is just asking questions or exploring options (e.g. "Can you make an agent that does X?"), answer their questions, explain what tools/tables would be needed, and STOP. Ask them "Should I go ahead and create this agent?"
+4. **Safety:** ALWAYS ask the user for permission with exact SQL BEFORE running the `execute_sql` tool to create new tables. Wait for their explicit "yes" in the next prompt.
+5. Avaiable Tools List is giving below to make your analysis faster . SO DO NOT ISSUE A TOOL CALL FOR THAT 
+
+====================================================
+INJECTED EXECUTION CONTEXT (READ-ONLY)
+====================================================
+USER_INPUT: yes proceed
+USER_ID: 1
+USERNAME: bb (vishnukolachery994@gmail.com)
+SYSTEM_TIME: 2026-02-26 16:27:32
+
+====================================================
+AVAILABLE TOOLS
+====================================================
+
+- call_tool
+  Description: No description.
+  Parameters: name, parameters
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "call_tool", "parameters": {"name": "<name>", "parameters": "<parameters>"}}}}
+- copy_file
+  Description: Copy a file from source to destination.
+  Parameters: source_path, destination_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "copy_file", "parameters": {"source_path": "<source_path>", "destination_path": "<destination_path>"}}}}
+- execute_sql
+  Description: Execute a list of SQL queries against the internal SQLite database.
+  Parameters: queries
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "execute_sql", "parameters": {"queries": "<queries>"}}}}
+- get_database_schema
+  Description: Returns the full database schema including all tables and their columns.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "get_database_schema", "parameters": {}}}}
+- inspect_file
+  Description: Get detailed metadata about a file.
+  Parameters: file_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "inspect_file", "parameters": {"file_path": "<file_path>"}}}}
+- list_directory
+  Description: List the contents of a directory.
+  Parameters: directory_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "list_directory", "parameters": {"directory_path": "<directory_path>"}}}}
+- list_tools
+  Description: No description.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "list_tools", "parameters": {}}}}
+- move_file
+  Description: Move a file from source to destination.
+  Parameters: source_path, destination_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "move_file", "parameters": {"source_path": "<source_path>", "destination_path": "<destination_path>"}}}}
+- read_agent_template
+  Description: Reads the standard agent prompt template file that should be used as the base
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "read_agent_template", "parameters": {}}}}
+- read_file
+  Description: Read the content of a file (Text or PDF).
+  Parameters: file_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "read_file", "parameters": {"file_path": "<file_path>"}}}}
+- save_new_agent
+  Description: Saves a newly designed agent directly into the database so it can be used by the system.
+  Parameters: name, description, prompt_content
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "save_new_agent", "parameters": {"name": "<name>", "description": "<description>", "prompt_content": "<prompt_content>"}}}}
+- search_files
+  Description: Search for files using semantic search (vector embeddings).
+  Parameters: query, top_k
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "search_files", "parameters": {"query": "<query>", "top_k": "<top_k>"}}}}
+
+AGENT ACTIVITY LOG :- As Agent activity progresses agent return JSON and Tool call result and user inputs appended here
+for agent to track the statte properly
+Chat history:
+agent_creation: UserInput : Design and create an agent that can: 1) Manage users (add, edit) with required role assignment (provide a default role), status (active/deleted), and departmentID. 2) Create and manage roles, and assign users to roles (clarify if 'assign agents to roles' was intended). 3) Create and manage projects with fields: projID, ProjName, description, descembeddings (likely for semantic search of project descriptions), startDate, endDate, Status. 4) Manage departments (add, edit) with a department table (departmentID and department name). Also, modify the existing user table to include status and departmentID fields. Plan the database schema, consider vector storage for 'descembeddings', and write the agent's prompt. Use tools like get_database_schema to inspect current structure and save_new_agent to deploy the new agent.
+agent_creation: Step : 2
+agent_creation: LLM Result : {
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve current database schema",
+        "status": "in_progress"
+      },
+      {
+        "step": 2,
+        "planitem": "Clarify user/agent role assignment ambiguity",
+        "status": "pending"
+      },
+      {
+        "step": 3,
+        "planitem": "Design full database schema including new tables and modifications",
+        "status": "pending"
+      },
+      {
+        "step": 4,
+        "planitem": "Request permission for SQL execution",
+        "status": "pending"
+      },
+      {
+        "step": 5,
+        "planitem": "Read agent template and craft prompt",
+        "status": "pending"
+      },
+      {
+        "step": 6,
+        "planitem": "Save new agent",
+        "status": "pending"
+      }
+    ],
+    "current_step": "1"
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I'm checking the current database schema to understand the existing structure. I also need to clarify an important point: Should the agent manage assignment of human users to roles, or assignment of AI agents (other agents) to roles? The requirement states 'assign users to roles' but includes a note to clarify if 'assign agents to roles' was intended.\n\nOnce I have the schema, I'll present a complete plan for the required tables and modifications, and then ask for your permission to execute the SQL."
+  },
+  "reasoning": {
+    "summary": "Need to inspect current schema to determine existing tables and columns before planning modifications. Also need clarification on the role assignment target."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Retrieving database schema and seeking clarification...",
+    "progress_hint": "Step: 1"
+  }
+}
+agent_creation: PlanStep : 1
+agent_creation: ToolResult : {
+  "success": true,
+  "schema": {
+    "Projects": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "name",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "budget_limit",
+        "type": "REAL",
+        "notnull": false,
+        "default_value": "0.0",
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "current_spending",
+        "type": "REAL",
+        "notnull": false,
+        "default_value": "0.0",
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "status",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": "'active'",
+        "pk": false
+      }
+    ],
+    "Breaks": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "user_id",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "start_time",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "end_time",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "duration_minutes",
+        "type": "REAL",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "Leaves": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "user_id",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "leave_type",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "start_date",
+        "type": "DATE",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "end_date",
+        "type": "DATE",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "reason",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "is_partial",
+        "type": "BOOLEAN",
+        "notnull": false,
+        "default_value": "0",
+        "pk": false
+      },
+      {
+        "cid": 7,
+        "name": "status",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": "'PENDING'",
+        "pk": false
+      },
+      {
+        "cid": 8,
+        "name": "created_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      }
+    ],
+    "Documents": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "file_name",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "file_path",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "file_type",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "content",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "tags",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "upload_date",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      }
+    ],
+    "Notifications": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "user_id",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "message",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "is_sent",
+        "type": "BOOLEAN",
+        "notnull": false,
+        "default_value": "0",
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "created_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      }
+    ],
+    "Attendance": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "user_id",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "check_in_time",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "check_out_time",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "check_in_location",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "check_out_location",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "total_hours",
+        "type": "REAL",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 7,
+        "name": "status",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 8,
+        "name": "LateByMinutes",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "HoliDays": [
+      {
+        "cid": 0,
+        "name": "Title",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 1,
+        "name": "Date",
+        "type": "DATE",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "Agents": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "name",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "description",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "prompt_content",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "notnull": false,
+        "default_value": "1",
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "created_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "version",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": "1",
+        "pk": false
+      }
+    ],
+    "LLMUsage": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "timestamp",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "user_prompt",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "agent_name",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "prompt",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "response",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "token_in",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 7,
+        "name": "token_out",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 8,
+        "name": "total_tokens",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 9,
+        "name": "provider",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 10,
+        "name": "model_name",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "Roles": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "name",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "description",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "RoleAgents": [
+      {
+        "cid": 0,
+        "name": "role_id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "agent_id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      }
+    ],
+    "Users": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "email",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "chat_id",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "full_name",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "department",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "leave_balance",
+        "type": "REAL",
+        "notnull": false,
+        "default_value": "20.0",
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "notnull": false,
+        "default_value": "1",
+        "pk": false
+      },
+      {
+        "cid": 7,
+        "name": "registration_timestamp",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 8,
+        "name": "FirstName",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 9,
+        "name": "LastName",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 10,
+        "name": "shiftID",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 11,
+        "name": "role_id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "HolidayList": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "holiday_date",
+        "type": "DATE",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "holiday_name",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "holiday_type",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": "'Company'",
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "description",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "is_optional",
+        "type": "BOOLEAN",
+        "notnull": true,
+        "default_value": "0",
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "created_by",
+        "type": "INTEGER",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 7,
+        "name": "updated_by",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 8,
+        "name": "created_at",
+        "type": "DATETIME",
+        "notnull": true,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 9,
+        "name": "updated_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "Files": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "file_path",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "filename",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "file_type",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "file_size",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "file_hash",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "upload_date",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 7,
+        "name": "description",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 8,
+        "name": "task_id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 9,
+        "name": "note_id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "FileEmbeddings": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "file_id",
+        "type": "INTEGER",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "chunk_index",
+        "type": "INTEGER",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "chunk_type",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": "'text'",
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "content_chunk",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "embedding_vector",
+        "type": "BLOB",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "ToolList": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "name",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "description",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "input_schema",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "output_schema",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "version",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "Tasks": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "title",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "description",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "status",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": "'open'",
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "scheduled_date",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "due_date",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "priority",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": "'medium'",
+        "pk": false
+      },
+      {
+        "cid": 7,
+        "name": "assigned_to",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 8,
+        "name": "created_by",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 9,
+        "name": "created_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 10,
+        "name": "updated_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 11,
+        "name": "completed_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 12,
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "notnull": false,
+        "default_value": "1",
+        "pk": false
+      }
+    ],
+    "TaskNotes": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "task_id",
+        "type": "INTEGER",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "note_content",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "created_by",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "created_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "is_internal",
+        "type": "BOOLEAN",
+        "notnull": false,
+        "default_value": "0",
+        "pk": false
+      }
+    ],
+    "Expenses": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "file_id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "amount",
+        "type": "REAL",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "currency",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": "'USD'",
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "category",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "vendor",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 6,
+        "name": "date",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 7,
+        "name": "description",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "AgentTools": [
+      {
+        "cid": 0,
+        "name": "agent_id",
+        "type": "INTEGER",
+        "notnull": true,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "tool_name",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": true
+      }
+    ],
+    "ChatHistory": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "title",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "created_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "agent_activity",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "ChatLog": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "chat_id",
+        "type": "INTEGER",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "role",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "content",
+        "type": "TEXT",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "timestamp",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      },
+      {
+        "cid": 5,
+        "name": "agent_activity",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      }
+    ],
+    "AgentPromptVersion": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": false,
+        "default_value": null,
+        "pk": true
+      },
+      {
+        "cid": 1,
+        "name": "agent_id",
+        "type": "INTEGER",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 2,
+        "name": "prompt_content",
+        "type": "TEXT",
+        "notnull": false,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 3,
+        "name": "version",
+        "type": "INTEGER",
+        "notnull": true,
+        "default_value": null,
+        "pk": false
+      },
+      {
+        "cid": 4,
+        "name": "created_at",
+        "type": "DATETIME",
+        "notnull": false,
+        "default_value": "CURRENT_TIMESTAMP",
+        "pk": false
+      }
+    ]
+  }
+}
+agent_creation: Step : 3
+agent_creation: LLM Result : {
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve current database schema",
+        "status": "done",
+        "result": "Schema retrieved successfully."
+      },
+      {
+        "step": 2,
+        "planitem": "Clarify user/agent role assignment ambiguity",
+        "status": "in_progress"
+      },
+      {
+        "step": 3,
+        "planitem": "Design full database schema including new tables and modifications",
+        "status": "pending"
+      },
+      {
+        "step": 4,
+        "planitem": "Request permission for SQL execution",
+        "status": "pending"
+      },
+      {
+        "step": 5,
+        "planitem": "Read agent template and craft prompt",
+        "status": "pending"
+      },
+      {
+        "step": 6,
+        "planitem": "Save new agent",
+        "status": "pending"
+      }
+    ],
+    "current_step": "2"
+  },
+  "action": {
+    "type": "request_user_input"
+  },
+  "conversation_update": {
+    "content": "I need clarification on the role assignment functionality. The requirement states: 'Create and manage roles, and assign users to roles' with a note to clarify if 'assign agents to roles' was intended.\n\nCurrent system already has a RoleAgents table for assigning AI agents to roles. Do you want the new agent to handle:\n- Only assigning human users (from the Users table) to roles?\n- Both human users and AI agents (from the Agents table) to roles?\n- Or something else?\n\nAlso, here is a summary of the planned database schema changes:\n1. Create a new 'Departments' table with columns: departmentID (INTEGER PK), department_name (TEXT).\n2. Modify the 'Users' table by adding two new columns: 'status' (TEXT, default 'active') and 'department_id' (INTEGER, FK to Departments). The existing 'department' TEXT column will remain but can be ignored.\n3. Modify the 'Projects' table by adding columns: 'description' (TEXT), 'descembeddings' (BLOB for vector storage), 'startDate' (DATETIME), 'endDate' (DATETIME). The existing 'status' column already exists.\n4. Ensure there is a default role (e.g., role named 'Employee' or 'User') that can be assigned to new users if no role is specified.\n\nOnce you clarify the role assignment scope, I will generate the exact SQL statements and ask for your permission to execute them. Then I'll create the agent prompt and deploy the agent.\n\nPlease reply with your clarification and confirmation to proceed."
+  },
+  "reasoning": {
+    "summary": "We need clarification on whether the agent should assign both users and agents to roles, or only users. This affects the agent's capabilities. Additionally, we must present the planned schema changes before asking for SQL permission."
+  },
+  "ui_feedback": {
+    "status": "waiting",
+    "message": "Awaiting user clarification on role assignment and confirmation to proceed.",
+    "progress_hint": "Step: 2"
+  }
+}
+agent_creation: PlanStep : 2
+agent_creation: UserInputRequest : I need clarification on the role assignment functionality. The requirement states: 'Create and manage roles, and assign users to roles' with a note to clarify if 'assign agents to roles' was intended.
+
+Current system already has a RoleAgents table for assigning AI agents to roles. Do you want the new agent to handle:
+- Only assigning human users (from the Users table) to roles?
+- Both human users and AI agents (from the Agents table) to roles?
+- Or something else?
+
+Also, here is a summary of the planned database schema changes:
+1. Create a new 'Departments' table with columns: departmentID (INTEGER PK), department_name (TEXT).
+2. Modify the 'Users' table by adding two new columns: 'status' (TEXT, default 'active') and 'department_id' (INTEGER, FK to Departments). The existing 'department' TEXT column will remain but can be ignored.
+3. Modify the 'Projects' table by adding columns: 'description' (TEXT), 'descembeddings' (BLOB for vector storage), 'startDate' (DATETIME), 'endDate' (DATETIME). The existing 'status' column already exists.
+4. Ensure there is a default role (e.g., role named 'Employee' or 'User') that can be assigned to new users if no role is specified.
+
+Once you clarify the role assignment scope, I will generate the exact SQL statements and ask for your permission to execute them. Then I'll create the agent prompt and deploy the agent.
+
+Please reply with your clarification and confirmation to proceed.
+agent_creation: UserInput : what i mean is create new roles and assign agents permited in that role .. Rest of the things are okay for me and you can proceed with that
+agent_creation: Step : 4
+agent_creation: LLM Result : {
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve current database schema",
+        "status": "done",
+        "result": "Schema retrieved successfully."
+      },
+      {
+        "step": 2,
+        "planitem": "Clarify user/agent role assignment ambiguity",
+        "status": "done",
+        "result": "User clarified: agent should create roles and assign AI agents (from Agents table) to those roles."
+      },
+      {
+        "step": 3,
+        "planitem": "Design full database schema including new tables and modifications",
+        "status": "done",
+        "result": "Schema design finalized: create Departments, alter Users (add status, department_id), alter Projects (add description, descembeddings, startDate, endDate), and ensure a default role."
+      },
+      {
+        "step": 4,
+        "planitem": "Request permission for SQL execution",
+        "status": "in_progress"
+      },
+      {
+        "step": 5,
+        "planitem": "Read agent template and craft prompt",
+        "status": "pending"
+      },
+      {
+        "step": 6,
+        "planitem": "Save new agent",
+        "status": "pending"
+      }
+    ],
+    "current_step": "4"
+  },
+  "action": {
+    "type": "request_user_input",
+    "UserMessageType": "Plaintext",
+    "UserMessage": "Based on your clarification that the agent should create new roles and assign AI agents to those roles, and that all other requirements (departments, user status, project enhancements) are acceptable, I have designed the following SQL schema modifications.\n\nPlease review the statements carefully. I need your explicit permission to execute them. Reply with 'yes' to confirm.\n\nSQL Statements:\n\n1. Create Departments table:\n```sql\nCREATE TABLE IF NOT EXISTS Departments (\n  departmentID INTEGER PRIMARY KEY,\n  department_name TEXT NOT NULL\n);\n```\n\n2. Add status and department_id columns to Users table:\n```sql\nALTER TABLE Users ADD COLUMN status TEXT DEFAULT 'active';\nALTER TABLE Users ADD COLUMN department_id INTEGER;\n```\n\n3. Add description, descembeddings, startDate, and endDate columns to Projects table:\n```sql\nALTER TABLE Projects ADD COLUMN description TEXT;\nALTER TABLE Projects ADD COLUMN descembeddings BLOB;\nALTER TABLE Projects ADD COLUMN startDate DATETIME;\nALTER TABLE Projects ADD COLUMN endDate DATETIME;\n```\n\n4. Insert a default role 'Employee' (if not already present) to ensure there is always a role available for assignments:\n```sql\nINSERT OR IGNORE INTO Roles (name, description) VALUES ('Employee', 'Default role for all users');\n```\n\nNote: SQLite does not support adding foreign key constraints directly via ALTER TABLE. The agent's operational logic will enforce referential integrity for department_id referencing Departments.departmentID and any other relationships.\n\nDo you grant permission to execute these statements? Please confirm with 'yes'."
+  },
+  "conversation_update": {
+    "content": "I have prepared the SQL schema modifications based on your clarified requirements. The changes include creating a Departments table, extending Users with status and department_id, extending Projects with description, descembeddings, startDate, and endDate, and seeding a default role 'Employee'. Awaiting your explicit 'yes' to execute the SQL."
+  },
+  "reasoning": {
+    "summary": "We have resolved the role assignment ambiguity and finalized the schema design. The next step is to obtain explicit user permission to apply the database changes before proceeding to craft and deploy the agent."
+  },
+  "ui_feedback": {
+    "status": "waiting",
+    "message": "Awaiting user confirmation to execute database schema modifications.",
+    "progress_hint": "Step: 4"
+  }
+}
+agent_creation: PlanStep : 4
+agent_creation: UserInputRequest : Based on your clarification that the agent should create new roles and assign AI agents to those roles, and that all other requirements (departments, user status, project enhancements) are acceptable, I have designed the following SQL schema modifications.
+
+Please review the statements carefully. I need your explicit permission to execute them. Reply with 'yes' to confirm.
+
+SQL Statements:
+
+1. Create Departments table:
+```sql
+CREATE TABLE IF NOT EXISTS Departments (
+  departmentID INTEGER PRIMARY KEY,
+  department_name TEXT NOT NULL
+);
+```
+
+2. Add status and department_id columns to Users table:
+```sql
+ALTER TABLE Users ADD COLUMN status TEXT DEFAULT 'active';
+ALTER TABLE Users ADD COLUMN department_id INTEGER;
+```
+
+3. Add description, descembeddings, startDate, and endDate columns to Projects table:
+```sql
+ALTER TABLE Projects ADD COLUMN description TEXT;
+ALTER TABLE Projects ADD COLUMN descembeddings BLOB;
+ALTER TABLE Projects ADD COLUMN startDate DATETIME;
+ALTER TABLE Projects ADD COLUMN endDate DATETIME;
+```
+
+4. Insert a default role 'Employee' (if not already present) to ensure there is always a role available for assignments:
+```sql
+INSERT OR IGNORE INTO Roles (name, description) VALUES ('Employee', 'Default role for all users');
+```
+
+Note: SQLite does not support adding foreign key constraints directly via ALTER TABLE. The agent's operational logic will enforce referential integrity for department_id referencing Departments.departmentID and any other relationships.
+
+Do you grant permission to execute these statements? Please confirm with 'yes'.
+agent_creation: UserInput : yes proceed
+agent_creation: Step : 5
+
+
+====================================================
+INTERNAL WORKFLOW
+====================================================
+1. **Requirements Gathering / Inquiry**: 
+   - Understand the agent goal. 
+   - If the user is just enquiring, explain how the agent could be built (tools needed, schema needed) and ASK for approval to proceed. Do NOT create tables, templates, or save the agent until the user says "Yes, build it".
+2. **Tool Analysis**: Check the injected `AVAILABLE TOOLS` list in your context (`- call_tool
+  Description: No description.
+  Parameters: name, parameters
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "call_tool", "parameters": {"name": "<name>", "parameters": "<parameters>"}}}}
+- copy_file
+  Description: Copy a file from source to destination.
+  Parameters: source_path, destination_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "copy_file", "parameters": {"source_path": "<source_path>", "destination_path": "<destination_path>"}}}}
+- execute_sql
+  Description: Execute a list of SQL queries against the internal SQLite database.
+  Parameters: queries
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "execute_sql", "parameters": {"queries": "<queries>"}}}}
+- get_database_schema
+  Description: Returns the full database schema including all tables and their columns.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "get_database_schema", "parameters": {}}}}
+- inspect_file
+  Description: Get detailed metadata about a file.
+  Parameters: file_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "inspect_file", "parameters": {"file_path": "<file_path>"}}}}
+- list_directory
+  Description: List the contents of a directory.
+  Parameters: directory_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "list_directory", "parameters": {"directory_path": "<directory_path>"}}}}
+- list_tools
+  Description: No description.
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "list_tools", "parameters": {}}}}
+- move_file
+  Description: Move a file from source to destination.
+  Parameters: source_path, destination_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "move_file", "parameters": {"source_path": "<source_path>", "destination_path": "<destination_path>"}}}}
+- read_agent_template
+  Description: Reads the standard agent prompt template file that should be used as the base
+  Parameters: none
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "read_agent_template", "parameters": {}}}}
+- read_file
+  Description: Read the content of a file (Text or PDF).
+  Parameters: file_path
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "read_file", "parameters": {"file_path": "<file_path>"}}}}
+- save_new_agent
+  Description: Saves a newly designed agent directly into the database so it can be used by the system.
+  Parameters: name, description, prompt_content
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "save_new_agent", "parameters": {"name": "<name>", "description": "<description>", "prompt_content": "<prompt_content>"}}}}
+- search_files
+  Description: Search for files using semantic search (vector embeddings).
+  Parameters: query, top_k
+  Example: {"action": {"type": "tool_call", "tool_request": {"tool_name": "search_files", "parameters": {"query": "<query>", "top_k": "<top_k>"}}}}`) to ensure the tools required by the user's agent exist.
+3. **Database Analysis**: Use `get_database_schema` to see if a table is needed.
+   - If a new table is needed, formulate the CREATE TABLE SQL and ASK THE USER FOR PERMISSION via the `conversation_update`. Set `action.type` to `"completed"` so the user can reply.
+   - Wait for them to say YES in a subsequent `USER_INPUT` before using `execute_sql`.
+4. **Agent Templating**: 
+   - After Analysing the tools and Database generate Agent Template 
+   - You have to replace place holders with [[[tag]]] in the agent template 
+   - Replace [[[INTERNAL_WORKFLOW]]] with the logic to implement the agent , and user specified rules 
+ 
+5. **Deployment**: Write the complete prompt combining the user's logic into the template structure. Include the STRICT JSON ONLY section exactly as it appears in the template. Use `save_new_agent` to register it. Note: you can use `save_new_agent` with an existing agent name to UPDATE it. New agents are automatically assigned to the Admin role.
+6. **Finish**: Set `action.type` to `"completed"` and inform the user they can now select the new or updated agent.
+
+====================================================
+OUTPUT INTERFACE (STRICT JSON ONLY)
+====================================================
+Return ONLY a valid JSON object. DO NOT OUTPUT ANY TEXT OTHER THAN THE BELOW DEFINED JSON.
+Keep "action" as a dictionary and "action.type" definitive. Return ONLY these exact string values:
+- "tool_call": to call a tool; requires "tool_name" and "parameters" inside "tool_request".
+- "request_user_input": to ask the user a question before proceeding.
+- "complete": to mark the task as finished and deliver the final answer to the user.
+When Outputting Messages (`request_user_input` or `complete`), include these fields INSIDE the `"action"` dictionary:
+- "UserMessageType": Set this to "Plaintext" for normal sentences. Set this to "HTML" ONLY if the output includes a data table (using <table>, <tr>, <td>) or unstructured lists.
+- "UserMessage": The actual response text or HTML string to show the user.
+
+Example Tool Call:
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Analyze requirements",
+        "status": "done",
+        "result": "User wants an agent that builds other agents from natural language"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "get_database_schema",
+      "parameters": {}
+    }
+  },
+  "conversation_update": {
+    "content": "I am checking the current database schema to determine whether new tables are required before creating the agent."
+  },
+  "reasoning": {
+    "summary": "Schema must be verified before generating or requesting table creation."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Inspecting database schema..."
+  }
+}
+'''

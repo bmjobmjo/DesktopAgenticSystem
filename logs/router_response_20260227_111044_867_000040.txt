@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "attendance_manager",
+  "confidence": "high",
+  "reason": "User request is to close an active check-in session, which is directly managed by the attendance_manager agent for handling check-ins/outs and attendance records.",
+  "instruction": "Close the active check-in session for the user. The user specified shift end time as 9:30 PM. From chat history, there is an active session from 2026-02-26 at 09:43:33 that needs to be closed. Use the provided end time (21:30) or default to the current time if necessary, and ensure the session is properly checked out.",
+  "response_to_user": "I'm routing your request to the attendance manager to close your check-in session with the specified end time.",
+  "priority": 1
+}

@@ -1,0 +1,7 @@
+I can see the database already has `Tasks` and `TaskNotes` tables with all the necessary fields. Now I need to check if there's an existing TaskManager agent that may be incomplete.<tool_call>
+<function=execute_sql>
+<parameter=queries>
+SELECT id, name, description, is_active, version FROM Agents WHERE name = 'TaskManager';
+</parameter>
+</function>
+</tool_call>

@@ -1,0 +1,6 @@
+I can see that the database already has the necessary tables (`Tasks` and `TaskNotes`) for a TaskManager agent, but there is no existing TaskManager agent in the Agents table. Therefore, I need to create the agent from scratch.
+
+Let me read the standard agent template to understand the proper format and placeholders.<tool_call>
+<function=read_agent_template>
+</function>
+</tool_call>

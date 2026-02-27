@@ -1,7 +1,0 @@
-I'll now create the database tables as approved by the user.<tool_call>
-<function=execute_sql>
-<parameter=queries>
-["CREATE TABLE Tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, description TEXT, status TEXT DEFAULT 'open', scheduled_date DATETIME, due_date DATETIME, priority TEXT DEFAULT 'medium', assigned_to TEXT, created_by TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, completed_at DATETIME, is_active BOOLEAN DEFAULT 1);", "CREATE TABLE TaskNotes (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER NOT NULL, note_content TEXT NOT NULL, created_by TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, is_internal BOOLEAN DEFAULT 0, FOREIGN KEY (task_id) REFERENCES Tasks(id) ON DELETE CASCADE);", "CREATE INDEX idx_tasks_status ON Tasks(status);", "CREATE INDEX idx_tasks_assigned_to ON Tasks(assigned_to);", "CREATE INDEX idx_tasks_due_date ON Tasks(due_date);", "CREATE INDEX idx_tasknotes_task_id ON TaskNotes(task_id);"];
-</parameter>
-</function>
-</tool_call>

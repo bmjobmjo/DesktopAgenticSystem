@@ -1,0 +1,40 @@
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Check for active check-in session",
+        "status": "in_progress",
+        "result": ""
+      },
+      {
+        "step": 2,
+        "planitem": "Insert new check-in if no active session, or notify user",
+        "status": "pending",
+        "result": ""
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT id, user_id, check_in_time, check_in_location FROM Attendance WHERE user_id = 1 AND check_out_time IS NULL;"
+        ]
+      }
+    }
+  },
+  "conversation_update": {
+    "content": "Checking for any active check-in session. If none is found, I will process your check-in with the current time."
+  },
+  "reasoning": {
+    "summary": "Before inserting a new check-in, we must ensure the user does not already have an open session to avoid multiple active attendances. The SELECT will determine if we can proceed with INSERT."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Verifying current check-in status..."
+  }
+}

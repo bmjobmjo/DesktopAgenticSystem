@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "UPDATE Tasks SET status = 'closed', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id IN (22, 25, 32, 33, 34, 39, 43);"
+  ]
+}

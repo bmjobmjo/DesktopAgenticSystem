@@ -1,0 +1,31 @@
+```json
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Retrieve all users with their names, emails, departments, and roles",
+        "status": "done",
+        "result": "Fetched 6 users from the database."
+      }
+    ],
+    "current_step": "1"
+  },
+  "action": {
+    "type": "complete",
+    "UserMessageType": "Plaintext",
+    "UserMessage": "Here is the list of all users in the system:\n\n1. ID: 1\n   Email: vishnukolachery994@gmail.com\n   Name: bb\n   Department: (none)\n   Role: Admin\n\n2. ID: 3\n   Email: Hemath@gmil..com\n   Name: Vishnu\n   Department: (none)\n   Role: User\n\n3. ID: 4\n   Email: abhishek.r@appleberrytech.com\n   Name: abhishek\n   Department: Engineering\n   Role: Employee\n\n4. ID: 5\n   Email: Jishnu.h@appleberrytech.com\n   Name: Jishnu\n   Department: Engineering\n   Role: Employee\n\n5. ID: 6\n   Email: Vishnu.a@appleberrytech.com\n   Name: Vishnu\n   Department: Engineering\n   Role: Employee\n\n6. ID: 7\n   Email: satheerth.n@appleberrytech.com\n   Name: Satheerth\n   Department: Engineering\n   Role: Employee"
+  },
+  "conversation_update": {
+    "content": "User list retrieved and displayed."
+  },
+  "reasoning": {
+    "summary": "All users have been fetched with their associated department and role information. Two users have no department assigned, while four users are in the Engineering department with Employee role."
+  },
+  "ui_feedback": {
+    "status": "completed",
+    "message": "User list generated.",
+    "progress_hint": "Done"
+  }
+}
+```

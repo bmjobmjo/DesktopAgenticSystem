@@ -1,0 +1,10 @@
+[
+  [
+    {
+      "id": 13,
+      "user_id": "1",
+      "check_in_time": "2026-02-26 09:43:33",
+      "check_in_location": null
+    }
+  ]
+]

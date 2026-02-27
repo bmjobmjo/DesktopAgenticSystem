@@ -75,6 +75,7 @@ def init_db():
             name TEXT UNIQUE NOT NULL,
             description TEXT,
             prompt_content TEXT,
+            version INTEGER DEFAULT 1,
             is_active BOOLEAN DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -96,6 +97,7 @@ def init_db():
                 name TEXT UNIQUE NOT NULL,
                 description TEXT,
                 prompt_content TEXT,
+                version INTEGER DEFAULT 1,
                 is_active BOOLEAN DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -111,6 +113,22 @@ def init_db():
                 cursor.execute("DROP TABLE Agents_Old")
             except Exception as e:
                 print(f"Warning during Agents migration: {e}")
+                
+        if 'version' not in columns:
+            print("Adding version column to Agents table...")
+            cursor.execute("ALTER TABLE Agents ADD COLUMN version INTEGER DEFAULT 1")
+
+    # 1.5 AgentPromptVersion Table for History
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS AgentPromptVersion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        agent_id INTEGER NOT NULL,
+        prompt_content TEXT,
+        version INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(agent_id) REFERENCES Agents(id) ON DELETE CASCADE
+    )
+    """)
 
     # 2. Roles Table
     # Check if Roles table has correct schema
@@ -378,9 +396,21 @@ def init_db():
     CREATE TABLE IF NOT EXISTS ChatHistory (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
+        agent_activity TEXT,
+        user_id TEXT,
+        interface TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    
+    cursor.execute("PRAGMA table_info(ChatHistory)")
+    ch_cols = [row[1] for row in cursor.fetchall()]
+    if 'agent_activity' not in ch_cols:
+        cursor.execute("ALTER TABLE ChatHistory ADD COLUMN agent_activity TEXT")
+    if 'user_id' not in ch_cols:
+        cursor.execute("ALTER TABLE ChatHistory ADD COLUMN user_id TEXT")
+    if 'interface' not in ch_cols:
+        cursor.execute("ALTER TABLE ChatHistory ADD COLUMN interface TEXT")
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ChatLog (
@@ -388,10 +418,18 @@ def init_db():
         chat_id INTEGER NOT NULL,
         role TEXT NOT NULL,
         content TEXT NOT NULL,
+        user_id TEXT,
+        interface TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(chat_id) REFERENCES ChatHistory(id) ON DELETE CASCADE
     )
     """)
+    cursor.execute("PRAGMA table_info(ChatLog)")
+    cl_cols = [row[1] for row in cursor.fetchall()]
+    if 'user_id' not in cl_cols:
+        cursor.execute("ALTER TABLE ChatLog ADD COLUMN user_id TEXT")
+    if 'interface' not in cl_cols:
+        cursor.execute("ALTER TABLE ChatLog ADD COLUMN interface TEXT")
 
     conn.commit()
     conn.close()

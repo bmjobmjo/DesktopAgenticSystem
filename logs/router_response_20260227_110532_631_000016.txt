@@ -1,0 +1,9 @@
+[
+  {
+    "type": "agent_call",
+    "selected_agent": "attendance_manager",
+    "instruction": "Mark the user as checked-in.",
+    "response_to_user": "You have been successfully marked as present.",
+    "priority": 1
+  }
+]

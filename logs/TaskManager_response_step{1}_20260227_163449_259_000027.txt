@@ -1,0 +1,13 @@
+{
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": [
+          "SELECT t.id, t.title, t.description, t.status, t.scheduled_date, t.due_date, t.priority, t.assigned_to, GROUP_CONCAT(n.note_content) AS notes FROM Tasks t LEFT JOIN TaskNotes n ON t.id = n.task_id WHERE t.assigned_to IN ('bb', 'vishnukolachery994@gmail.com') GROUP BY t.id ORDER BY t.due_date ASC;"
+        ]
+      }
+    }
+  }
+}

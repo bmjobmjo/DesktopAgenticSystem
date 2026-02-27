@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "SELECT * FROM Agents WHERE name = 'TaskManager';"
+  ]
+}

@@ -75,39 +75,89 @@ class Executor:
             # Fail-open if UI permission channel itself fails.
             return True
 
-    def _reset_agent_activity(self) -> List[Dict[str, Any]]:
-        """
-        Start a fresh AgentActivity collection for this execute() call.
-        """
-        activity: List[Dict[str, Any]] = []
-        self.cda.set_memory('AgentActivity', activity)
-        self.cda.set_memory('agent_activity_collection', activity)  # Backward-compatible alias
-        self.cda.set_memory('agent_activity', '')
-        return activity
-
     def _get_agent_activity(self) -> List[Dict[str, Any]]:
-        activity = self.cda.get_memory('AgentActivity', [])
+        activity = self.cda.get_memory('AgentActivity', None)
+        if activity is None:
+            activity = []
+            self.cda.set_memory('AgentActivity', activity)
+            self.cda.set_memory('agent_activity_collection', activity)
+            self.cda.set_memory('agent_activity', '')
         if not isinstance(activity, list):
             activity = []
         return activity
 
-    def _append_agent_activity(self, key: str, value: Any) -> None:
+    def _agent_activity_mode(self) -> str:
+        level = str(self.cda.get_setting('agent_activity_level', 'full') or 'full').strip().lower()
+        if level == 'partial':
+            # Partial mode intentionally uses legacy structured collection for filtering.
+            return 'structured'
+        raw = self.cda.get_setting('agent_activity_mode', 'fast')
+        mode = str(raw or 'fast').strip().lower()
+        if mode not in ('fast', 'structured'):
+            return 'fast'
+        return mode
+
+    def _agent_activity_level(self) -> str:
+        level = str(self.cda.get_setting('agent_activity_level', 'full') or 'full').strip().lower()
+        return 'partial' if level == 'partial' else 'full'
+
+    def _partial_keep_steps(self) -> int:
+        raw = self.cda.get_setting('agent_activity_partial_keep_steps', 5)
+        try:
+            n = int(raw)
+        except Exception:
+            n = 5
+        if n < 1:
+            n = 1
+        return n
+
+    def _append_agent_activity_structured(self, key: str, value: Any) -> None:
+        active_agent = str(self.cda.get_memory('active_executor_agent', 'System'))
+        prefixed_key = f"{active_agent}: {key}"
+        
         activity = self._get_agent_activity()
-        activity.append({key: value})
+        activity.append({prefixed_key: value})
         self.cda.set_memory('AgentActivity', activity)
         self.cda.set_memory('agent_activity_collection', activity)  # Backward-compatible alias
 
-    def _render_agent_activity(self) -> str:
+    def _append_agent_activity_fast(self, key: str, value: Any) -> None:
+        """
+        Fast path: append raw text line directly to AGENT_ACTIVITY string.
+        Keeps structured list untouched to avoid re-render overhead each loop.
+        """
+        active_agent = str(self.cda.get_memory('active_executor_agent', 'System'))
+        prefixed_key = f"{active_agent}: {key}"
+        value_text = str(value)
+        line = f"{prefixed_key} : {value_text}\r\n"
+
+        existing = str(self.cda.get_memory('agent_activity', '') or '')
+        updated = existing + line
+        self.cda.set_memory('agent_activity', updated)
+
+    def _append_agent_activity(self, key: str, value: Any) -> None:
+        if self._agent_activity_mode() == 'structured':
+            self._append_agent_activity_structured(key, value)
+            return
+        self._append_agent_activity_fast(key, value)
+
+    def _render_agent_activity_structured(self) -> str:
         """
         Render AgentActivity exactly as key/value lines for prompt injection.
         """
+        activity = self._get_agent_activity()
+        if self._agent_activity_level() == 'partial':
+            activity = self._filter_activity_partial(activity)
+
         lines: List[str] = []
-        for item in self._get_agent_activity():
+        for item in activity:
             if not isinstance(item, dict):
                 continue
             for k, v in item.items():
                 if isinstance(v, (dict, list)):
-                    value_text = json.dumps(v, indent=2, ensure_ascii=False)
+                    try:
+                        value_text = json.dumps(v, indent=2, ensure_ascii=False, default=str)
+                    except Exception:
+                        value_text = str(v)
                 else:
                     value_text = str(v)
                 lines.append(f"{k} : {value_text}\r\n")
@@ -115,12 +165,64 @@ class Executor:
         self.cda.set_memory('agent_activity', rendered)
         return rendered
 
+    def _activity_key_type(self, prefixed_key: str) -> str:
+        if ':' not in prefixed_key:
+            return prefixed_key.strip()
+        return prefixed_key.split(':', 1)[1].strip()
+
+    def _filter_activity_partial(self, activity: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Keep full details for recent N steps.
+        For older steps keep only UserInput and AgentOutput entries.
+        """
+        keep_steps = self._partial_keep_steps()
+        parsed: List[tuple[Dict[str, Any], Optional[int], str]] = []
+        current_step: Optional[int] = None
+        max_step = 0
+
+        for item in activity:
+            if not isinstance(item, dict):
+                continue
+            key = next(iter(item.keys()), '')
+            key_type = self._activity_key_type(key)
+            value = item.get(key)
+            if key_type == 'Step':
+                try:
+                    current_step = int(value)
+                    if current_step > max_step:
+                        max_step = current_step
+                except Exception:
+                    pass
+            parsed.append((item, current_step, key_type))
+
+        if max_step <= 0:
+            return activity
+
+        cutoff_step = max_step - keep_steps + 1
+        allowed_old = {'UserInput', 'AgentOutput'}
+        filtered: List[Dict[str, Any]] = []
+        for item, step_id, key_type in parsed:
+            if step_id is None or step_id >= cutoff_step:
+                filtered.append(item)
+                continue
+            if key_type in allowed_old:
+                filtered.append(item)
+        return filtered
+
+    def _render_agent_activity(self) -> str:
+        if self._agent_activity_mode() == 'structured':
+            return self._render_agent_activity_structured()
+        return str(self.cda.get_memory('agent_activity', '') or '')
+
     @staticmethod
     def _to_placeholder_text(value: Any) -> str:
         if value is None:
             return ""
         if isinstance(value, (dict, list)):
-            return json.dumps(value, ensure_ascii=False)
+            try:
+                return json.dumps(value, ensure_ascii=False, default=str)
+            except Exception:
+                return str(value)
         return str(value)
 
     def _get_cda_prompt_context(self) -> Dict[str, Any]:
@@ -253,9 +355,6 @@ class Executor:
         - build runtime context map
         - replace {{TAG}} by scanning template
         """
-        if loop_idx > 0:
-            self._append_agent_activity("Step", loop_idx + 1)
-
         # Keep latest prompt/input values in executor context for replacement.
         self.execution_context['USER_PROMPT'] = user_prompt
         self.execution_context['USER_INPUT'] = user_prompt
@@ -454,7 +553,7 @@ class Executor:
             return None
 
         if action_type == 'request_user_input':
-            content = data['conversation_update']['content']
+            content = action.get('UserMessage') or data.get('UserMessage') or action.get('message') or action.get('content') or data.get('conversation_update', {}).get('content', '')
             ask_payload = {
                 'agent_name': agent_name,
                 'loop': loop_idx + 1,
@@ -464,8 +563,8 @@ class Executor:
             if not self._request_permission('request_user_input', ask_payload):
                 raise ExecutorError('Execution cancelled by user in debug mode before request_user_input.')
             log_execution_step('EXECUTOR_USER_INPUT', content)
-            self._append_agent_activity("UserInput", user_prompt)
             self._append_agent_activity("UserInputRequest", content)
+            self._append_agent_activity("AgentOutput", content)
             return ExecutorResult(
                 status='request_user_input',
                 content=content,
@@ -489,13 +588,14 @@ class Executor:
             )
 
         if action_type == 'complete':
-            content = action.get('response') or action.get('content') or data.get('conversation_update', {}).get('content', '')
+            content = action.get('UserMessage') or data.get('UserMessage') or action.get('message') or action.get('response') or action.get('content') or data.get('conversation_update', {}).get('content', '')
             if not content or len(content) < 10:
                 alt_content = data.get('conversation_update', {}).get('content', '')
                 if len(alt_content) > len(str(content or "")):
                     content = alt_content
 
             log_execution_step('EXECUTOR_COMPLETE', str(content)[:100])
+            self._append_agent_activity("AgentOutput", str(content))
             return ExecutorResult(
                 status='complete',
                 content=str(content),
@@ -506,11 +606,15 @@ class Executor:
 
     def _append_history(self, user_msg: str, assistant_msg: str) -> None:
         history = self.cda.get_memory('chat_history', '')
+        user_id = str(self.cda.get_setting('current_user_id', '') or '')
+        iface = str(self.cda.get_setting('interface', 'UI') or 'UI')
+        user_prefix = f"User[UserID:{user_id}][Interface:{iface}]"
+        assistant_prefix = f"Assistant[UserID:{user_id}][Interface:{iface}]"
         if history:
             history += '\n'
         if user_msg:
-            history += f"User: {user_msg}\n"
-        history += f"Assistant: {assistant_msg}"
+            history += f"{user_prefix}: {user_msg}\n"
+        history += f"{assistant_prefix}: {assistant_msg}"
         self.cda.set_memory('chat_history', history)
         self._set_cda_prompt_context_value('CHAT_HISTORY', history)
 
@@ -607,25 +711,28 @@ class Executor:
         llm_client = self.llm_client or self.cda.get_runtime('llm_client') or MockLLMClient()
 
         ui_updates: List[Dict[str, Any]] = []
-        active_agent = str(self.cda.get_memory('active_executor_agent', ''))
-        continuing_same_agent = bool(resume and active_agent == agent_name and self._get_agent_activity())
+        self.cda.set_memory('active_executor_agent', agent_name)
 
-        if continuing_same_agent:
-            # Preserve prior execution context and activity trail.
-            self.execution_context['USER_PROMPT'] = user_prompt
-            self.execution_context['USER_INPUT'] = user_prompt
-            self._append_agent_activity("UserInput", user_prompt)
-        else:
-            self._init_execution_context(agent_name, user_prompt)
-            # Fresh AgentActivity for every new agent execution call.
-            self._reset_agent_activity()
-            self._append_agent_activity("Step", 1)
-            self._append_agent_activity("UserInput", user_prompt)
-            self.cda.set_memory('active_executor_agent', agent_name)
+        # Always preserve prior execution context across agents to maintain session-wide history
+        self._init_execution_context(agent_name, user_prompt)
+        self.execution_context['USER_PROMPT'] = user_prompt
+        self.execution_context['USER_INPUT'] = user_prompt
+
+        self._append_agent_activity("UserInput", user_prompt)
 
         # 2. Main Execution Loop
         for loop_idx in range(max_loops):
+            import threading
+            cancel_event = self.cda.get_runtime('cancel_event')
+            if cancel_event and isinstance(cancel_event, threading.Event) and cancel_event.is_set():
+                log_execution_step('EXECUTOR_CANCELLED', "Execution cancelled by user.")
+                return ExecutorResult(status='error', content="Execution stopped by user.", ui_feedback=ui_updates)
+                
             log_execution_step('EXECUTOR_LOOP', f"Loop {loop_idx+1}/{max_loops}")
+            current_step = int(self.cda.get_memory('agent_activity_step', 0)) + 1
+            self.cda.set_memory('agent_activity_step', current_step)
+            self._append_agent_activity("Step", current_step)
+
             status_cb = self.cda.get_runtime('tool_status_handler')
             if status_cb:
                 status_cb("Preparing prompt context...")

@@ -1,7 +1,0 @@
-{
-  "type": "greeting",
-  "confidence": "high",
-  "reason": "User request is a list of weekly tasks without a clear match to any available agent (file_manager, attendance_manager, holiday_manager, agent_creation). No file attachment or specific action requested that aligns with agent capabilities.",
-  "response_to_user": "Hello! I'm your routing assistant. Your message appears to be a list of weekly tasks, but it doesn't match any of my available services. I can help with file management, attendance/leave tracking, holiday scheduling, or creating new AI agents. Could you clarify what you'd like to do with these tasks? For example, would you like to save them as a file, or is there another way I can assist?",
-  "priority": 1
-}

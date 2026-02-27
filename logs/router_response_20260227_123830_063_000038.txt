@@ -1,0 +1,11 @@
+```json
+{
+  "type": "agent_call",
+  "selected_agent": "rag_gen",
+  "confidence": "high",
+  "reason": "The user is asking a factual question about a medical/biological process (centrifugation in blood component extraction). The RAG agent is specifically designed to answer such questions by retrieving relevant information from the knowledge base and application repository, extracting information, and providing sourced answers.",
+  "instruction": "Answer the user's question about the use of centrifugation in blood component extraction by retrieving relevant information from the knowledge base. Provide a clear, sourced explanation if available information exists.",
+  "response_to_user": "I'm searching the knowledge base for information about centrifugation in blood component extraction.",
+  "priority": 1
+}
+```

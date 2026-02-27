@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "TaskManager",
+  "confidence": "high",
+  "reason": "The user request to close specific tasks by their IDs directly aligns with the TaskManager agent's capabilities for task management operations, including closing tasks.",
+  "instruction": "Close the tasks with IDs: 22, 25, 32, 33, 34, 39, 43.",
+  "response_to_user": "Closing the specified tasks now.",
+  "priority": 1
+}

@@ -1,0 +1,6 @@
+{
+  "queries": [
+    "INSERT OR IGNORE INTO Departments (department_name) VALUES ('Engineering'), ('Management'), ('HR');",
+    "SELECT departmentID FROM Departments WHERE department_name = 'Engineering';"
+  ]
+}

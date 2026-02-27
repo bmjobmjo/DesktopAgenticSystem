@@ -1,0 +1,4 @@
+2026-02-26 18:19:42 - [LOGGER_INIT] Session active: 20260226_181942
+2026-02-26 18:19:42 - [LOGGER_INIT] Session active: 20260226_181942
+2026-02-26 18:19:49 - [EMBEDDING_INIT] Loading SentenceTransformer model 'all-MiniLM-L6-v2' (local-only)...
+2026-02-26 18:19:50 - [EMBEDDING_INIT] Model loaded successfully from 'all-MiniLM-L6-v2'.

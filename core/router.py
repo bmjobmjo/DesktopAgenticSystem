@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from typing import Dict
+from pathlib import Path
+from typing import Any, Dict, List
 
 from agents.registry import ROUTER_PROMPT_PATH, list_agents
 from tools.tool_registry import list_tools
@@ -66,15 +67,34 @@ class Router:
         template = ROUTER_PROMPT_PATH.read_text(encoding='utf-8')
         
         # 1. Identify User & Filter Agents
-        # Get current user identity to filter available agents based on role policies.
-        user_identity = (
-            self.cda.get_setting('current_user_email', '')
-            or self.cda.get_setting('current_username', '')
-            or self.cda.get_setting('user_email', '')
-            or str(self.cda.get_setting('current_user_id', ''))
-        )
+        # Try multiple identity candidates and use the first that yields agents.
+        user_candidates: List[str] = []
+        current_user_id = str(self.cda.get_setting('current_user_id', '') or '').strip()
+        current_user_email = str(self.cda.get_setting('current_user_email', '') or '').strip()
+        current_username = str(self.cda.get_setting('current_username', '') or '').strip()
+        fallback_user_email = str(self.cda.get_setting('user_email', '') or '').strip()
 
-        agent_list_data = list_agents(user_identity)
+        for c in [current_user_id, current_user_email, current_username, fallback_user_email]:
+            if c and c not in user_candidates:
+                user_candidates.append(c)
+
+        agent_list_data: List[Dict[str, str]] = []
+        selected_identity = ''
+        for identity in user_candidates:
+            try:
+                candidate_agents = list_agents(identity)
+            except Exception:
+                candidate_agents = []
+            if candidate_agents:
+                agent_list_data = candidate_agents
+                selected_identity = identity
+                break
+
+        if not agent_list_data:
+            log_execution_step('ROUTER_AGENT_FALLBACK', f"No agents found for candidates={user_candidates}.")
+        else:
+            log_execution_step('ROUTER_AGENT_IDENTITY', f"Using identity='{selected_identity}' with {len(agent_list_data)} agent(s).")
+
         agent_list = json.dumps(agent_list_data, indent=2)
 
         # 2. Prepare Tool List for Direct Execution
@@ -123,6 +143,12 @@ class Router:
 
         # 6. Query LLM & Parse Response
         for attempt in range(max_retries + 1):
+            import threading
+            cancel_event = self.cda.get_runtime('cancel_event')
+            if cancel_event and isinstance(cancel_event, threading.Event) and cancel_event.is_set():
+                log_execution_step('ROUTER_CANCELLED', "Routing cancelled by user.")
+                return [{'type': 'error', 'message': 'Execution cancelled by user'}]
+                
             prompt_file = ExecutionLogger.save_trace_file("router_prompt", prompt)
             trace_payload = {
                 'agent_name': 'Router',

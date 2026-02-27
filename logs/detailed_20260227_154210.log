@@ -1,0 +1,266 @@
+2026-02-27 15:42:10 - [LOGGER_INIT] Session active: 20260227_154210
+2026-02-27 15:42:56 - [USER_INPUT] List holidays [Files: 0]
+2026-02-27 15:42:56 - [ROUTER_START] Routing user prompt: List holidays...
+2026-02-27 15:42:56 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 7 agent(s).
+2026-02-27 15:42:56 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_154256_601_000001.txt
+2026-02-27 15:42:56 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 15:43:21 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 15:43:21 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_154321_932_000002.txt
+2026-02-27 15:43:21 - [ROUTER] Selected Agent: holiday_manager (Conf: high). Reason: User request is to list holidays, which matches exactly with the holiday_manager agent's described capability to manage company-wide holiday lists including listing.
+2026-02-27 15:43:21 - [ROUTER_SELECTED] Selected targets: ['holiday_manager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_154321_932_000002.txt
+2026-02-27 15:43:21 - [EXECUTOR_START] Agent: holiday_manager | User Prompt: List all company holidays....
+2026-02-27 15:43:21 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 15:43:21 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 15:43:40 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 15:43:40 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 15:43:40 - [SQL_TOOL_START] Executing 1 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 15:43:40 - [SQL_TOOL_QUERY] #1: SELECT * FROM HolidayList ORDER BY holiday_date ASC;
+2026-02-27 15:43:40 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 15:43:40 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ['SELECT * FROM HolidayList ORDER BY holiday_date ASC;']}
+2026-02-27 15:43:40 - [TOOL_RESULT] Success: unknown | Output: [[{'id': 1, 'holiday_date': '2026-01-26', 'holiday_name': 'Republic Day', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 2, 'holiday_date': '2026-03-20', 'holiday_name': 'Eid ul fitr', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 3, 'holiday_date': '2026-04-03', 'holiday_name': 'Good Friday', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 4, 'holiday_date': '2026-04-15', 'holiday_name': 'Vishu', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': '2026-02-19 12:15:14'}, {'id': 5, 'holiday_date': '2026-05-01', 'holiday_name': 'May Day', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 6, 'holiday_date': '2026-06-26', 'holiday_name': 'Muharam', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 7, 'holiday_date': '2026-08-25', 'holiday_name': 'First Onam', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 8, 'holiday_date': '2026-08-26', 'holiday_name': 'Thiruvonam (Onam)', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 9, 'holiday_date': '2026-10-02', 'holiday_name': 'Gandhi Jayanti', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 10, 'holiday_date': '2026-10-20', 'holiday_name': 'Maha Navami', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 11, 'holiday_date': '2026-10-21', 'holiday_name': 'vijayadashami', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}, {'id': 12, 'holiday_date': '2026-12-25', 'holiday_name': 'Christmas Day', 'holiday_type': 'Company', 'description': None, 'is_optional': 0, 'created_by': 1, 'updated_by': 1, 'created_at': '2026-02-18 13:32:23', 'updated_at': None}]]
+2026-02-27 15:43:40 - [EXECUTOR_LOOP] Loop 2/50
+2026-02-27 15:43:40 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 15:44:01 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 15:44:01 - [EXECUTOR_ACTION] Type: complete
+2026-02-27 15:44:01 - [EXECUTOR_COMPLETE] <table border='1'><tr><th>Date</th><th>Holiday Name</th><th>Type</th><th>Optional</th></tr><tr><td>2
+2026-02-27 16:20:41 - [USER_INPUT] list may feb attendance log and total hours worked and breaks taken [Files: 0]
+2026-02-27 16:20:41 - [ROUTER_START] Routing user prompt: list may feb attendance log and total hours worked and breaks taken...
+2026-02-27 16:20:41 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 7 agent(s).
+2026-02-27 16:20:41 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_162041_432_000009.txt
+2026-02-27 16:20:41 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:21:25 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:21:25 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_162125_949_000010.txt
+2026-02-27 16:21:25 - [ROUTER] Selected Agent: attendance_manager (Conf: high). Reason: The user is requesting to list attendance logs for May and February and calculate total hours worked and breaks taken, which aligns directly with the attendance_manager's capabilities for managing attendance records, breaks, and related summaries.
+2026-02-27 16:21:25 - [ROUTER_SELECTED] Selected targets: ['attendance_manager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_162125_949_000010.txt
+2026-02-27 16:21:25 - [EXECUTOR_START] Agent: attendance_manager | User Prompt: Process the user's request: list attendance logs for May and February (assuming current or most rece...
+2026-02-27 16:21:25 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 16:21:25 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:25:11 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:25:11 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 16:25:11 - [SQL_TOOL_START] Executing 4 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 16:25:11 - [SQL_TOOL_QUERY] #1: SELECT id, check_in_time, check_out_time, total_hours, status FROM Attendance WHERE user_id = 1 AND ((check_in_time >= '2026-02-01' AND check_in_time < '2026-03-01') OR (check_in_time >= '2026-05-01' AND check_in_time < 
+2026-02-27 16:25:11 - [SQL_TOOL_QUERY] #2: SELECT SUM(total_hours) AS total_hours FROM Attendance WHERE user_id = 1 AND ((check_in_time >= '2026-02-01' AND check_in_time < '2026-03-01') OR (check_in_time >= '2026-05-01' AND check_in_time < '2026-06-01'));
+2026-02-27 16:25:11 - [SQL_TOOL_QUERY] #3: SELECT id, start_time, end_time, duration_minutes FROM Breaks WHERE user_id = 1 AND ((start_time >= '2026-02-01' AND start_time < '2026-03-01') OR (start_time >= '2026-05-01' AND start_time < '2026-06-01')) ORDER BY star
+2026-02-27 16:25:11 - [SQL_TOOL_QUERY] #4: SELECT SUM(duration_minutes) AS total_break_minutes FROM Breaks WHERE user_id = 1 AND ((start_time >= '2026-02-01' AND start_time < '2026-03-01') OR (start_time >= '2026-05-01' AND start_time < '2026-06-01'));
+2026-02-27 16:25:11 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 16:25:11 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ["SELECT id, check_in_time, check_out_time, total_hours, status FROM Attendance WHERE user_id = 1 AND ((check_in_time >= '2026-02-01' AND check_in_time < '2026-03-01') OR (check_in_time >= '2026-05-01' AND check_in_time < '2026-06-01')) ORDER BY check_in_time;", "SELECT SUM(total_hours) AS total_hours FROM Attendance WHERE user_id = 1 AND ((check_in_time >= '2026-02-01' AND check_in_time < '2026-03-01') OR (check_in_time >= '2026-05-01' AND check_in_time < '2026-06-01'));", "SELECT id, start_time, end_time, duration_minutes FROM Breaks WHERE user_id = 1 AND ((start_time >= '2026-02-01' AND start_time < '2026-03-01') OR (start_time >= '2026-05-01' AND start_time < '2026-06-01')) ORDER BY start_time;", "SELECT SUM(duration_minutes) AS total_break_minutes FROM Breaks WHERE user_id = 1 AND ((start_time >= '2026-02-01' AND start_time < '2026-03-01') OR (start_time >= '2026-05-01' AND start_time < '2026-06-01'));"]}
+2026-02-27 16:25:11 - [TOOL_RESULT] Success: unknown | Output: [[{'id': 7, 'check_in_time': '2026-02-16 18:51:41', 'check_out_time': '2026-02-16 23:03:14', 'total_hours': 4.192500002682209, 'status': 'Checked Out'}, {'id': 8, 'check_in_time': '2026-02-17 18:51:21', 'check_out_time': '2026-02-17 23:59:59', 'total_hours': 5.143888894468546, 'status': 'Completed'}, {'id': 9, 'check_in_time': '2026-02-19 12:34:58', 'check_out_time': '2026-02-19 17:46:16', 'total_hours': 5.188333332538605, 'status': 'Present'}, {'id': 10, 'check_in_time': '2026-02-20 10:27:59', 'check_out_time': '2026-02-20 21:30:00', 'total_hours': 11.033611111342907, 'status': 'Present'}, {'id': 11, 'check_in_time': '2026-02-21 13:35:52', 'check_out_time': '2026-02-21 21:30:00', 'total_hours': 7.902222231030464, 'status': 'Checked Out'}, {'id': 12, 'check_in_time': '2026-02-21 14:43:56', 'check_out_time': '2026-02-21 21:30:00', 'total_hours': 6.767777781933546, 'status': 'Checked Out'}, {'id': 13, 'check_in_time': '2026-02-26 09:43:33', 'check_out_time': '2026-02-26 21:30:00', 'total_hours': 11.77, 'status': 'checked_in'}, {'id': 14, 'check_in_time': '2026-02-27 11:13:33', 'check_out_time': None, 'total_hours': None, 'status': None}], [{'total_hours': 51.99833335399627}], [{'id': 1, 'start_time': '2026-02-16 18:54:52', 'end_time': '2026-02-16 18:54:52', 'duration_minutes': 0.0}], [{'total_break_minutes': 0.0}]]
+2026-02-27 16:25:11 - [EXECUTOR_LOOP] Loop 2/50
+2026-02-27 16:25:11 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:27:47 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:27:47 - [EXECUTOR_ACTION] Type: complete
+2026-02-27 16:27:47 - [EXECUTOR_COMPLETE] <h2>Attendance and Break Summary for February and May 2026</h2><h3>Attendance Logs</h3><p><strong>Fe
+2026-02-27 16:29:45 - [USER_INPUT] Liat my tasks [Files: 0]
+2026-02-27 16:29:45 - [ROUTER_START] Routing user prompt: Liat my tasks...
+2026-02-27 16:29:45 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 7 agent(s).
+2026-02-27 16:29:45 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_162945_213_000017.txt
+2026-02-27 16:29:45 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:30:16 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:30:16 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_163016_607_000018.txt
+2026-02-27 16:30:16 - [ROUTER] Selected Agent: TaskManager (Conf: high). Reason: The user requested to 'list my tasks', which directly aligns with the TaskManager agent's capability to list, manage, and handle tasks.
+2026-02-27 16:30:16 - [ROUTER_SELECTED] Selected targets: ['TaskManager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_163016_607_000018.txt
+2026-02-27 16:30:16 - [EXECUTOR_START] Agent: TaskManager | User Prompt: List all tasks associated with the current user, including details like task name, status, due dates...
+2026-02-27 16:30:16 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 16:30:16 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:30:18 - [OPENROUTER_ERROR] [OPENROUTER_ERROR] HTTPError: HTTP Error 429: Too Many Requests | Context: Failed to connect to OpenRouter
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\llm\openrouter_client.py", line 75, in generate
+    with urllib.request.urlopen(request, timeout=120) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 495, in open
+    response = meth(req, response)
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 604, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 533, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 466, in _call_chain
+    result = func(*args)
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 613, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 429: Too Many Requests
+
+2026-02-27 16:30:18 - [CONTROLLER_ERROR] System Error: OpenRouter Error: HTTP Error 429: Too Many Requests
+2026-02-27 16:30:18 - [CONTROLLER_ERROR] [CONTROLLER_ERROR] OpenRouterClientError: OpenRouter Error: HTTP Error 429: Too Many Requests | Context: {'message': 'Liat my tasks'}
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\llm\openrouter_client.py", line 75, in generate
+    with urllib.request.urlopen(request, timeout=120) as response:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 495, in open
+    response = meth(req, response)
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 604, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 533, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 466, in _call_chain
+    result = func(*args)
+  File "C:\Users\Bijumon\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 613, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 429: Too Many Requests
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 138, in handle_user_message
+    return self._process_queue(message, ui_callback)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 194, in _process_queue
+    result = self._execute_current_task(user_message, ui_callback)
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 323, in _execute_current_task
+    result = self.executor.execute(agent_name, task_instruction, ui_callback=ui_callback, resume=resume)
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 739, in execute
+    data = self._execute_prompt(
+        llm_client=llm_client,
+    ...<5 lines>...
+        status_cb=status_cb,
+    )
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 403, in _execute_prompt
+    response_text = llm_client.generate(
+        prompt,
+        agent_name=agent_name,
+        user_prompt=user_prompt
+    )
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\llm\openrouter_client.py", line 115, in generate
+    raise OpenRouterClientError(f"OpenRouter Error: {exc}") from exc
+llm.openrouter_client.OpenRouterClientError: OpenRouter Error: HTTP Error 429: Too Many Requests
+
+2026-02-27 16:30:28 - [USER_INPUT] list my tasks [Files: 0]
+2026-02-27 16:30:28 - [ROUTER_START] Routing user prompt: list my tasks...
+2026-02-27 16:30:28 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 7 agent(s).
+2026-02-27 16:30:28 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_163028_291_000020.txt
+2026-02-27 16:30:28 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:30:44 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:30:44 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_163044_850_000021.txt
+2026-02-27 16:30:44 - [ROUTER] Selected Agent: TaskManager (Conf: high). Reason: The user requested to 'list my tasks', which directly aligns with the TaskManager agent's functionality for listing tasks.
+2026-02-27 16:30:44 - [ROUTER_SELECTED] Selected targets: ['TaskManager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_163044_850_000021.txt
+2026-02-27 16:30:44 - [EXECUTOR_START] Agent: TaskManager | User Prompt: List all tasks for the current user with relevant details such as status, due dates, and description...
+2026-02-27 16:30:44 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 16:30:44 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:31:54 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:31:55 - [EXECUTOR_RETRY] Attempt 1 failed: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback
+2026-02-27 16:31:55 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:33:24 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:33:24 - [EXECUTOR_RETRY] Attempt 2 failed: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback
+2026-02-27 16:33:24 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:34:49 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:34:49 - [EXECUTOR_RETRY] Attempt 3 failed: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback
+2026-02-27 16:34:49 - [EXECUTOR_ERROR] Executor failed after 3 attempts: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback
+2026-02-27 16:34:49 - [EXECUTOR_ERROR] [EXECUTOR_ERROR] SchemaError: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback | Context: {'agent_name': 'TaskManager', 'user_prompt': 'List all tasks for the current user with relevant details such as status, due dates, and descriptions.'}
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 430, in _execute_prompt
+    validate_executor_response(data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\executor_validator.py", line 122, in validate_executor_response
+    require_keys(
+    ~~~~~~~~~~~~^
+        data,
+        ^^^^^
+        ['plan', 'action', 'conversation_update', 'reasoning', 'ui_feedback'],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'executor_response'
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\json_schema.py", line 35, in require_keys
+    raise SchemaError(f"{name} missing keys: {', '.join(missing)}")
+validation.json_schema.SchemaError: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback
+
+2026-02-27 16:34:49 - [CONTROLLER_ERROR] System Error: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback
+2026-02-27 16:34:49 - [CONTROLLER_ERROR] [CONTROLLER_ERROR] ExecutorError: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback | Context: {'message': 'list my tasks'}
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 430, in _execute_prompt
+    validate_executor_response(data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\executor_validator.py", line 122, in validate_executor_response
+    require_keys(
+    ~~~~~~~~~~~~^
+        data,
+        ^^^^^
+        ['plan', 'action', 'conversation_update', 'reasoning', 'ui_feedback'],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'executor_response'
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\json_schema.py", line 35, in require_keys
+    raise SchemaError(f"{name} missing keys: {', '.join(missing)}")
+validation.json_schema.SchemaError: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 138, in handle_user_message
+    return self._process_queue(message, ui_callback)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 194, in _process_queue
+    result = self._execute_current_task(user_message, ui_callback)
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 323, in _execute_current_task
+    result = self.executor.execute(agent_name, task_instruction, ui_callback=ui_callback, resume=resume)
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 739, in execute
+    data = self._execute_prompt(
+        llm_client=llm_client,
+    ...<5 lines>...
+        status_cb=status_cb,
+    )
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 441, in _execute_prompt
+    raise ExecutorError(str(last_error)) from last_error
+core.executor.ExecutorError: executor_response missing keys: plan, conversation_update, reasoning, ui_feedback
+
+2026-02-27 16:35:08 - [USER_INPUT] list my tasks [Files: 0]
+2026-02-27 16:35:08 - [ROUTER_START] Routing user prompt: list my tasks...
+2026-02-27 16:35:08 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 7 agent(s).
+2026-02-27 16:35:08 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_163508_877_000028.txt
+2026-02-27 16:35:08 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:35:32 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:35:32 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_163532_588_000029.txt
+2026-02-27 16:35:32 - [ROUTER] Selected Agent: TaskManager (Conf: high). Reason: The user requested to list their tasks, which is the core functionality of the TaskManager agent as described.
+2026-02-27 16:35:32 - [ROUTER_SELECTED] Selected targets: ['TaskManager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_163532_588_000029.txt
+2026-02-27 16:35:32 - [EXECUTOR_START] Agent: TaskManager | User Prompt: List all tasks associated with the current user, including details like task name, status, due dates...
+2026-02-27 16:35:32 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 16:35:32 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:37:24 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:37:24 - [EXECUTOR_RETRY] Attempt 1 failed: executor_response missing keys: plan, conversation_update, ui_feedback
+2026-02-27 16:37:24 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:38:27 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:38:27 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 16:38:27 - [SQL_TOOL_START] Executing 310 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 16:38:27 - [SQL_TOOL_QUERY] #1: S
+2026-02-27 16:38:27 - [SQL_TOOL_ERROR] Query #1 failed: near "S": syntax error
+2026-02-27 16:38:27 - [SQL_TOOL_ERROR] [SQL_TOOL_ERROR] OperationalError: near "S": syntax error | Context: {'query_index': 0, 'query': 'S', 'foreign_keys_on': True}
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\tools\sqlite_tools.py", line 59, in _run_batch
+    cursor.execute(query)
+    ~~~~~~~~~~~~~~^^^^^^^
+sqlite3.OperationalError: near "S": syntax error
+
+2026-02-27 16:38:27 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': "SELECT t.id, t.title, t.description, t.status, t.scheduled_date, t.due_date, t.priority, t.assigned_to, group_concat(n.note_content, '; ') as notes FROM Tasks t LEFT JOIN TaskNotes n ON t.id = n.task_id WHERE t.created_by = 'bb' OR t.assigned_to = 'bb' GROUP BY t.id ORDER BY t.due_date ASC, t.created_at DESC;"}
+2026-02-27 16:38:27 - [TOOL_RESULT] Success: False | Output: {'success': False, 'error': 'Database Error: near "S": syntax error', 'query_index': 0, 'failed_query': 'S', 'partial_results': [], 'foreign_keys_on': True}
+2026-02-27 16:38:27 - [TOOL_ERROR_RECOVERABLE] Feeding tool error back to LLM: Database Error: near "S": syntax error
+2026-02-27 16:38:27 - [EXECUTOR_LOOP] Loop 2/50
+2026-02-27 16:38:27 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:38:53 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:38:53 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 16:38:53 - [SQL_TOOL_START] Executing 1 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 16:38:53 - [SQL_TOOL_QUERY] #1: SELECT t.id, t.title, t.description, t.status, t.scheduled_date, t.due_date, t.priority, t.assigned_to, group_concat(n.note_content, '; ') as notes FROM Tasks t LEFT JOIN TaskNotes n ON t.id = n.task_id WHERE t.created_b
+2026-02-27 16:38:53 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 16:38:53 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ["SELECT t.id, t.title, t.description, t.status, t.scheduled_date, t.due_date, t.priority, t.assigned_to, group_concat(n.note_content, '; ') as notes FROM Tasks t LEFT JOIN TaskNotes n ON t.id = n.task_id WHERE t.created_by = 'bb' OR t.assigned_to = 'bb' GROUP BY t.id ORDER BY t.due_date ASC, t.created_at DESC;"]}
+2026-02-27 16:38:53 - [TOOL_RESULT] Success: unknown | Output: [[{'id': 22, 'title': 'Make arrangement with Bipin IVA', 'description': None, 'status': 'closed', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 23, 'title': 'Water pressure measurement kit', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 24, 'title': 'Fix whatsapPA issue', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 25, 'title': 'Test Kiwi K2 for sleep analysis', 'description': None, 'status': 'closed', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 26, 'title': 'Generic agent POC- working', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 27, 'title': 'AI Camera ESP32 Thinker to complete', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 28, 'title': 'AI Cam S3 Model to complete', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 29, 'title': 'Pay House Tax online', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 30, 'title': 'Pay land tax for all properties', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 31, 'title': 'CNN training for synthesize PPG from PVDF--working continuing', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 32, 'title': 'AIKON Alert Listing screen', 'description': None, 'status': 'closed', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 33, 'title': 'Stimulator suppressing spikes --working', 'description': None, 'status': 'closed', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 34, 'title': 'Luxi- Adjust code to shift MAT color grid top to bottom switching--done', 'description': None, 'status': 'closed', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 35, 'title': 'NEERS New Stimulator schematic in propert software', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'Abhishek', 'notes': None}, {'id': 36, 'title': 'NEERS New Stimulator PCB', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'Abhishek', 'notes': None}, {'id': 37, 'title': 'PVDF PCB create inhouse', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'Jishnu', 'notes': None}, {'id': 38, 'title': 'VSM Motherboard design using STM32H723', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'Jishnu/Vishnu', 'notes': None}, {'id': 39, 'title': 'PVDF Training data collection make it wireless to reduce noise', 'description': None, 'status': 'closed', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 40, 'title': 'Alarm Interface design', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'Vishnu/Satheerth', 'notes': None}, {'id': 41, 'title': 'BP PCB to do inhouse', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'Satheerth', 'notes': None}, {'id': 42, 'title': 'NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 43, 'title': 'NEERS DESK top App analysis', 'description': None, 'status': 'closed', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 44, 'title': 'Gmail account setup', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 45, 'title': 'NEERS new schematic analysis', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 46, 'title': 'LAPtop reset', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 47, 'title': 'NEERS Check the wave form generated by Elctrotoneus', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 48, 'title': 'NEERS add log to collect RAW and filtered data from neers snd explore', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 49, 'title': 'NEER design protection circuit', 'description': None, 'status': 'open', 'scheduled_date': None, 'due_date': None, 'priority': 'medium', 'assigned_to': 'bb', 'notes': None}, {'id': 1, 'title': 'Make arrangement with Bipin IVA', 'description': None, 'status': 'completed', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 2, 'title': 'Water pressure measurement kit', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 3, 'title': 'Fix whatsapPA issue', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 4, 'title': 'Test Kiwi K2 for sleep analysis', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 5, 'title': 'Generic agent POC- working', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 6, 'title': 'AI Camera ESP32 Thinker to complete', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 7, 'title': 'AI Cam S3 Model to complete', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 8, 'title': 'Pay House Tax online', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 9, 'title': 'Pay land tax for all properties', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 10, 'title': 'CNN training for synthesize PPG from PVDF--working continuing', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 11, 'title': 'AIKON Alert Listing screen', 'description': None, 'status': 'completed', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 12, 'title': 'Stimulator suppressing spikes --working', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 13, 'title': 'Luxi- Adjust code to shift MAT color grid top to bottom switching--done', 'description': None, 'status': 'completed', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 14, 'title': 'NEERS New Stimulator schematic in propert software', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': 'Abhishek', 'notes': None}, {'id': 15, 'title': 'NEERS New Stimulator PCB', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': 'Abhishek', 'notes': None}, {'id': 16, 'title': 'PVDF PCB create inhouse', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': 'Jishnu', 'notes': None}, {'id': 17, 'title': 'VSM Motherboard design using STM32H723', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': 'Jishnu/Vishnu', 'notes': None}, {'id': 18, 'title': 'PVDF Training data collection make it wireless to reduce noise', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}, {'id': 19, 'title': 'Alarm Interface design', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': 'Vishnu/Satheerth', 'notes': None}, {'id': 20, 'title': 'BP PCB to do inhouse', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': 'Satheerth', 'notes': None}, {'id': 21, 'title': 'NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration', 'description': None, 'status': 'scheduled', 'scheduled_date': '2026-02-16', 'due_date': None, 'priority': 'medium', 'assigned_to': None, 'notes': None}]]
+2026-02-27 16:38:53 - [EXECUTOR_LOOP] Loop 3/50
+2026-02-27 16:38:53 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash:free via OpenRouter
+2026-02-27 16:39:29 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 16:39:29 - [EXECUTOR_ACTION] Type: complete
+2026-02-27 16:39:29 - [EXECUTOR_COMPLETE] <h2>All Tasks for User bb</h2><table border='1'><thead><tr><th>ID</th><th>Title</th><th>Description<

@@ -77,6 +77,12 @@ def _validate_action(action: Dict) -> None:
                 if 'parameters' in tool_request:
                     require_dict(tool_request.get('parameters'), 'action.tool_request.parameters')
 
+    # Add flexible tracking for explicit user outputs
+    if 'UserMessageType' in action:
+        require_str(action.get('UserMessageType'), 'action.UserMessageType')
+    if 'UserMessage' in action:
+        require_str(action.get('UserMessage'), 'action.UserMessage')
+
 
 def _validate_conversation_update(update: Dict | str) -> None:
     if isinstance(update, str):
@@ -123,6 +129,13 @@ def validate_executor_response(data: Dict) -> Dict:
         data['conversation_update'] = _validate_conversation_update(data.get('conversation_update'))
         _validate_reasoning(data.get('reasoning'))
         _validate_ui_feedback(data.get('ui_feedback'))
+        
+        # Validate top-level UserMessage formats if not nested in action
+        if 'UserMessageType' in data:
+            require_str(data.get('UserMessageType'), 'UserMessageType')
+        if 'UserMessage' in data:
+            require_str(data.get('UserMessage'), 'UserMessage')
+            
         return data
     except SchemaError as e:
         print(f"[DEBUG] Validation Error: {e}")

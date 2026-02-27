@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "TeamTaskManager",
-  "confidence": "high",
-  "reason": "User request involves creating a list of weekly tasks from provided text, which directly aligns with TeamTaskManager's capability for bulk task creation and scheduling.",
-  "instruction": "Create weekly tasks for the date 16-02-2026 from the user-provided list. The list includes numbered tasks such as 'Make arrangement with Bipin IVA', 'Water pressure measurement kit', etc. Parse the numbers and descriptions to add each as a separate task, and set the schedule to the specified weekly date.",
-  "response_to_user": "Routing your request to TeamTaskManager to create the weekly tasks for 16-02-2026.",
-  "priority": 1
-}

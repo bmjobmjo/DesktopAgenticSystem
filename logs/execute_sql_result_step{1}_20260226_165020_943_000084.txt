@@ -1,0 +1,14 @@
+[
+  "Success. Rows affected: 1",
+  [
+    {
+      "id": 1,
+      "email": "bmjobmjo@gmail.com",
+      "full_name": "Bijumon",
+      "FirstName": "Bijumon",
+      "LastName": "",
+      "department_name": null,
+      "role_name": "Admin"
+    }
+  ]
+]

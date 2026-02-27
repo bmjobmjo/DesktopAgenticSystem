@@ -1,0 +1,223 @@
+2026-02-27 11:01:12 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:01:19 - 
+================================================================================
+CONTEXT TYPE: holiday_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:03:29 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:05:17 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:06:34 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:06:43 - 
+================================================================================
+CONTEXT TYPE: holiday_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:07:00 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: list holidays
+Assistant: Hello! I'm the Holiday Manager Agent. I can help you manage the company holiday calendar. Please let me know what you'd like to do: list holidays, add a holiday, update a holiday, or delete a holiday. You can specify dates, names, and other details.
+================================================================================
+
+2026-02-27 11:07:34 - 
+================================================================================
+CONTEXT TYPE: holiday_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: list holidays
+Assistant: Hello! I'm the Holiday Manager Agent. I can help you manage the company holiday calendar. Please let me know what you'd like to do: list holidays, add a holiday, update a holiday, or delete a holiday. You can specify dates, names, and other details.
+================================================================================
+
+2026-02-27 11:07:38 - 
+================================================================================
+CONTEXT TYPE: holiday_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: list holidays
+Assistant: Hello! I'm the Holiday Manager Agent. I can help you manage the company holiday calendar. Please let me know what you'd like to do: list holidays, add a holiday, update a holiday, or delete a holiday. You can specify dates, names, and other details.
+================================================================================
+
+2026-02-27 11:07:48 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: list holidays
+Assistant: Hello! I'm the Holiday Manager Agent. I can help you manage the company holiday calendar. Please let me know what you'd like to do: list holidays, add a holiday, update a holiday, or delete a holiday. You can specify dates, names, and other details.
+User: list holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='5' cellspacing='0'><thead><tr><th>Date</th><th>Holiday Name</th><th>Type</th><th>Optional</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>No</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>No</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>No</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>No</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>No</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>No</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>No</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>No</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>No</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>No</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>No</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>No</td></tr></tbody></table>
+================================================================================
+
+2026-02-27 11:08:14 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:08:26 - 
+================================================================================
+CONTEXT TYPE: attendance_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:08:56 - 
+================================================================================
+CONTEXT TYPE: attendance_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 11:09:25 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+================================================================================
+
+2026-02-27 11:10:26 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+================================================================================
+
+2026-02-27 11:10:44 - 
+================================================================================
+CONTEXT TYPE: attendance_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+================================================================================
+
+2026-02-27 11:11:37 - 
+================================================================================
+CONTEXT TYPE: attendance_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+================================================================================
+
+2026-02-27 11:12:08 - 
+================================================================================
+CONTEXT TYPE: attendance_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+================================================================================
+
+2026-02-27 11:13:04 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+User: close that check in .. shift end time was 9:30 Pm
+Assistant: Your check-out has been successfully processed. Session ID 13 has been closed at 21:30 on 2026-02-26. Total hours worked: 11.77 hours.
+================================================================================
+
+2026-02-27 11:13:14 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+User: close that check in .. shift end time was 9:30 Pm
+Assistant: Your check-out has been successfully processed. Session ID 13 has been closed at 21:30 on 2026-02-26. Total hours worked: 11.77 hours.
+================================================================================
+
+2026-02-27 11:13:20 - 
+================================================================================
+CONTEXT TYPE: attendance_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+User: close that check in .. shift end time was 9:30 Pm
+Assistant: Your check-out has been successfully processed. Session ID 13 has been closed at 21:30 on 2026-02-26. Total hours worked: 11.77 hours.
+================================================================================
+
+2026-02-27 11:13:33 - 
+================================================================================
+CONTEXT TYPE: attendance_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+User: close that check in .. shift end time was 9:30 Pm
+Assistant: Your check-out has been successfully processed. Session ID 13 has been closed at 21:30 on 2026-02-26. Total hours worked: 11.77 hours.
+================================================================================
+
+2026-02-27 11:13:47 - 
+================================================================================
+CONTEXT TYPE: attendance_manager
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+User: close that check in .. shift end time was 9:30 Pm
+Assistant: Your check-out has been successfully processed. Session ID 13 has been closed at 21:30 on 2026-02-26. Total hours worked: 11.77 hours.
+================================================================================
+
+2026-02-27 11:13:52 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_110052
+CHAT HISTORY:
+User: Mark me in
+Assistant: Your check-in request cannot be processed because you already have an active check-in session from 2026-02-26 at 09:43:33. Please check out from that session first before checking in again.
+User: close that check in .. shift end time was 9:30 Pm
+Assistant: Your check-out has been successfully processed. Session ID 13 has been closed at 21:30 on 2026-02-26. Total hours worked: 11.77 hours.
+User: Now check me in
+Assistant: Your check-in has been successfully processed. You are now clocked in as of 2026-02-27 11:13:33. No location was recorded. Please remember to check out when your shift ends.
+================================================================================
+

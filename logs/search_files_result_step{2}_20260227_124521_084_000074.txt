@@ -1,0 +1,65 @@
+[
+  {
+    "file_id": 12,
+    "filename": "VSM Smart Display UART AT Protocol.pdf",
+    "path": "..\\..\\..\\IVA\\VSM Smart Display UART AT Protocol.pdf",
+    "description": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "match_type": "description",
+    "snippet": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "score": 0.6861750915119132
+  },
+  {
+    "file_id": 12,
+    "filename": "VSM Smart Display UART AT Protocol.pdf",
+    "path": "..\\..\\..\\IVA\\VSM Smart Display UART AT Protocol.pdf",
+    "description": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "match_type": "text",
+    "snippet": "VSM Smart Display UART AT Protocol  \nEvent -Driven Display Interface Specification  \nVersion 1.1 \u2014 Revised  \n \n1. Purpose and Device Overview  \n1.1 System Objective  \nThis protocol defines a structure",
+    "score": 0.6003977097194986
+  },
+  {
+    "file_id": 12,
+    "filename": "VSM Smart Display UART AT Protocol.pdf",
+    "path": "..\\..\\..\\IVA\\VSM Smart Display UART AT Protocol.pdf",
+    "description": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "match_type": "text",
+    "snippet": " \nUART Configuration  \nBaud: 115200 (recommended)  \nFormat: 8N1  \nEncoding: ASCII  \nLine termination: CRLF ( \\r\\n) \n \nEach message is one line:  \nAT+COMMAND=arguments  \n \nDisplay \u2192 Host user actions u",
+    "score": 0.5902121245877882
+  },
+  {
+    "file_id": 12,
+    "filename": "VSM Smart Display UART AT Protocol.pdf",
+    "path": "..\\..\\..\\IVA\\VSM Smart Display UART AT Protocol.pdf",
+    "description": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "match_type": "text",
+    "snippet": "V1.1  \nAT+TIME=YYYY,MM,DD,HH,MM,SS  \nAT+SCREEN=MAIN  \n \nDisplay responds:  \nAT+ACK=SCREEN  \nAT+STREAM=START  \n \n \n6. ACK Strategy  \nTier A \u2014 MUST ACK  \nCommands that change system state:  \nSCREEN  \nST",
+    "score": 0.3963377068099368
+  },
+  {
+    "file_id": 12,
+    "filename": "VSM Smart Display UART AT Protocol.pdf",
+    "path": "..\\..\\..\\IVA\\VSM Smart Display UART AT Protocol.pdf",
+    "description": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "match_type": "text",
+    "snippet": "\nHost forces UI:  \nAT+SCREEN=MAIN  \nAT+SCREEN=PATIENTS  \nAT+SCREEN=TRENDS  \n \nDisplay:  \nAT+ACK=SCREEN  \n \n \n16. Error Reporting  \nAT+ERR=<code>,<description>  \n \nExamples:  \nAT+ERR=01,INVALID_CMD  \nA",
+    "score": 0.3931376297060658
+  },
+  {
+    "file_id": 12,
+    "filename": "VSM Smart Display UART AT Protocol.pdf",
+    "path": "..\\..\\..\\IVA\\VSM Smart Display UART AT Protocol.pdf",
+    "description": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "match_type": "text",
+    "snippet": "ket = sample_rate / 10  \n \nExamples:  \n\u2022 100 Hz waveform \u2192 10 samples per packet  \n\u2022 50 Hz waveform \u2192 5 samples per packet  \n\u2022 25 Hz waveform \u2192 2 or 3 samples per packet (implementation rounding allow",
+    "score": 0.3827660837761973
+  },
+  {
+    "file_id": 12,
+    "filename": "VSM Smart Display UART AT Protocol.pdf",
+    "path": "..\\..\\..\\IVA\\VSM Smart Display UART AT Protocol.pdf",
+    "description": "This document specifies the UART AT protocol for communication between a medical host controller and a smart display terminal in a Vital Sign Monitor.",
+    "match_type": "text",
+    "snippet": "reas:  \nMain Monitoring Screen  \n\u2022 Real -time vitals (HR, RR, SpO\u2082, PR, NIBP, etc.)  \n\u2022 Two simultaneous waveforms  \n\u2022 Alarm highlighting  \n\u2022 Quick -access UI controls  \nPatient Management  \n\u2022 Patient",
+    "score": 0.3673135301731926
+  }
+]

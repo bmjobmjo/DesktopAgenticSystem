@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "UPDATE Attendance SET check_out_time = '2026-02-26 21:30:00', total_hours = ROUND((JulianDay('2026-02-26 21:30:00') - JulianDay(check_in_time)) * 24, 2) WHERE id = 13 AND user_id = 1 AND check_out_time IS NULL;"
+  ]
+}

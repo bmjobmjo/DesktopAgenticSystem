@@ -1,0 +1,7 @@
+I'll verify the TaskManager agent was created successfully and then provide you with a complete summary.<tool_call>
+<function=execute_sql>
+<parameter=queries>
+["SELECT * FROM Agents WHERE name = 'TaskManager';"],
+</parameter>
+</function>
+</tool_call>

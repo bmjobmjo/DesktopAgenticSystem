@@ -1,0 +1,8 @@
+{
+  "type": "agent_call",
+  "selected_agent": "rag_gen",
+  "confidence": "medium",
+  "reason": "The user is asking about a technical procedure ('how is tem cell extracted'). This is a knowledge-based question that requires retrieving information from existing documentation or files. The RAG agent is designed for Retrieval-Augmented Generation, answering questions by retrieving relevant information from files and the application repository.",
+  "response_to_user": "",
+  "priority": 1
+}

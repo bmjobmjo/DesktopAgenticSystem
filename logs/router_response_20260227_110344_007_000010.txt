@@ -1,0 +1,8 @@
+[
+  {
+    "type": "agent_call",
+    "selected_agent": "holiday_manager",
+    "instruction": "List all holidays.",
+    "priority": 1
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "SELECT id, user_id, check_in_time, check_in_location FROM Attendance WHERE user_id = 1 AND check_out_time IS NULL;"
+  ]
+}

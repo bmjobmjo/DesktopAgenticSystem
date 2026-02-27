@@ -295,15 +295,23 @@ def register_agent(name: str, description: str, prompt_content_or_path: str | Pa
         cursor = conn.cursor()
         
         # Check if exists
-        cursor.execute("SELECT id FROM Agents WHERE name = ?", (name,))
+        cursor.execute("SELECT id, prompt_content, version FROM Agents WHERE name = ?", (name,))
         row = cursor.fetchone()
         
         agent_id = None
         if row:
             agent_id = row[0]
-            cursor.execute("UPDATE Agents SET description=?, prompt_content=?, is_active=1 WHERE name=?", (description, content, name))
+            old_prompt = row[1]
+            current_version = row[2] if len(row) > 2 and row[2] is not None else 1
+            
+            if old_prompt != content:
+                cursor.execute("INSERT INTO AgentPromptVersion (agent_id, prompt_content, version) VALUES (?, ?, ?)", (agent_id, old_prompt, current_version))
+                new_version = current_version + 1
+                cursor.execute("UPDATE Agents SET description=?, prompt_content=?, version=?, is_active=1 WHERE id=?", (description, content, new_version, agent_id))
+            else:
+                cursor.execute("UPDATE Agents SET description=?, is_active=1 WHERE id=?", (description, agent_id))
         else:
-            cursor.execute("INSERT INTO Agents (name, description, prompt_content) VALUES (?, ?, ?)", (name, description, content))
+            cursor.execute("INSERT INTO Agents (name, description, prompt_content, version) VALUES (?, ?, ?, 1)", (name, description, content))
             agent_id = cursor.lastrowid
             
         # Assign to Admin role by default

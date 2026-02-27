@@ -1,0 +1,3 @@
+{
+  "queries": "SELECT t.id, t.title, t.description, t.status, t.scheduled_date, t.due_date, t.priority, t.assigned_to, group_concat(n.note_content, '; ') as notes FROM Tasks t LEFT JOIN TaskNotes n ON t.id = n.task_id WHERE t.created_by = 'bb' OR t.assigned_to = 'bb' GROUP BY t.id ORDER BY t.due_date ASC, t.created_at DESC;"
+}

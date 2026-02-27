@@ -1,0 +1,297 @@
+2026-02-27 11:00:52 - [LOGGER_INIT] Session active: 20260227_110052
+2026-02-27 11:01:12 - [USER_INPUT] list holidays [Files: 0]
+2026-02-27 11:01:12 - [ROUTER_START] Routing user prompt: list holidays...
+2026-02-27 11:01:12 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 6 agent(s).
+2026-02-27 11:01:12 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110112_369_000001.txt
+2026-02-27 11:01:12 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:01:19 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:01:19 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110119_295_000002.txt
+2026-02-27 11:01:19 - [ROUTER] Selected Agent: holiday_manager (Conf: high). Reason: The user request is directly related to managing holidays, which is the core responsibility of the holiday_manager agent.
+2026-02-27 11:01:19 - [ROUTER_SELECTED] Selected targets: ['holiday_manager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110119_295_000002.txt
+2026-02-27 11:01:19 - [EXECUTOR_START] Agent: holiday_manager | User Prompt: List all current company-wide holidays....
+2026-02-27 11:01:19 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 11:01:19 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:01:39 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:01:39 - [EXECUTOR_RETRY] Attempt 1 failed: executor_response missing keys: plan
+2026-02-27 11:01:39 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:01:48 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:01:48 - [EXECUTOR_RETRY] Attempt 2 failed: executor_response missing keys: plan
+2026-02-27 11:01:48 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:01:58 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:01:58 - [EXECUTOR_RETRY] Attempt 3 failed: executor_response missing keys: plan
+2026-02-27 11:01:58 - [EXECUTOR_ERROR] Executor failed after 3 attempts: executor_response missing keys: plan
+2026-02-27 11:01:58 - [EXECUTOR_ERROR] [EXECUTOR_ERROR] SchemaError: executor_response missing keys: plan | Context: {'agent_name': 'holiday_manager', 'user_prompt': 'List all current company-wide holidays.'}
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 332, in _execute_prompt
+    validate_executor_response(data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\executor_validator.py", line 122, in validate_executor_response
+    require_keys(
+    ~~~~~~~~~~~~^
+        data,
+        ^^^^^
+        ['plan', 'action', 'conversation_update', 'reasoning', 'ui_feedback'],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'executor_response'
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\json_schema.py", line 35, in require_keys
+    raise SchemaError(f"{name} missing keys: {', '.join(missing)}")
+validation.json_schema.SchemaError: executor_response missing keys: plan
+
+2026-02-27 11:01:58 - [CONTROLLER_ERROR] System Error: executor_response missing keys: plan
+2026-02-27 11:01:58 - [CONTROLLER_ERROR] [CONTROLLER_ERROR] ExecutorError: executor_response missing keys: plan | Context: {'message': 'list holidays'}
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 332, in _execute_prompt
+    validate_executor_response(data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\executor_validator.py", line 122, in validate_executor_response
+    require_keys(
+    ~~~~~~~~~~~~^
+        data,
+        ^^^^^
+        ['plan', 'action', 'conversation_update', 'reasoning', 'ui_feedback'],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'executor_response'
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\json_schema.py", line 35, in require_keys
+    raise SchemaError(f"{name} missing keys: {', '.join(missing)}")
+validation.json_schema.SchemaError: executor_response missing keys: plan
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 138, in handle_user_message
+    return self._process_queue(message, ui_callback)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 194, in _process_queue
+    result = self._execute_current_task(user_message, ui_callback)
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 323, in _execute_current_task
+    result = self.executor.execute(agent_name, task_instruction, ui_callback=ui_callback, resume=resume)
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 639, in execute
+    data = self._execute_prompt(
+        llm_client=llm_client,
+    ...<5 lines>...
+        status_cb=status_cb,
+    )
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\executor.py", line 343, in _execute_prompt
+    raise ExecutorError(str(last_error)) from last_error
+core.executor.ExecutorError: executor_response missing keys: plan
+
+2026-02-27 11:03:29 - [USER_INPUT] List all holidays [Files: 0]
+2026-02-27 11:03:29 - [ROUTER_START] Routing user prompt: List all holidays...
+2026-02-27 11:03:29 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 6 agent(s).
+2026-02-27 11:03:29 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110329_368_000009.txt
+2026-02-27 11:03:29 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:03:44 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:03:44 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110344_007_000010.txt
+2026-02-27 11:03:44 - [ROUTER_RETRY] Attempt 1 failed: task_item missing keys: confidence, reason
+2026-02-27 11:03:44 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110344_010_000011.txt
+2026-02-27 11:03:44 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:03:58 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:03:58 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110358_906_000012.txt
+2026-02-27 11:03:58 - [ROUTER_RETRY] Attempt 2 failed: task_item missing keys: confidence, reason
+2026-02-27 11:03:58 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110358_909_000013.txt
+2026-02-27 11:03:58 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:04:14 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:04:14 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110414_062_000014.txt
+2026-02-27 11:04:14 - [ROUTER_RETRY] Attempt 3 failed: task_item missing keys: confidence, reason
+2026-02-27 11:04:14 - [ROUTER_ERROR] Router failed after 3 attempts: task_item missing keys: confidence, reason
+2026-02-27 11:04:14 - [CONTROLLER_ERROR] System Error: task_item missing keys: confidence, reason
+2026-02-27 11:04:14 - [CONTROLLER_ERROR] [CONTROLLER_ERROR] RouterError: task_item missing keys: confidence, reason | Context: {'message': 'List all holidays'}
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\router.py", line 199, in route
+    validate_router_response(data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\router_validator.py", line 18, in validate_router_response
+    validate_single_task(item)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\router_validator.py", line 24, in validate_single_task
+    require_keys(data, ['type', 'confidence', 'reason'], 'task_item')
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\json_schema.py", line 35, in require_keys
+    raise SchemaError(f"{name} missing keys: {', '.join(missing)}")
+validation.json_schema.SchemaError: task_item missing keys: confidence, reason
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 118, in handle_user_message
+    routes = self.router.route(message, input_files=input_files, chat_history=history)
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\router.py", line 232, in route
+    raise RouterError(str(last_error)) from last_error
+core.router.RouterError: task_item missing keys: confidence, reason
+
+2026-02-27 11:05:17 - [USER_INPUT] mark me in [Files: 0]
+2026-02-27 11:05:17 - [ROUTER_START] Routing user prompt: mark me in...
+2026-02-27 11:05:17 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 6 agent(s).
+2026-02-27 11:05:17 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110517_512_000015.txt
+2026-02-27 11:05:17 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:05:32 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:05:32 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110532_631_000016.txt
+2026-02-27 11:05:32 - [ROUTER_RETRY] Attempt 1 failed: task_item missing keys: confidence, reason
+2026-02-27 11:05:32 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110532_636_000017.txt
+2026-02-27 11:05:32 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:05:48 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:05:48 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110548_788_000018.txt
+2026-02-27 11:05:48 - [ROUTER_RETRY] Attempt 2 failed: task_item missing keys: confidence, reason
+2026-02-27 11:05:48 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110548_792_000019.txt
+2026-02-27 11:05:48 - [LOCAL_LLM] Requesting completion from local-model at http://127.0.0.1:1234/v1
+2026-02-27 11:06:04 - [LOCAL_LLM] Received response successfully.
+2026-02-27 11:06:04 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110604_156_000020.txt
+2026-02-27 11:06:04 - [ROUTER_RETRY] Attempt 3 failed: task_item missing keys: confidence, reason
+2026-02-27 11:06:04 - [ROUTER_ERROR] Router failed after 3 attempts: task_item missing keys: confidence, reason
+2026-02-27 11:06:04 - [CONTROLLER_ERROR] System Error: task_item missing keys: confidence, reason
+2026-02-27 11:06:04 - [CONTROLLER_ERROR] [CONTROLLER_ERROR] RouterError: task_item missing keys: confidence, reason | Context: {'message': 'mark me in'}
+Traceback:
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\router.py", line 199, in route
+    validate_router_response(data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\router_validator.py", line 18, in validate_router_response
+    validate_single_task(item)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\router_validator.py", line 24, in validate_single_task
+    require_keys(data, ['type', 'confidence', 'reason'], 'task_item')
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\validation\json_schema.py", line 35, in require_keys
+    raise SchemaError(f"{name} missing keys: {', '.join(missing)}")
+validation.json_schema.SchemaError: task_item missing keys: confidence, reason
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\controller.py", line 118, in handle_user_message
+    routes = self.router.route(message, input_files=input_files, chat_history=history)
+  File "d:\Works\GenericAgent\DesktopAgenticSystem\core\router.py", line 232, in route
+    raise RouterError(str(last_error)) from last_error
+core.router.RouterError: task_item missing keys: confidence, reason
+
+2026-02-27 11:06:34 - [USER_INPUT] list holidays [Files: 0]
+2026-02-27 11:06:34 - [ROUTER_START] Routing user prompt: list holidays...
+2026-02-27 11:06:34 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 6 agent(s).
+2026-02-27 11:06:34 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110634_587_000021.txt
+2026-02-27 11:06:34 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:06:43 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:06:43 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110643_944_000022.txt
+2026-02-27 11:06:43 - [ROUTER] Selected Agent: holiday_manager (Conf: high). Reason: The user requested to list holidays, which is directly managed by the holiday_manager agent responsible for company-wide holiday lists.
+2026-02-27 11:06:43 - [ROUTER_SELECTED] Selected targets: ['holiday_manager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110643_944_000022.txt
+2026-02-27 11:06:43 - [EXECUTOR_START] Agent: holiday_manager | User Prompt: ...
+2026-02-27 11:06:43 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 11:06:43 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:07:00 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:07:00 - [EXECUTOR_ACTION] Type: request_user_input
+2026-02-27 11:07:00 - [EXECUTOR_USER_INPUT] Hello! I'm the Holiday Manager Agent. I can help you manage the company holiday calendar. Please let me know what you'd like to do: list holidays, add a holiday, update a holiday, or delete a holiday. You can specify dates, names, and other details.
+2026-02-27 11:07:34 - [USER_INPUT] list holidays [Files: 0]
+2026-02-27 11:07:34 - [CONTROLLER_RESUME] Resuming task holiday_manager with user input.
+2026-02-27 11:07:34 - [EXECUTOR_START] Agent: holiday_manager | User Prompt: list holidays...
+2026-02-27 11:07:34 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 11:07:34 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:07:38 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:07:38 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 11:07:38 - [SQL_TOOL_START] Executing 1 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 11:07:38 - [SQL_TOOL_QUERY] #1: SELECT holiday_date, holiday_name, holiday_type, description, is_optional FROM HolidayList ORDER BY holiday_date ASC;
+2026-02-27 11:07:38 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 11:07:38 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ['SELECT holiday_date, holiday_name, holiday_type, description, is_optional FROM HolidayList ORDER BY holiday_date ASC;']}
+2026-02-27 11:07:38 - [TOOL_RESULT] Success: unknown | Output: [[{'holiday_date': '2026-01-26', 'holiday_name': 'Republic Day', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-03-20', 'holiday_name': 'Eid ul fitr', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-04-03', 'holiday_name': 'Good Friday', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-04-15', 'holiday_name': 'Vishu', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-05-01', 'holiday_name': 'May Day', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-06-26', 'holiday_name': 'Muharam', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-08-25', 'holiday_name': 'First Onam', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-08-26', 'holiday_name': 'Thiruvonam (Onam)', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-10-02', 'holiday_name': 'Gandhi Jayanti', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-10-20', 'holiday_name': 'Maha Navami', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-10-21', 'holiday_name': 'vijayadashami', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}, {'holiday_date': '2026-12-25', 'holiday_name': 'Christmas Day', 'holiday_type': 'Company', 'description': None, 'is_optional': 0}]]
+2026-02-27 11:07:38 - [EXECUTOR_LOOP] Loop 2/50
+2026-02-27 11:07:38 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:07:48 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:07:48 - [EXECUTOR_ACTION] Type: complete
+2026-02-27 11:07:48 - [EXECUTOR_COMPLETE] <h3>Company Holiday Calendar</h3><table border='1' cellpadding='5' cellspacing='0'><thead><tr><th>Da
+2026-02-27 11:08:14 - [USER_INPUT] Mark me in [Files: 0]
+2026-02-27 11:08:14 - [ROUTER_START] Routing user prompt: Mark me in...
+2026-02-27 11:08:14 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 6 agent(s).
+2026-02-27 11:08:14 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_110814_146_000031.txt
+2026-02-27 11:08:14 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:08:26 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:08:26 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110826_956_000032.txt
+2026-02-27 11:08:26 - [ROUTER] Selected Agent: attendance_manager (Conf: high). Reason: User request 'Mark me in' directly indicates a need to record attendance or check-in, which aligns with the attendance_manager's capability to handle check-ins/outs with timestamps and location.
+2026-02-27 11:08:26 - [ROUTER_SELECTED] Selected targets: ['attendance_manager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_110826_956_000032.txt
+2026-02-27 11:08:26 - [EXECUTOR_START] Agent: attendance_manager | User Prompt: Process the user's check-in request using current time and location data if available....
+2026-02-27 11:08:26 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 11:08:26 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:08:56 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:08:56 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 11:08:56 - [SQL_TOOL_START] Executing 1 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 11:08:56 - [SQL_TOOL_QUERY] #1: SELECT id, user_id, check_in_time, check_in_location FROM Attendance WHERE user_id = 1 AND check_out_time IS NULL;
+2026-02-27 11:08:56 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 11:08:56 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ['SELECT id, user_id, check_in_time, check_in_location FROM Attendance WHERE user_id = 1 AND check_out_time IS NULL;']}
+2026-02-27 11:08:56 - [TOOL_RESULT] Success: unknown | Output: [[{'id': 13, 'user_id': '1', 'check_in_time': '2026-02-26 09:43:33', 'check_in_location': None}]]
+2026-02-27 11:08:56 - [EXECUTOR_LOOP] Loop 2/50
+2026-02-27 11:08:56 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:09:25 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:09:25 - [EXECUTOR_ACTION] Type: complete
+2026-02-27 11:09:25 - [EXECUTOR_COMPLETE] Your check-in request cannot be processed because you already have an active check-in session from 2
+2026-02-27 11:10:26 - [USER_INPUT] close that check in .. shift end time was 9:30 Pm [Files: 0]
+2026-02-27 11:10:26 - [ROUTER_START] Routing user prompt: close that check in .. shift end time was 9:30 Pm...
+2026-02-27 11:10:26 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 6 agent(s).
+2026-02-27 11:10:26 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_111026_210_000039.txt
+2026-02-27 11:10:26 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:10:44 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:10:44 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_111044_867_000040.txt
+2026-02-27 11:10:44 - [ROUTER] Selected Agent: attendance_manager (Conf: high). Reason: User request is to close an active check-in session, which is directly managed by the attendance_manager agent for handling check-ins/outs and attendance records.
+2026-02-27 11:10:44 - [ROUTER_SELECTED] Selected targets: ['attendance_manager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_111044_867_000040.txt
+2026-02-27 11:10:44 - [EXECUTOR_START] Agent: attendance_manager | User Prompt: Close the active check-in session for the user. The user specified shift end time as 9:30 PM. From c...
+2026-02-27 11:10:44 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 11:10:44 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:11:37 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:11:37 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 11:11:37 - [SQL_TOOL_START] Executing 1 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 11:11:37 - [SQL_TOOL_QUERY] #1: SELECT id, check_in_time FROM Attendance WHERE user_id = 1 AND check_out_time IS NULL;
+2026-02-27 11:11:37 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 11:11:37 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ['SELECT id, check_in_time FROM Attendance WHERE user_id = 1 AND check_out_time IS NULL;']}
+2026-02-27 11:11:37 - [TOOL_RESULT] Success: unknown | Output: [[{'id': 13, 'check_in_time': '2026-02-26 09:43:33'}]]
+2026-02-27 11:11:37 - [EXECUTOR_LOOP] Loop 2/50
+2026-02-27 11:11:37 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:12:08 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:12:08 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 11:12:08 - [SQL_TOOL_START] Executing 1 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 11:12:08 - [SQL_TOOL_QUERY] #1: UPDATE Attendance SET check_out_time = '2026-02-26 21:30:00', total_hours = ROUND((JulianDay('2026-02-26 21:30:00') - JulianDay(check_in_time)) * 24, 2) WHERE id = 13 AND user_id = 1 AND check_out_time IS NULL;
+2026-02-27 11:12:08 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 11:12:08 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ["UPDATE Attendance SET check_out_time = '2026-02-26 21:30:00', total_hours = ROUND((JulianDay('2026-02-26 21:30:00') - JulianDay(check_in_time)) * 24, 2) WHERE id = 13 AND user_id = 1 AND check_out_time IS NULL;"]}
+2026-02-27 11:12:08 - [TOOL_RESULT] Success: unknown | Output: ['Success. Rows affected: 1']
+2026-02-27 11:12:08 - [EXECUTOR_LOOP] Loop 3/50
+2026-02-27 11:12:08 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:13:04 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:13:04 - [EXECUTOR_ACTION] Type: complete
+2026-02-27 11:13:04 - [EXECUTOR_COMPLETE] Your check-out has been successfully processed. Session ID 13 has been closed at 21:30 on 2026-02-26
+2026-02-27 11:13:14 - [USER_INPUT] Now check me in [Files: 0]
+2026-02-27 11:13:14 - [ROUTER_START] Routing user prompt: Now check me in...
+2026-02-27 11:13:14 - [ROUTER_AGENT_IDENTITY] Using identity='1' with 6 agent(s).
+2026-02-27 11:13:14 - [ROUTER_TRACE_FILE] Prompt file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_prompt_20260227_111314_804_000051.txt
+2026-02-27 11:13:14 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:13:20 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:13:20 - [ROUTER_TRACE_FILE] Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_111320_364_000052.txt
+2026-02-27 11:13:20 - [ROUTER] Selected Agent: attendance_manager (Conf: high). Reason: User requests to check in after previously checking out. This is an attendance management operation.
+2026-02-27 11:13:20 - [ROUTER_SELECTED] Selected targets: ['attendance_manager'] | Response file: D:\Works\GenericAgent\DesktopAgenticSystem\logs\router_response_20260227_111320_364_000052.txt
+2026-02-27 11:13:20 - [EXECUTOR_START] Agent: attendance_manager | User Prompt: Process a check-in for the user. Record the current timestamp and location if available....
+2026-02-27 11:13:20 - [EXECUTOR_LOOP] Loop 1/50
+2026-02-27 11:13:20 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:13:33 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:13:33 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 11:13:33 - [SQL_TOOL_START] Executing 1 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 11:13:33 - [SQL_TOOL_QUERY] #1: SELECT id, user_id, check_in_time, check_in_location FROM Attendance WHERE user_id = 1 AND check_out_time IS NULL;
+2026-02-27 11:13:33 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 11:13:33 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ['SELECT id, user_id, check_in_time, check_in_location FROM Attendance WHERE user_id = 1 AND check_out_time IS NULL;']}
+2026-02-27 11:13:33 - [TOOL_RESULT] Success: unknown | Output: [[]]
+2026-02-27 11:13:33 - [EXECUTOR_LOOP] Loop 2/50
+2026-02-27 11:13:33 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:13:47 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:13:47 - [EXECUTOR_ACTION] Type: tool_call
+2026-02-27 11:13:47 - [SQL_TOOL_START] Executing 1 queries on D:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db
+2026-02-27 11:13:47 - [SQL_TOOL_QUERY] #1: INSERT INTO Attendance (user_id, check_in_time, check_in_location) VALUES (1, '2026-02-27 11:13:33', NULL);
+2026-02-27 11:13:47 - [SQL_TOOL_DONE] Batch executed successfully with foreign_keys=ON
+2026-02-27 11:13:47 - [TOOL_CALL] Tool: execute_sql | Params: {'queries': ["INSERT INTO Attendance (user_id, check_in_time, check_in_location) VALUES (1, '2026-02-27 11:13:33', NULL);"]}
+2026-02-27 11:13:47 - [TOOL_RESULT] Success: unknown | Output: ['Success. Rows affected: 1']
+2026-02-27 11:13:47 - [EXECUTOR_LOOP] Loop 3/50
+2026-02-27 11:13:47 - [OPENROUTER] Requesting completion from stepfun/step-3.5-flash via OpenRouter
+2026-02-27 11:13:52 - [OPENROUTER] Received streaming response successfully.
+2026-02-27 11:13:52 - [EXECUTOR_ACTION] Type: complete
+2026-02-27 11:13:52 - [EXECUTOR_COMPLETE] Your check-in has been successfully processed. You are now clocked in as of 2026-02-27 11:13:33. No 

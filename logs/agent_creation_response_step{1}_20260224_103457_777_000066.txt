@@ -1,4 +1,0 @@
-I'll help you re-create the 'TeamTaskManager' agent. Let me start by checking the current database schema to understand what tables exist and what might need to be created.<tool_call>
-<function=get_database_schema>
-</function>
-</tool_call>

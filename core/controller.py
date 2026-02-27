@@ -57,6 +57,7 @@ class Controller:
         self,
         message: str,
         files: List[str] | None = None,
+        interface: str = "UI",
         ui_callback=None,
     ) -> ControllerResponse:
         """
@@ -68,8 +69,10 @@ class Controller:
         3. Populates the task queue.
         4. Initiates queue processing.
         """
-        log_execution_step('USER_INPUT', f"{message} [Files: {len(files) if files else 0}]")
-        self._emit_trace('user_input', {'message': message, 'files': files})
+        iface = (interface or "UI").strip() or "UI"
+        self.cda.set_setting('interface', iface)
+        log_execution_step('USER_INPUT', f"{message} [Files: {len(files) if files else 0}] [Interface: {iface}]")
+        self._emit_trace('user_input', {'message': message, 'files': files, 'interface': iface})
         
         # 1. Handle Pending Input (Bypass Router)
         # If an agent was waiting for user input (e.g. "What is your destination?"),
@@ -120,13 +123,7 @@ class Controller:
             # Sort routes by priority (ascending), default to 99 if missing
             routes.sort(key=lambda x: x.get('priority', 99))
             
-            # Clear previous agent execution state for new conversation turns
-            self.cda.set_memory('agent_activity_collection', [])
-            self.cda.set_memory('agent_activity', '')
-            self.cda.set_memory('agent_activity_step', 1)
-            self.cda.set_memory('plan', '')
-            self.cda.set_memory('tool_data', '')
-            self.cda.set_memory('last_action', '')
+            # Note: Deliberately preserving `agent_activity` here to carry context across the entire active chat session.
             
             self.task_queue = routes
             self.current_task = None
@@ -167,6 +164,13 @@ class Controller:
         all_ui_feedback = []
         
         while self.task_queue:
+            import threading
+            cancel_event = self.cda.get_runtime('cancel_event')
+            if cancel_event and isinstance(cancel_event, threading.Event) and cancel_event.is_set():
+                log_execution_step('CONTROLLER_CANCELLED', "Controller queue processing cancelled by user.")
+                self.clear_current_task()
+                return ControllerResponse(status='error', content="Execution stopped by user.", ui_feedback=all_ui_feedback)
+                
             self.current_task = self.task_queue.pop(0)
             
             # Check for direct response interaction (greeting/clarification)
@@ -332,11 +336,15 @@ class Controller:
 
     def _append_history(self, user_msg: str, assistant_msg: str):
         history = self.cda.get_memory('chat_history', '')
+        user_id = str(self.cda.get_setting('current_user_id', '') or '')
+        iface = str(self.cda.get_setting('interface', 'UI') or 'UI')
+        user_prefix = f"User[UserID:{user_id}][Interface:{iface}]"
+        assistant_prefix = f"Assistant[UserID:{user_id}][Interface:{iface}]"
         if history:
             history += '\n'
         if user_msg:
-             history += f"User: {user_msg}\n"
-        history += f"Assistant: {assistant_msg}"
+             history += f"{user_prefix}: {user_msg}\n"
+        history += f"{assistant_prefix}: {assistant_msg}"
         
         self.cda.set_memory('chat_history', history)
         

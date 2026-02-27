@@ -1,0 +1,1034 @@
+2026-02-27 14:50:38 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 14:50:58 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 14:51:08 - 
+================================================================================
+CONTEXT TYPE: holiday_manager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 14:51:18 - 
+================================================================================
+CONTEXT TYPE: holiday_manager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+
+================================================================================
+
+2026-02-27 14:51:33 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+================================================================================
+
+2026-02-27 14:53:03 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+================================================================================
+
+2026-02-27 14:53:10 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+================================================================================
+
+2026-02-27 14:53:52 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+================================================================================
+
+2026-02-27 14:55:15 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+================================================================================
+
+2026-02-27 14:56:22 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+================================================================================
+
+2026-02-27 14:56:46 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+================================================================================
+
+2026-02-27 14:58:02 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+================================================================================
+
+2026-02-27 14:58:25 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+================================================================================
+
+2026-02-27 14:58:58 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+================================================================================
+
+2026-02-27 14:59:30 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+================================================================================
+
+2026-02-27 14:59:56 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+================================================================================
+
+2026-02-27 15:00:10 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+================================================================================
+
+2026-02-27 15:02:03 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+================================================================================
+
+2026-02-27 15:02:15 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+================================================================================
+
+2026-02-27 15:02:25 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+================================================================================
+
+2026-02-27 15:02:41 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+================================================================================
+
+2026-02-27 15:03:00 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+================================================================================
+
+2026-02-27 15:03:19 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+================================================================================
+
+2026-02-27 15:03:50 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+User: close these tasks with IDs 22,25,32,33,34,39,43
+Assistant: Successfully closed 7 tasks: IDs 22, 25, 32, 33, 34, 39, 43.
+================================================================================
+
+2026-02-27 15:04:09 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+User: close these tasks with IDs 22,25,32,33,34,39,43
+Assistant: Successfully closed 7 tasks: IDs 22, 25, 32, 33, 34, 39, 43.
+================================================================================
+
+2026-02-27 15:04:21 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+User: close these tasks with IDs 22,25,32,33,34,39,43
+Assistant: Successfully closed 7 tasks: IDs 22, 25, 32, 33, 34, 39, 43.
+================================================================================
+
+2026-02-27 15:04:58 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+User: close these tasks with IDs 22,25,32,33,34,39,43
+Assistant: Successfully closed 7 tasks: IDs 22, 25, 32, 33, 34, 39, 43.
+================================================================================
+
+2026-02-27 15:05:12 - 
+================================================================================
+CONTEXT TYPE: Router
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+User: close these tasks with IDs 22,25,32,33,34,39,43
+Assistant: Successfully closed 7 tasks: IDs 22, 25, 32, 33, 34, 39, 43.
+================================================================================
+
+2026-02-27 15:05:46 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+User: close these tasks with IDs 22,25,32,33,34,39,43
+Assistant: Successfully closed 7 tasks: IDs 22, 25, 32, 33, 34, 39, 43.
+================================================================================
+
+2026-02-27 15:06:35 - 
+================================================================================
+CONTEXT TYPE: TaskManager
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+User: close these tasks with IDs 22,25,32,33,34,39,43
+Assistant: Successfully closed 7 tasks: IDs 22, 25, 32, 33, 34, 39, 43.
+================================================================================
+
+2026-02-27 15:06:55 - 
+================================================================================
+CONTEXT TYPE: Controller
+SESSION ID:   20260227_144955
+CHAT HISTORY:
+User: List holidays
+Assistant: <h3>Company Holiday Calendar</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>Date</th><th>Holiday Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>-</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>-</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>-</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>-</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>-</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>-</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>-</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>-</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>-</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>-</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>-</td></tr></tbody></table><p><i>Total holidays: 12</i></p>
+User: list my tasks
+Assistant: You currently have no tasks assigned to you.
+User: can you please add these tasks if no name specified assign them to me -->2. Make arrangement with Bipin IVA
+15. Water pressure measurement kit
+23. Fix whatsapPA issue 
+24. Test Kiwi K2 for sleep analysis 
+26. Generic agent POC- working
+27. AI Camera ESP32 Thinker to complete 
+28. AI Cam S3 Model to complete
+32. Pay House Tax online 
+33. Pay land tax for all properties 
+39. CNN training for synthesize PPG from PVDF--working continuing
+40. AIKON Alert Listing screen 
+43. Stimulator suppressing spikes --working
+44. Luxi- Adjust code to shift MAT color grid top to bottom switching--done
+45. NEERS New Stimulator schematic in propert software- Abhishek
+46. NEERS New Stimulator PCB - Abhishek
+47. PVDF PCB create inhouse- Jishnu
+48. VSM Motherboard design using STM32H723 - Jishnu/Vishnu
+49. PVDF Training data collection make it wireless to reduce noise
+50. Alarm Interface design -Vishnu/Satheerth
+51. BP PCB to do inhouse-Satheerth
+52. NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration 
+53. NEERS DESK top App analysis
+56. Gmail account setup
+57. NEERS new schematic analysis 
+56. LAPtop reset
+57. NEERS Check the wave form generated by Elctrotoneus
+58. NEERS add log to collect RAW and filtered data from neers snd explore
+59. NEER design protection circuit
+Assistant: Successfully added 28 tasks to the task management system.
+
+Breakdown:
+- Tasks assigned to you (bb): 22
+- Tasks assigned to others: 6
+
+All tasks created with default status 'open' and priority 'medium'.
+User: list all taks assigned to me
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>All tasks have default priority 'medium' and no due/scheduled dates set. Total: 22 tasks assigned to you.</i></p>
+User: close these tasks with IDs 22,25,32,33,34,39,43
+Assistant: Successfully closed 7 tasks: IDs 22, 25, 32, 33, 34, 39, 43.
+User: show me revised list after closing
+Assistant: <h3>My Tasks (22 tasks)</h3><table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'><thead><tr style='background-color: #f2f2f2;'><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Scheduled Date</th><th>Assignee</th></tr></thead><tbody><tr><td>22</td><td>Make arrangement with Bipin IVA</td><td>closed</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>23</td><td>Water pressure measurement kit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>24</td><td>Fix whatsapPA issue</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>25</td><td>Test Kiwi K2 for sleep analysis</td><td>closed</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>26</td><td>Generic agent POC- working</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>27</td><td>AI Camera ESP32 Thinker to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>28</td><td>AI Cam S3 Model to complete</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>29</td><td>Pay House Tax online</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>30</td><td>Pay land tax for all properties</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>31</td><td>CNN training for synthesize PPG from PVDF--working continuing</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>32</td><td>AIKON Alert Listing screen</td><td>closed</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>33</td><td>Stimulator suppressing spikes --working</td><td>closed</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>34</td><td>Luxi- Adjust code to shift MAT color grid top to bottom switching--done</td><td>closed</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>39</td><td>PVDF Training data collection make it wireless to reduce noise</td><td>closed</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>42</td><td>NEERS- Fix the issues found in stimulator ->Add snubber, Change gate drive , Chnage boot strap diod and cpacitor. Then do the integration</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>43</td><td>NEERS DESK top App analysis</td><td>closed</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>44</td><td>Gmail account setup</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>45</td><td>NEERS new schematic analysis</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>46</td><td>LAPtop reset</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>47</td><td>NEERS Check the wave form generated by Elctrotoneus</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>48</td><td>NEERS add log to collect RAW and filtered data from neers snd explore</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr><tr><td>49</td><td>NEER design protection circuit</td><td>open</td><td>medium</td><td>-</td><td>-</td><td>bb</td></tr></tbody></table><p><i>Updated after closures: 7 tasks marked as closed. Remaining open tasks: 15.</i></p>
+================================================================================
+

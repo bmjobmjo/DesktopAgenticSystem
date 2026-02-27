@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "INSERT INTO Attendance (user_id, check_in_time, check_in_location) VALUES (1, '2026-02-27 11:13:33', NULL);"
+  ]
+}

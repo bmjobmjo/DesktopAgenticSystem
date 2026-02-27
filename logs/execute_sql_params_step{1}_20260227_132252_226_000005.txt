@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "SELECT SUM(total_hours) AS total FROM Attendance WHERE user_id = 1 AND check_in_time >= '2026-02-01' AND check_in_time < '2026-03-01' AND check_out_time IS NOT NULL;"
+  ]
+}

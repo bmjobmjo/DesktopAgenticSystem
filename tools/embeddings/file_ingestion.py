@@ -48,20 +48,64 @@ except ImportError:
     _EMBEDDING_MODEL = None
     SentenceTransformer = None
 
+def _load_sentence_transformer(model_id_or_path: str, local_files_only: bool = False):
+    """
+    Load sentence-transformer model with compatibility fallback for older package versions.
+    """
+    try:
+        return SentenceTransformer(model_id_or_path, local_files_only=local_files_only)
+    except TypeError:
+        # Older sentence-transformers may not support local_files_only argument.
+        return SentenceTransformer(model_id_or_path)
+
 def get_embedding_model():
     global _EMBEDDING_MODEL
     if _EMBEDDING_MODEL is None:
         if SentenceTransformer is None:
             log_execution_step('EMBEDDING_INIT', "SentenceTransformer class is not available (Import failed).")
             return None
-        try:
-            log_execution_step('EMBEDDING_INIT', "Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
-            _EMBEDDING_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
-            log_execution_step('EMBEDDING_INIT', "Model loaded successfully.")
-        except Exception as e:
-            from execution_logger import log_exception
-            log_exception('EMBEDDING_LOAD_ERROR', e)
-            print(f"Failed to load embedding model: {e}")
+
+        cda = CommonDataArea()
+        model_name = str(cda.get_setting('embedding_model_name', 'all-MiniLM-L6-v2') or 'all-MiniLM-L6-v2').strip()
+        model_path = str(cda.get_setting('embedding_model_path', '') or '').strip()
+        local_only = bool(cda.get_setting('embedding_local_files_only', False))
+
+        last_error = None
+        candidates = []
+        if model_path:
+            candidates.append((model_path, True))
+        candidates.append((model_name, local_only))
+        # Final fallback: cached local copy by model name, no network.
+        candidates.append((model_name, True))
+
+        seen = set()
+        for model_id_or_path, local_files_only in candidates:
+            key = (model_id_or_path, bool(local_files_only))
+            if key in seen:
+                continue
+            seen.add(key)
+            try:
+                mode = "local-only" if local_files_only else "online/cached"
+                log_execution_step('EMBEDDING_INIT', f"Loading SentenceTransformer model '{model_id_or_path}' ({mode})...")
+                _EMBEDDING_MODEL = _load_sentence_transformer(model_id_or_path, local_files_only=local_files_only)
+                log_execution_step('EMBEDDING_INIT', f"Model loaded successfully from '{model_id_or_path}'.")
+                break
+            except Exception as e:
+                last_error = e
+                log_exception(
+                    'EMBEDDING_LOAD_ATTEMPT_FAILED',
+                    e,
+                    {'model': model_id_or_path, 'local_files_only': local_files_only}
+                )
+
+        if _EMBEDDING_MODEL is None:
+            print(
+                "Failed to load embedding model. Configure one of:\n"
+                "1) settings.user_config.json -> embedding_model_path: '<local_model_folder>'\n"
+                "2) settings.user_config.json -> embedding_model_name: 'all-MiniLM-L6-v2' (internet/cache required)\n"
+                "3) settings.user_config.json -> embedding_local_files_only: true (use local cache only)\n"
+                f"Last error: {last_error}"
+            )
     return _EMBEDDING_MODEL
 
 # -----------------------------------------------------------------------------
@@ -142,6 +186,13 @@ def _compute_hash(file_path: Path) -> str:
 def _chunk_text(text: str, chunk_size: int = 500) -> List[str]:
     return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
 
+def _get_embeddings_db_path() -> Path:
+    cda = CommonDataArea()
+    configured = str(cda.get_setting('sqlite_db_path', '') or '').strip()
+    if configured:
+        return Path(configured).resolve()
+    return Path(DB_PATH).resolve()
+
 # -----------------------------------------------------------------------------
 # Main Tool Functions
 # -----------------------------------------------------------------------------
@@ -210,7 +261,9 @@ def ingest_file(file_path: str, category: str = None, user_description: str = No
     
     log_execution_step('INGEST', f"Final storage path (relative): {db_path_str}")
 
-    with sqlite3.connect(DB_PATH, timeout=20) as conn:
+    db_path = _get_embeddings_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(db_path), timeout=20) as conn:
         cursor = conn.cursor()
         
         # Check if this exact file (by path) exists?
@@ -358,7 +411,7 @@ def ingest_file(file_path: str, category: str = None, user_description: str = No
         "is_expense": is_expense
     }
 
-def search_files(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+def search_files(query: str, top_k: int = 5, threshold: float = 0.35) -> List[Dict[str, Any]]:
     """
     Search for files using semantic search (vector embeddings).
     
@@ -368,11 +421,19 @@ def search_files(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
     Args:
         query (str): The search query text.
         top_k (int, optional): Number of results to return. Defaults to 5.
+        threshold (float, optional): Minimum cosine similarity score to keep a match.
+            Valid range is [-1.0, 1.0]. Defaults to 0.35.
 
     Returns:
         List[Dict]: A list of matching files with 'score', 'snippet', and metadata.
     """
     cda = CommonDataArea()
+    try:
+        threshold = float(threshold)
+    except Exception:
+        return [{"error": f"Invalid threshold value: {threshold}"}]
+    if threshold < -1.0 or threshold > 1.0:
+        return [{"error": f"Threshold out of range [-1.0, 1.0]: {threshold}"}]
     model = get_embedding_model()
     
     if not model:
@@ -383,7 +444,8 @@ def search_files(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
     except Exception as e:
         return [{"error": f"Encoding failed: {e}"}]
 
-    conn = sqlite3.connect(DB_PATH)
+    db_path = _get_embeddings_db_path()
+    conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
@@ -420,7 +482,7 @@ def search_files(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
             if row['chunk_type'] == 'description':
                 score *= 1.2
             
-            if score > 0.35:
+            if score >= threshold:
                 results.append({
                     "file_id": row['id'],
                     "filename": row['filename'],

@@ -1,550 +1,652 @@
-﻿"""Chat UI using Tkinter with Modern Sidebar Layout."""
+﻿"""Chat UI using PySide6 with Professional White Theme Layout."""
 
 from __future__ import annotations
 
-import tkinter as tk
-import tkinter.ttk as ttk
-from tkinter.scrolledtext import ScrolledText
-import tkinter.filedialog as filedialog
-import threading
 import json
 import os
+import sqlite3
+import threading
 from datetime import datetime
-from typing import Dict, Any, Tuple, List, Optional
-from PIL import Image, ImageDraw, ImageTk
+from typing import Dict, Any, List, Tuple, Optional
+
+from PySide6.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QListWidget, QListWidgetItem, QStackedWidget, 
+    QTextBrowser, QLineEdit, QPushButton, QLabel,
+    QScrollArea, QFileDialog, QFrame, QSizePolicy, QTabWidget,
+    QDialog, QTextEdit
+)
+from PySide6.QtCore import Qt, QTimer, Signal, QObject, QUrl
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap, QDesktopServices
 
 from core.controller import Controller
 from core.common_data_area import CommonDataArea
 from ui.settings_ui import SettingsPanel
 import execution_logger
-import sqlite3
 from agents.registry import _get_db_path
+from settings import config_loader
 
-class ChatUI:
+
+class Signals(QObject):
+    # Signals for thread-safe UI updates
+    append_message = Signal(str, str)
+    append_log = Signal(str)
+    update_status = Signal(str)
+    request_permission = Signal(str, dict, threading.Event, dict)
+    executor_status = Signal(str, str)
+    execution_started = Signal()
+    execution_ended = Signal()
+
+
+class ExternalTextBrowser(QTextBrowser):
+    """A QTextBrowser that explicitly refuses to navigate internally, forcing all links to the OS."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Disables entirely the internal engine attempting to resolve clicked URLs
+        self.setOpenLinks(False)
+        self.anchorClicked.connect(QDesktopServices.openUrl)
+
+
+class CreateAgentDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Create or Modify Agent")
+        self.resize(500, 400)
+        
+        # Consistent theme for dialog
+        self.setStyleSheet("""
+            QDialog { background-color: #ffffff; color: #333333; font-family: 'Segoe UI', Arial; font-size: 14px; }
+            QTextEdit { background-color: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 5px; padding: 10px; color: #333333; }
+            QPushButton { background-color: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 6px 15px; color: #333333; }
+            QPushButton:hover { background-color: #ededed; }
+        """)
+        
+        layout = QVBoxLayout(self)
+        
+        self.label = QLabel(
+            "Enter tasks and requirements for the new capability. "
+            "This can be used to add new features into your system. For example, if you want "
+            "to build an issue tracker, a task manager, research capabilities, etc."
+        )
+        self.label.setWordWrap(True)
+        self.label.setStyleSheet("font-weight: bold; margin-bottom: 5px; color: #005fb8;")
+        layout.addWidget(self.label)
+        
+        self.text_edit = QTextEdit()
+        self.text_edit.setPlaceholderText("e.g. I need an agent to manage my expenses and read receipts from my inbox...")
+        layout.addWidget(self.text_edit)
+        
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        self.btn_save_draft = QPushButton("Save Draft")
+        self.btn_save_draft.setCursor(Qt.PointingHandCursor)
+        self.btn_save_draft.clicked.connect(self.save_draft)
+        button_layout.addWidget(self.btn_save_draft)
+        
+        self.btn_submit = QPushButton("Submit")
+        self.btn_submit.setStyleSheet("background-color: #005fb8; color: white; border: none; font-weight: bold;")
+        self.btn_submit.setCursor(Qt.PointingHandCursor)
+        self.btn_submit.clicked.connect(self.submit)
+        button_layout.addWidget(self.btn_submit)
+        
+        layout.addLayout(button_layout)
+        
+        self.result_text = None
+        self.is_draft = False
+        
+    def save_draft(self):
+        self.is_draft = True
+        self.result_text = self.text_edit.toPlainText().strip()
+        self.accept()
+        
+    def submit(self):
+        self.is_draft = False
+        self.result_text = self.text_edit.toPlainText().strip()
+        self.accept()
+
+
+class ChatUI(QMainWindow):
     def __init__(self, controller: Controller, cda: CommonDataArea | None = None) -> None:
+        super().__init__()
         self.cda = cda or CommonDataArea()
         self.controller = controller
         self.selected_files: List[str] = []
         self._current_chat_id: Optional[int] = None
         
-        self.root = tk.Tk()
-        self.root.title('Desktop Agentic System')
-        self.root.geometry('1100x750')
+        self.signals = Signals()
+        self.signals.append_message.connect(self._safe_append_message)
+        self.signals.append_log.connect(self._safe_append_log)
+        self.signals.update_status.connect(self._safe_update_status)
+        self.signals.executor_status.connect(self._safe_executor_status)
+        self.signals.request_permission.connect(self._safe_request_permission)
+        self.signals.execution_started.connect(self._on_execution_started)
+        self.signals. execution_ended.connect(self._on_execution_ended)
         
-        # --- THEME CONFIGURATION (Refined Dark Modern) ---
-        bg_color = '#1e1e1e' # Slightly darker main background
-        sidebar_bg = '#252526' # Standard VS Code-like sidebar
-        header_bg = '#323233' 
-        accent_color = '#007acc' # Clean blue accent
-        fg_color = '#cccccc'
+        # --- THEME CONFIGURATION (Professional White Theme) ---
+        self.bg_color = '#ffffff'
+        self.sidebar_bg = '#f5f5f5'
+        self.header_bg = '#ffffff'
+        self.accent_color = '#005fb8'
+        self.fg_color = '#333333'
+        self.fg_muted = '#666666'
+        self.border_color = '#e0e0e0'
         
-        style = ttk.Style(self.root)
-        try:
-            style.theme_use('clam')
-        except:
-            pass
+        self.setWindowTitle('Desktop Agentic System')
+        self.resize(1100, 750)
+        self.setStyleSheet(f"""
+            QMainWindow {{ background-color: {self.bg_color}; }}
+            QWidget {{ color: {self.fg_color}; font-family: 'Segoe UI', Arial; font-size: 14px; background-color: {self.bg_color}; }}
+            QTextBrowser {{ background-color: {self.bg_color}; border: none; padding: 15px; selection-background-color: {self.accent_color}; selection-color: white; }}
+            QLineEdit {{ background-color: #f9f9f9; border: 1px solid {self.border_color}; border-radius: 17px; padding: 8px 15px; color: {self.fg_color}; }}
+            QPushButton[flat="true"] {{ background: none; border: none; font-weight: bold; color: {self.accent_color}; }}
+            QPushButton[flat="true"]:hover {{ color: #004488; }}
+            QPushButton#sendBtn {{ background-color: {self.accent_color}; border-radius: 17px; color: white; font-weight: bold; padding: 5px 20px; }}
+            QPushButton#sendBtn:hover {{ background-color: #004488; }}
+        """)
         
-        # Global Styles
-        style.configure('.', background=bg_color, foreground=fg_color, font=('Segoe UI', 10))
-        style.configure('TFrame', background=bg_color)
-        style.configure('Sidebar.TFrame', background=sidebar_bg)
+        # Build Central Widget
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        main_layout = QHBoxLayout(self.central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         
-        # Notebook (Tab) Styling - Rounded/Modern feel via padding and fonts
-        style.configure('TNotebook', background=bg_color, borderwidth=0, padding=0)
+        # 1. Sidebar
+        self.sidebar = QWidget()
+        self.sidebar.setFixedWidth(240)
+        self.sidebar.setStyleSheet(f"QWidget {{ background-color: {self.sidebar_bg}; border-right: 1px solid {self.border_color}; }}")
+        sidebar_layout = QVBoxLayout(self.sidebar)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
         
-        # --- ROUNDED TABS IMPLEMENTATION ---
-        # We generate images for the tabs to get truly rounded corners
-        tab_radius = 10
-        tab_height = 35
-        tab_width = 120
+        title_lbl = QLabel("AGS CONSOLE")
+        title_lbl.setStyleSheet(f"font-weight: bold; font-size: 16px; padding: 30px 20px; color: {self.fg_color};")
+        title_lbl.setAlignment(Qt.AlignCenter)
+        sidebar_layout.addWidget(title_lbl)
         
-        self.tab_img_unselected = self._create_rounded_rect_image(tab_width, tab_height, tab_radius, sidebar_bg, bg_color)
-        self.tab_img_selected = self._create_rounded_rect_image(tab_width, tab_height, tab_radius, bg_color, bg_color)
-        self.tab_img_active = self._create_rounded_rect_image(tab_width, tab_height, tab_radius, '#37373d', bg_color)
+        # Sidebar Navigation Buttons
+        self.nav_buttons = {}
+        nav_items = [
+            ('interaction', '💬  Agent Console'),
+            ('new_chat', '   ➕  New Chat'),
+            ('history', '   🕰  History'),
+            ('logs', '📋  System Logs'),
+            ('spacer', ''),
+            ('settings', '⚙️  Settings')
+        ]
         
-        # Use a unique name for the images in style
-        style.element_create('RoundedTab.bg', 'image', self.tab_img_unselected,
-                            ('selected', self.tab_img_selected),
-                            ('active', self.tab_img_active),
-                            border=tab_radius, sticky='nsew')
+        for key, text in nav_items:
+            if key == 'spacer':
+                spacer = QFrame()
+                spacer.setFrameShape(QFrame.HLine)
+                spacer.setFrameShadow(QFrame.Sunken)
+                spacer.setStyleSheet(f"background-color: {self.border_color}; margin: 15px 20px;")
+                sidebar_layout.addWidget(spacer)
+            else:
+                btn = QPushButton(text)
+                btn.setStyleSheet(f"""
+                    QPushButton {{ 
+                        text-align: left; padding: 12px 20px; border: none; background-color: transparent; 
+                        color: {self.fg_muted}; font-size: 14px; 
+                        border-left: 3px solid transparent;
+                    }}
+                    QPushButton:hover {{ background-color: #ededed; color: {self.fg_color}; }}
+                    QPushButton:checked {{ background-color: #e5f1fb; color: {self.accent_color}; border-left: 3px solid {self.accent_color}; font-weight: bold; }}
+                """)
+                btn.setCheckable(True)
+                btn.clicked.connect(lambda checked, k=key: self._handle_nav(k))
+                self.nav_buttons[key] = btn
+                sidebar_layout.addWidget(btn)
+                
+        sidebar_layout.addStretch()
+        main_layout.addWidget(self.sidebar)
         
-        style.layout('TNotebook.Tab', [
-            ('RoundedTab.bg', {'sticky': 'nsew', 'children': [
-                ('Notebook.padding', {'side': 'top', 'sticky': 'nsew', 'children': [
-                    ('Notebook.label', {'sticky': 'ns'})
-                ]})
-            ]})
-        ])
+        # 2. Content Area
+        self.stacked_widget = QStackedWidget()
+        main_layout.addWidget(self.stacked_widget, 1)
         
-        style.configure('TNotebook.Tab', 
-                        foreground=fg_color, 
-                        padding=[15, 5], 
-                        font=('Segoe UI', 10, 'bold'))
-        style.map('TNotebook.Tab', 
-                  foreground=[('selected', 'white')])
-        
-        # Sidebar Buttons - More spacing, cleaner hover
-        style.configure('Sidebar.TButton', background=sidebar_bg, foreground='#cccccc', borderwidth=0, font=('Segoe UI', 10), anchor='w', padding=(15, 12))
-        style.map('Sidebar.TButton', 
-                  background=[('active', '#37373d'), ('pressed', accent_color)],
-                  foreground=[('active', 'white')])
-        
-        self.root.configure(bg=bg_color)
-        
-        # --- MAIN LAYOUT ---
-        # 1. Sidebar (Left) - Slightly wider for breathing room
-        self.sidebar = ttk.Frame(self.root, style='Sidebar.TFrame', width=220)
-        self.sidebar.pack(side='left', fill='y')
-        self.sidebar.pack_propagate(False)
-        
-        # Sidebar Header
-        lbl_title = tk.Label(self.sidebar, text="AGS CONSOLE", bg=sidebar_bg, fg='white', font=('Segoe UI', 11, 'bold'), pady=30)
-        lbl_title.pack(anchor='center')
-
-        # Navigation Buttons
-        self.btn_chat = ttk.Button(self.sidebar, text="  💬  Agent Console", style='Sidebar.TButton', command=lambda: self.show_page('interaction'))
-        self.btn_chat.pack(fill='x', pady=1)
-
-        style.configure('SubSidebar.TButton', background=sidebar_bg, foreground='#93a1a1', borderwidth=0, font=('Segoe UI', 9), anchor='w', padding=(35, 8))
-        style.map('SubSidebar.TButton', 
-                  background=[('active', '#37373d'), ('pressed', accent_color)],
-                  foreground=[('active', 'white')])
-
-        self.btn_new_chat = ttk.Button(self.sidebar, text="  ➕  New Chat", style='SubSidebar.TButton', command=self._start_new_chat)
-        self.btn_new_chat.pack(fill='x', pady=0)
-
-        self.btn_history = ttk.Button(self.sidebar, text="  🕰  History", style='SubSidebar.TButton', command=lambda: self.show_page('history'))
-        self.btn_history.pack(fill='x', pady=0)
-        
-        self.btn_logs = ttk.Button(self.sidebar, text="  📋  System Logs", style='Sidebar.TButton', command=lambda: self.show_page('logs'))
-        self.btn_logs.pack(fill='x', pady=1)
-        
-        tk.Frame(self.sidebar, bg='#3c3f41', height=1).pack(fill='x', pady=15, padx=20) # Thinner separator
-        
-        self.btn_settings = ttk.Button(self.sidebar, text="  ⚙️  Settings", style='Sidebar.TButton', command=lambda: self.show_page('settings'))
-        self.btn_settings.pack(fill='x', pady=1)
-
-        # 2. Content Area (Right)
-        self.content_area = ttk.Frame(self.root)
-        self.content_area.pack(side='right', fill='both', expand=True)
-        
-        # --- PAGES ---
+        # -- CREATE PAGES --
         self.pages = {}
         
-        # -- Interaction Page (Consolidated Chat + Executor) --
-        self.pages['interaction'] = ttk.Frame(self.content_area)
+        # Page 1: Interaction
+        interaction_page = QWidget()
+        inter_layout = QVBoxLayout(interaction_page)
+        inter_layout.setContentsMargins(0,0,0,0)
         
-        # Top Info Bar - More defined, horizontal padding
-        self.info_header = tk.Frame(self.pages['interaction'], bg=header_bg, height=75)
-        self.info_header.pack(side='top', fill='x')
-        self.info_header.pack_propagate(False)
-
-        self.active_user_label = tk.Label(
-            self.info_header,
-            text="Active User: (not set)",
-            bg=header_bg,
-            fg='#93a1a1',
-            font=('Segoe UI', 14),
-            padx=25
-        )
-        self.active_user_label.pack(side='left')
-
-        self.debug_mode_label = tk.Label(
-            self.info_header,
-            text="Debug Mode: OFF",
-            bg=header_bg,
-            fg='#ef476f',
-            font=('Segoe UI', 12, 'bold'),
-            padx=25
-        )
-        self.debug_mode_label.pack(side='right')
+        # Header Info Bar
+        info_header = QWidget()
+        info_header.setStyleSheet(f"background-color: {self.header_bg}; border-bottom: 1px solid {self.border_color};")
+        info_layout = QHBoxLayout(info_header)
+        info_layout.setContentsMargins(25, 15, 25, 15)
         
-        # Subtle border between header and content
-        tk.Frame(self.pages['interaction'], bg='#3c3f41', height=1).pack(side='top', fill='x')
-
-        # Main Interaction Area with Generous Padding
-        self.interaction_container = ttk.Frame(self.pages['interaction'], padding=(20, 15, 20, 20))
-        self.interaction_container.pack(fill='both', expand=True)
-
-        # Interaction Notebook
-        self.nb = ttk.Notebook(self.interaction_container)
-        self.nb.pack(fill='both', expand=True)
-
-        # Tab 1: Chat
-        self.chat_tab = ttk.Frame(self.nb)
-        self.nb.add(self.chat_tab, text='  Interactions  ')
-
-        # Chat History - Added spacing1, spacing2 for air
-        self.transcript = ScrolledText(
-            self.chat_tab, 
-            state='disabled', 
-            wrap='word', 
-            font=('Segoe UI', 10), 
-            bg=bg_color, 
-            fg=fg_color, 
-            insertbackground='white', 
-            relief='flat', 
-            padx=15, 
-            pady=15,
-            spacing1=5, 
-            spacing3=5
-        )
-        self.transcript.grid(row=0, column=0, sticky='nsew')
-        self.chat_tab.grid_rowconfigure(0, weight=1)
-        self.chat_tab.grid_columnconfigure(0, weight=1)
-        # Spacing configs (no pack here, moved below)
-        self.transcript.tag_config('user', foreground='#4b6eaf', font=('Segoe UI', 10, 'bold'))
-        self.transcript.tag_config('assistant', foreground='#cccccc')
-        self.transcript.tag_config('error', foreground='#ef476f')
-        self.transcript.tag_config('status', foreground='#606060', font=('Segoe UI', 9, 'italic'))
-
-        # --- INPUT AREA (Row 2) ---
-        # Container for Status and File List (Above input)
-        # We'll use a frame for the status breadcrumb
-        self.status_frame = tk.Frame(self.chat_tab, bg=bg_color)
-        self.status_frame.grid(row=1, column=0, sticky='ew', padx=20)
+        self.active_user_label = QLabel("Active User: (not set)")
+        self.active_user_label.setStyleSheet(f"color: {self.fg_muted}; font-size: 16px;")
+        self.debug_mode_label = QLabel("")
+        self.debug_mode_label.setStyleSheet(f"color: #e65100; font-size: 12px; font-weight: bold;")
         
-        self.status_label = tk.Label(
-            self.status_frame, 
-            text="", 
-            bg=bg_color, 
-            fg='#999999', 
-            font=('Segoe UI', 9, 'italic')
-        )
-        self.status_label.pack(side='left', pady=(5, 0))
+        info_layout.addWidget(self.active_user_label)
+        info_layout.addStretch()
+        info_layout.addWidget(self.debug_mode_label)
+        inter_layout.addWidget(info_header)
+        
+        # Transcript & Trace Tabs
+        self.inter_tabs = QTabWidget()
+        inter_layout.addWidget(self.inter_tabs, 1)
+        
+        self.transcript = ExternalTextBrowser()
+        self.inter_tabs.addTab(self.transcript, "Chat Transcript")
+        
+        self.trace_log = ExternalTextBrowser()
+        self.trace_log.setStyleSheet(f"background-color: #f0f0f0; border: none; padding: 15px; font-family: Consolas, monospace; font-size: 12px; color: #444444;")
+        self.inter_tabs.addTab(self.trace_log, "Runtime Trace")
+        
+        # Status Label
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet(f"color: {self.fg_muted}; font-style: italic; padding: 0 20px;")
+        inter_layout.addWidget(self.status_label)
+        
+        # File list frame (hidden initially)
+        self.file_list_frame = QWidget()
+        self.file_list_layout = QHBoxLayout(self.file_list_frame)
+        self.file_list_layout.setContentsMargins(20, 0, 20, 0)
+        self.file_list_frame.hide()
+        inter_layout.addWidget(self.file_list_frame)
+        
+        # Tools / Action Bar above input
+        self.action_bar = QWidget()
+        action_layout = QHBoxLayout(self.action_bar)
+        action_layout.setContentsMargins(30, 0, 30, 0)
+        
+        # Create Agent Button
+        self.btn_create_agent = QPushButton("✨ Create an Agent")
+        self.btn_create_agent.setProperty("flat", "true")
+        self.btn_create_agent.setObjectName("createAgentBtn")
+        self.btn_create_agent.setStyleSheet(f"background: none; border: 1px; color: {self.accent_color}; font-size: 14px; font-weight: bold; text-decoration: underline;")
+        self.btn_create_agent.setCursor(Qt.PointingHandCursor)
+        self.btn_create_agent.clicked.connect(self.open_create_agent_dialog)
+        
+        action_layout.addWidget(self.btn_create_agent)
+        action_layout.addStretch()
+        inter_layout.addWidget(self.action_bar)
+        
+        # Input Area Container
+        input_container = QWidget()
+        input_layout = QHBoxLayout(input_container)
+        input_layout.setContentsMargins(20, 0, 20, 20)
 
-        self.file_list_frame = tk.Frame(self.chat_tab, bg=bg_color)
-        self.file_list_frame.grid(row=2, column=0, sticky='ew', padx=20)
-        self.file_list_frame.grid_remove() # Hidden initially
+        # Attach Button
+        self.btn_attach = QPushButton("+")
+        self.btn_attach.setProperty("flat", "true")
+        self.btn_attach.setStyleSheet(f"font-size: 24px; color: {self.fg_muted};")
+        self.btn_attach.setCursor(Qt.PointingHandCursor)
+        self.btn_attach.clicked.connect(self.on_attach_file)
+        input_layout.addWidget(self.btn_attach)
+        
+        # Input Field
+        self.input_entry = QLineEdit()
+        self.input_entry.setPlaceholderText("Message the agent...")
+        self.input_entry.returnPressed.connect(self.on_send)
+        input_layout.addWidget(self.input_entry, 1)
+        
 
-        self.input_container = ttk.Frame(self.chat_tab, padding=(20, 5, 20, 20))
-        self.input_container.grid(row=3, column=0, sticky='ew')
+        # Send Button
+        self.btn_send = QPushButton("Send")
+        self.btn_send.setObjectName("sendBtn")
+        self.btn_send.setStyleSheet(f"background-color: {self.accent_color}; color: white; border-radius: 20px; font-weight: bold; width: 60px; height: 35px;")
+        self.btn_send.setCursor(Qt.PointingHandCursor)
+        self.btn_send.clicked.connect(self.on_send)
+        input_layout.addWidget(self.btn_send)
         
-        # Pill-shaped container for input
-        # We simulate a "pill" by using a rounded rect image on a Label background? 
-        # Or just a Frame with rounded corners? 
-        # Tkinter doesn't do rounded frames easily. 
-        # Let's keep the dark bar but round the buttons inside or making the bar look cleaner.
-        # User asked for "Prompt accepting bar to accept file by pressing + button and right end make button also rounded".
-        # This implies a pill-shaped input field. 
-        # To achieve a "Google Search" style pill bar, we need a Canvas or an image-based Frame container.
-        # For simplicity and robustness, I will make the *inner* logic robust and buttons rounded.
+        # Stop Button
+        self.btn_stop = QPushButton("Stop")
+        self.btn_stop.setObjectName("stopBtn")
+        self.btn_stop.setStyleSheet(f"background-color: #d32f2f; color: white; border-radius: 20px; font-weight: bold; width: 60px; height: 35px;")
+        self.btn_stop.setCursor(Qt.PointingHandCursor)
+        self.btn_stop.clicked.connect(self.on_stop)
+        self.btn_stop.hide()
+        input_layout.addWidget(self.btn_stop)
         
-        input_inner = tk.Frame(self.input_container, bg='#2d2d2d', pady=8, padx=10)
-        # To make "input_inner" rounded, we'd need a Canvas.
-        # Let's keep it simple rectangular for now but polished.
-        input_inner.pack(fill='x', pady=(0, 5)) # Add some bottom spacing for the inner frame itself
-
-        # 1. Attach Button (+)
-        self.btn_attach = tk.Button(
-            input_inner,
-            text="+",
-            command=self.on_attach_file,
-            bg='#2d2d2d',
-            fg='#cccccc',
-            relief='flat',
-            font=('Segoe UI', 14),
-            bd=0,
-            activebackground='#3c3c3c',
-            activeforeground='white',
-            cursor='hand2'
-        )
-        self.btn_attach.pack(side='left', padx=(5, 10))
-
-        self.input_var = tk.StringVar()
-        self.input_entry = tk.Entry(
-            input_inner, 
-            textvariable=self.input_var, 
-            bg='#2d2d2d', 
-            fg='white', 
-            insertbackground='white', 
-            relief='flat', 
-            font=('Segoe UI', 10),
-            highlightthickness=0
-        )
-        self.input_entry.pack(side='left', fill='x', expand=True, ipady=8)
-        self.input_entry.bind('<Return>', self.on_send)
+        inter_layout.addWidget(input_container)
         
-        # 2. Rounded Send Button
-        # We'll use an image for the rounded effect
-        # Create pill image for "Send"
-        self.img_send_btn = self._create_rounded_rect_image(80, 34, 17, accent_color, '#2d2d2d') # Increased height slightly
-        self.img_send_btn_hover = self._create_rounded_rect_image(80, 34, 17, '#006bb3', '#2d2d2d')
+        # Permission Frame (Hidden initially)
+        self.permission_frame = QFrame()
+        self.permission_frame.setStyleSheet(f"background-color: #fff8e1; border: 1px solid #ffe082; margin: 10px 20px; border-radius: 8px;")
+        perm_layout = QVBoxLayout(self.permission_frame)
+        self.permission_label = QLabel("Permission Required")
+        self.permission_label.setWordWrap(True)
+        self.permission_label.setStyleSheet("color: #ec407a;")
+        perm_layout.addWidget(self.permission_label)
         
-        # We can't easily put text ON TOP of an image in a standard tk.Button reliably cross-platform without tricks.
-        # A Label with binding is often better for custom buttons.
+        btn_layout = QHBoxLayout()
+        btn_yes = QPushButton("Approve")
+        btn_yes.setStyleSheet(f"background-color: #4CAF50; color: white; border-radius: 4px; padding: 5px;")
+        btn_yes.clicked.connect(lambda: self._resolve_permission(True))
+        btn_no = QPushButton("Deny")
+        btn_no.setStyleSheet(f"background-color: #f44336; color: white; border-radius: 4px; padding: 5px;")
+        btn_no.clicked.connect(lambda: self._resolve_permission(False))
+        btn_layout.addWidget(btn_yes)
+        btn_layout.addWidget(btn_no)
+        btn_layout.addStretch()
+        perm_layout.addLayout(btn_layout)
         
-        self.btn_send_lbl = tk.Label(
-            input_inner,
-            image=self.img_send_btn,
-            bg='#2d2d2d',
-            cursor='hand2',
-            text="Send", # Text won't show with image usually unless compound set
-            compound='center',
-            fg='white',
-            font=('Segoe UI', 9, 'bold')
-        )
-        self.btn_send_lbl.pack(side='right', padx=(10, 0))
-        self.btn_send_lbl.bind('<Button-1>', self.on_send)
-        self.btn_send_lbl.bind('<Enter>', lambda e: self.btn_send_lbl.configure(image=self.img_send_btn_hover))
-        self.btn_send_lbl.bind('<Leave>', lambda e: self.btn_send_lbl.configure(image=self.img_send_btn))
-
-        # --- PERMISSION FRAME (Packed Bottom Second, initially hidden) ---
-        self.permission_frame = ttk.Frame(self.chat_tab, padding=(10, 10, 10, 10))
-        self.permission_label = tk.Label(
-            self.permission_frame,
-            text="",
-            bg=bg_color,
-            fg='#f2c94c',
-            justify='left',
-            anchor='w',
-            wraplength=800,
-            font=('Segoe UI', 9, 'bold')
-        )
-        self.permission_label.pack(fill='x', pady=(0, 10))
+        self.permission_frame.hide()
+        inter_layout.insertWidget(2, self.permission_frame) # Above input area
         
-        btn_row = ttk.Frame(self.permission_frame)
-        btn_row.pack(anchor='w')
+        self.stacked_widget.addWidget(interaction_page)
+        self.pages['interaction'] = interaction_page
         
-        self.permission_yes_btn = tk.Button(
-            btn_row,
-            text="ACCEPT",
-            command=lambda: self._resolve_permission(True),
-            bg='#2e7d32',
-            fg='white',
-            relief='flat',
-            padx=25,
-            pady=4,
-            font=('Segoe UI', 9, 'bold'),
-        )
-        self.permission_yes_btn.pack(side='left', padx=(0, 10))
+        # Page 2: History
+        history_page = QWidget()
+        hist_layout = QVBoxLayout(history_page)
+        hist_layout.setContentsMargins(20, 20, 20, 20)
         
-        self.permission_no_btn = tk.Button(
-            btn_row,
-            text="REJECT",
-            command=lambda: self._resolve_permission(False),
-            bg='#c62828',
-            fg='white',
-            relief='flat',
-            padx=25,
-            pady=4,
-            font=('Segoe UI', 9, 'bold'),
-        )
-        self.permission_no_btn.pack(side='left')
+        hist_header_layout = QHBoxLayout()
+        hist_title = QLabel("Chat History")
+        hist_title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        hist_btn_refresh = QPushButton("Refresh")
+        hist_btn_refresh.clicked.connect(self._refresh_history_list)
+        hist_header_layout.addWidget(hist_title)
+        hist_header_layout.addStretch()
+        hist_header_layout.addWidget(hist_btn_refresh)
+        hist_layout.addLayout(hist_header_layout)
         
-        self.permission_frame.grid(row=1, column=0, sticky='ew')
-        self.permission_frame.grid_remove() # Hide initially
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; }")
         
-        # -- Tab 2: Executor Status --
-        self.executor_tab = ttk.Frame(self.nb)
-        self.nb.add(self.executor_tab, text='  Runtime Trace  ')
-
-        self.executor_status = ScrolledText(
-            self.executor_tab,
-            state='disabled',
-            wrap='word',
-            font=('Consolas', 10),
-            bg='#1a1a1a',
-            fg='#dcdcdc',
-            insertbackground='white',
-            relief='flat',
-            padx=15,
-            pady=15,
-            spacing1=3
-        )
-        self.executor_status.pack(fill='both', expand=True)
-        # (tag configs remain same as they are defined later or should be here)
-        self.executor_status.tag_config('default', foreground='#dcdcdc')
-        self.executor_status.tag_config('llm_input', foreground='#8ecae6')
-        self.executor_status.tag_config('llm_output', foreground='#90be6d')
-        self.executor_status.tag_config('tool_call', foreground='#f4a261')
-        self.executor_status.tag_config('tool_result', foreground='#2a9d8f')
-        self.executor_status.tag_config('permission', foreground='#f2c94c')
-        self.executor_status.tag_config('error', foreground='#ef476f')
-
-        # -- Logs Page -- 
-        self.pages['logs'] = ttk.Frame(self.content_area, padding=20)
-        ttk.Label(self.pages['logs'], text="System Activity Logs", font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 15))
-        self.log_display = ScrolledText(self.pages['logs'], state='disabled', wrap='word', font=('Consolas', 9), bg='#1a1a1a', fg='#dcdcdc', insertbackground='white', relief='flat', padx=10, pady=10)
-        self.log_display.pack(fill='both', expand=True)
-
-        # -- History Page --
-        self.pages['history'] = ttk.Frame(self.content_area, padding=20)
+        self.history_list_widget = QWidget()
+        self.history_list_layout = QVBoxLayout(self.history_list_widget)
+        self.history_list_layout.setAlignment(Qt.AlignTop)
+        scroll.setWidget(self.history_list_widget)
+        hist_layout.addWidget(scroll, 1)
         
-        hist_header = ttk.Frame(self.pages['history'])
-        hist_header.pack(fill='x', pady=(0, 15))
-        ttk.Label(hist_header, text="Chat History", font=('Segoe UI', 12, 'bold')).pack(side='left')
-        ttk.Button(hist_header, text="Refresh", command=self._refresh_history_list).pack(side='right')
+        self.stacked_widget.addWidget(history_page)
+        self.pages['history'] = history_page
         
-        self.history_list_frame = ttk.Frame(self.pages['history'])
-        self.history_list_frame.pack(fill='both', expand=True)
-
-        # -- Settings Page --
-        self.pages['settings'] = SettingsPanel(self.content_area, self.cda)
+        # Page 3: Logs
+        logs_page = QWidget()
+        logs_layout = QVBoxLayout(logs_page)
+        logs_layout.setContentsMargins(20, 20, 20, 20)
+        logs_title = QLabel("System Logs")
+        logs_title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        logs_layout.addWidget(logs_title)
+        self.log_display = QTextBrowser()
+        logs_layout.addWidget(self.log_display, 1)
+        self.stacked_widget.addWidget(logs_page)
+        self.pages['logs'] = logs_page
         
-        # -- Final Setup --
-        self.show_page('interaction')
+        # Page 4: Settings
+        self.settings_panel = SettingsPanel(self, self.cda)
+        self.stacked_widget.addWidget(self.settings_panel)
+        self.pages['settings'] = self.settings_panel
+        
+        # --- INIT TASKS ---
         self._refresh_active_user_label()
         self._refresh_debug_mode_label()
+        self.nav_buttons['interaction'].setChecked(True)
         
-        execution_logger.register_log_callback(self.append_log)
+        # Register Core Handlers
+        execution_logger.register_log_callback(lambda msg: self.signals.append_log.emit(msg))
         self.cda.set_runtime('executor_trace_handler', self._executor_trace_threadsafe)
         self.cda.set_runtime('executor_permission_handler', self._request_permission_threadsafe)
-        self.cda.set_runtime('tool_status_handler', self._update_tool_status_threadsafe)
+        self.cda.set_runtime('tool_status_handler', lambda msg: self.signals.update_status.emit(msg))
+        
+        # Restore pending permission statics
+        self._pending_permission_event = None
+        self._pending_permission_decision = None
+        self._pending_permission_action_type = ""
 
-    def show_page(self, page_name: str):
-        for page in self.pages.values():
-            page.pack_forget()
-        if page_name in self.pages:
-            if page_name == 'history':
+    def _is_debug_mode_enabled(self) -> bool:
+        settings = config_loader.load_settings()
+        return settings.get('debug_mode', False)
+
+    def _refresh_active_user_label(self):
+        uid = self.cda.get_setting('current_user_id')
+        uname = self.cda.get_setting('current_username')
+        if uid and uname:
+            self.active_user_label.setText(f"Active User: {uname} (ID: {uid})")
+        else:
+            self.active_user_label.setText("Active User: (not set)")
+
+    def _refresh_debug_mode_label(self):
+        if self._is_debug_mode_enabled():
+            self.debug_mode_label.setText("DEBUG MODE ON")
+            self.nav_buttons['logs'].show()
+        else:
+            self.debug_mode_label.setText("")
+            self.nav_buttons['logs'].hide()
+
+    def _handle_nav(self, key: str):
+        # Update button checks
+        for k, btn in self.nav_buttons.items():
+            btn.setChecked(k == key)
+            
+        if key == 'new_chat':
+            self._start_new_chat()
+        elif key in self.pages:
+            self.stacked_widget.setCurrentWidget(self.pages[key])
+            if key == 'history':
                 self._refresh_history_list()
-            self.pages[page_name].pack(fill='both', expand=True)
+            elif key == 'settings':
+                self._refresh_active_user_label()
+                self._refresh_debug_mode_label()
 
     def _start_new_chat(self) -> None:
         self._current_chat_id = None
         self.cda.set_memory('chat_history', '')
-        self.transcript.configure(state='normal')
-        self.transcript.delete('1.0', tk.END)
-        self.transcript.configure(state='disabled')
+        
+        # Explicitly wipe trace memories for fresh chat scope
+        self.cda.set_memory('AgentActivity', [])
+        self.cda.set_memory('agent_activity_collection', [])
+        self.cda.set_memory('agent_activity', '')
+        self.cda.set_memory('agent_activity_step', 1)
+        self.cda.set_memory('plan', '')
+        self.cda.set_memory('tool_data', '')
+        self.cda.set_memory('last_action', '')
+        
+        self.transcript.clear()
         self.controller.clear_current_task()
-        self.show_page('interaction')
-
-    def _refresh_history_list(self) -> None:
-        for widget in self.history_list_frame.winfo_children():
-            widget.destroy()
-            
-        db_path = _get_db_path()
-        if not db_path or not os.path.exists(db_path):
-            return
-            
-        try:
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
-            cur.execute("SELECT id, title, created_at FROM ChatHistory ORDER BY created_at DESC LIMIT 50")
-            rows = cur.fetchall()
-            conn.close()
-            
-            for row in rows:
-                chat_id, title, created_at = row
-                card = tk.Frame(self.history_list_frame, bg='#2d2d2d', cursor='hand2', pady=10, padx=15)
-                card.pack(fill='x', pady=5)
-                
-                lbl_title = tk.Label(card, text=title or "New Chat", bg='#2d2d2d', fg='white', font=('Segoe UI', 10, 'bold'))
-                lbl_title.pack(anchor='w')
-                
-                lbl_date = tk.Label(card, text=created_at, bg='#2d2d2d', fg='#999999', font=('Segoe UI', 9))
-                lbl_date.pack(anchor='w')
-                
-                card.bind('<Button-1>', lambda e, cid=chat_id: self._load_history_chat(cid))
-                lbl_title.bind('<Button-1>', lambda e, cid=chat_id: self._load_history_chat(cid))
-                lbl_date.bind('<Button-1>', lambda e, cid=chat_id: self._load_history_chat(cid))
-                
-        except Exception as e:
-            execution_logger.log_execution_step('HISTORY_ERROR', f"Failed to load history: {e}")
-
-    def _load_history_chat(self, chat_id: int) -> None:
-        self._current_chat_id = chat_id
-        self.transcript.configure(state='normal')
-        self.transcript.delete('1.0', tk.END)
-        self.transcript.configure(state='disabled')
-        
-        history_text = ""
-        
-        db_path = _get_db_path()
-        if not db_path or not os.path.exists(db_path): return
-        
-        try:
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
-            cur.execute("SELECT role, content FROM ChatLog WHERE chat_id=? ORDER BY timestamp ASC", (chat_id,))
-            rows = cur.fetchall()
-            conn.close()
-            
-            for role, content in rows:
-                self.transcript.configure(state='normal')
-                
-                tag = 'assistant'
-                display_msg = content
-                if role == 'User':
-                    tag = 'user'
-                    display_msg = f"You: {content}"
-                elif role == 'Error':
-                    tag = 'error'
-                    display_msg = f"Error: {content}"
-                elif role == 'Status':
-                    tag = 'status'
-                else:
-                    display_msg = f"Agent: {content}"
-                    
-                self.transcript.insert('end', f"{display_msg}\n\n", tag)
-                self.transcript.configure(state='disabled')
-                
-                # Rebuild history context
-                if role != 'Status':
-                    prefix = "User: " if role == 'User' else "Agent: "
-                    history_text += f"{prefix}{content}\n"
-                
-        except Exception as e:
-            execution_logger.log_execution_step('HISTORY_LOAD_ERROR', f"Failed to load chat {chat_id}: {e}")
-            
-        self.cda.set_memory('chat_history', history_text)
-        self.transcript.see('end')
-        self.show_page('interaction')
-    def _save_to_chat_history(self, role: str, content: str) -> None:
-        if role == 'Status' or not content.strip():
-            return
-            
-        db_path = _get_db_path()
-        if not db_path or not os.path.exists(db_path):
-            return
-            
-        try:
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
-            
-            if self._current_chat_id is None:
-                title = content[:50].strip()
-                if not title:
-                    title = "New Chat"
-                cur.execute("INSERT INTO ChatHistory (title) VALUES (?)", (title,))
-                self._current_chat_id = cur.lastrowid
-                
-            cur.execute("INSERT INTO ChatLog (chat_id, role, content) VALUES (?, ?, ?)", 
-                        (self._current_chat_id, role, content))
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            execution_logger.log_execution_step('CHAT_DB_ERROR', f"Failed to save chat: {e}")
+        self._handle_nav('interaction')
 
     def append_message(self, sender: str, message: str) -> None:
-        self.transcript.configure(state='normal')
+        self.signals.append_message.emit(sender, message)
         
+    def _safe_append_message(self, sender: str, message: str) -> None:
+        agent_activity = ""
+        if sender == 'Agent':
+            agent_activity = self.cda.get_memory('agent_activity', '')
+            
         # Save raw message to database before prefixing
-        self._save_to_chat_history(sender, message)
+        self._save_to_chat_history(sender, message, agent_activity)
         
-        tag = 'assistant'
+        color = self.fg_color
+        weight = "normal"
         if sender == 'User':
-            tag = 'user'
+            color = self.accent_color
+            weight = "bold"
             message = f"You: {message}"
         elif sender == 'Error':
-            tag = 'error'
+            color = "#d32f2f"
             message = f"Error: {message}"
         elif sender == 'Status':
-            tag = 'status'
+            color = self.fg_muted
+            message = f"<i>{message}</i>"
         else:
-            message = f"Agent: {message}"
+            message = f"<b>Agent:</b><br>{message}"
             
-        self.transcript.insert('end', f"{message}\n\n", tag)
-        self.transcript.configure(state='disabled')
-        self.transcript.see('end')
+        html = f"<div style='color: {color}; font-weight: {weight}; margin-bottom: 10px;'>{message.replace(chr(10), '<br>')}</div><br>"
+        self.transcript.append(html)
+        
+    def _safe_append_log(self, message: str) -> None:
+        self.log_display.append(message)
 
-    def append_log(self, message: str) -> None:
-        def _update():
-            self.log_display.configure(state='normal')
-            self.log_display.insert('end', f"{message}\n")
-            self.log_display.configure(state='disabled')
-            self.log_display.see('end')
-        self.root.after(0, _update)
+    def _safe_update_status(self, message: str) -> None:
+        if message:
+            self.status_label.setText(f"⚡ {message}")
+        else:
+            self.status_label.setText("")
+
+    def _safe_executor_status(self, title: str, body: str) -> None:
+        if not title:
+            self.trace_log.append(body)
+            return
+
+        import re
+        def repl(m):
+            raw_path = m.group(1)
+            clean_path = raw_path.replace('\\\\', '\\')
+            
+            # Trim trailing punctuation common in plain English sentences
+            while clean_path and clean_path[-1] in '.,;:]}':
+                raw_path = raw_path[:-1]
+                clean_path = clean_path[:-1]
+                
+            uri = clean_path.replace('\\', '/')
+            if not uri.startswith('/'): uri = '/' + uri
+            return f'<a href="file://{uri}" style="color: #005fb8; text-decoration: underline;">{raw_path}</a>'
+            
+        # Match Windows paths
+        body_linked = re.sub(r'([A-Za-z]:(?:\\\\|\\|/)[^\s"\'<>\n\t]+)', repl, body)
+        body_linked = body_linked.replace('\n', '<br>')
+            
+        html = f"<div style='color: {self.fg_muted}; font-size: 12px;'><b>{title}</b><br>{body_linked}</div><br>"
+        if 'error' in title.lower() or 'failed' in title.lower():
+            html = f"<div style='color: #d32f2f; font-size: 12px;'><b>{title}</b><br>{body_linked}</div><br>"
+        self.trace_log.append(html)
+
+    def on_attach_file(self) -> None:
+        files, _ = QFileDialog.getOpenFileNames(self, "Attach Files", "", "All Files (*.*)")
+        if files:
+            self.selected_files.extend(files)
+            self._refresh_file_list()
+
+    def _refresh_file_list(self) -> None:
+        # Clear existing
+        while self.file_list_layout.count():
+            child = self.file_list_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+                
+        if not self.selected_files:
+            self.file_list_frame.hide()
+            return
+            
+        self.file_list_frame.show()
+        
+        for f in self.selected_files:
+            chip = QFrame()
+            chip.setStyleSheet(f"background-color: #e0e0e0; border-radius: 12px; padding: 2px 8px;")
+            chip_layout = QHBoxLayout(chip)
+            chip_layout.setContentsMargins(5,2,5,2)
+            name = os.path.basename(f)
+            lbl = QLabel(name)
+            lbl.setStyleSheet(f"color: {self.fg_color}; font-size: 12px;")
+            
+            btn_x = QPushButton("×")
+            btn_x.setStyleSheet(f"background: none; border: none; color: #d32f2f; font-weight: bold;")
+            btn_x.setCursor(Qt.PointingHandCursor)
+            btn_x.clicked.connect(lambda checked=False, target=f: self._remove_file(target))
+            
+            chip_layout.addWidget(lbl)
+            chip_layout.addWidget(btn_x)
+            self.file_list_layout.addWidget(chip)
+            
+        self.file_list_layout.addStretch()
+
+    def _remove_file(self, target: str):
+        if target in self.selected_files:
+            self.selected_files.remove(target)
+            self._refresh_file_list()
+
+    def open_create_agent_dialog(self):
+        dialog = CreateAgentDialog(self)
+        
+        # Load draft
+        draft = self.cda.get_setting('create_agent_draft')
+        if draft:
+            dialog.text_edit.setPlainText(str(draft))
+            
+        if dialog.exec():
+            if dialog.is_draft:
+                self.cda.set_setting('create_agent_draft', dialog.result_text)
+                self.append_message('Status', "<i>Agent requirements draft saved.</i>")
+            else:
+                self.cda.set_setting('create_agent_draft', "") # clear draft
+                text = dialog.result_text
+                if text:
+                    prefix = "Create an agent or Modify an agent"
+                    final_prompt = f"{prefix}:\\n{text}"
+                    self.input_entry.setText(final_prompt)
+                    self.on_send()
+
+    def on_send(self) -> None:
+        message = self.input_entry.text().strip()
+        if not message and not self.selected_files:
+            return
+
+        self.input_entry.clear()
+        
+        # Display instantly
+        if message:
+            self.append_message('User', message)
+        
+        # Process files silently
+        if self.selected_files:
+            docs_msg = f"Attached {len(self.selected_files)} document(s)."
+            if message: docs_msg += " " + message
+            if not message:
+                self.append_message('User', f"<i>Attached {len(self.selected_files)} document(s)</i>")
+            message = docs_msg
+            
+        files_to_send = list(self.selected_files)
+        self.selected_files.clear()
+        self.file_list_frame.hide()
+
+        def _run_controller():
+            self.signals.execution_started.emit()
+            cancel_event = threading.Event()
+            self.cda.set_runtime('cancel_event', cancel_event)
+            try:
+                result = self.controller.handle_user_message(
+                    message,
+                    files=files_to_send,
+                    interface='UI',
+                    ui_callback=self._ui_feedback
+                )
+                if result.content:
+                    self.append_message('Agent', result.content)
+            except Exception as e:
+                execution_logger.log_exception('CONTROLLER_FAIL', e)
+                self.append_message('Error', f"System error: {e}")
+            finally:
+                self.signals.execution_ended.emit()
+
+        t = threading.Thread(target=_run_controller, daemon=True)
+        t.start()
+
+    def on_stop(self) -> None:
+        cancel_event = self.cda.get_runtime('cancel_event')
+        if cancel_event and isinstance(cancel_event, threading.Event):
+            cancel_event.set()
+            self.append_message('Status', "<i>Cancellation requested...</i>")
+            
+    def _on_execution_started(self) -> None:
+        self.btn_send.hide()
+        self.btn_stop.show()
+        self.input_entry.setEnabled(False)
+        self.btn_attach.setEnabled(False)
+        if hasattr(self, 'history_list_widget'):
+            self.history_list_widget.setEnabled(False)
+
+    def _on_execution_ended(self) -> None:
+        self.btn_stop.hide()
+        self.btn_send.show()
+        self.input_entry.setEnabled(True)
+        self.btn_attach.setEnabled(True)
+        if hasattr(self, 'history_list_widget'):
+            self.history_list_widget.setEnabled(True)
+        self.input_entry.setFocus()
 
     def _ui_feedback(self, feedback: dict) -> None:
         if not feedback: return
@@ -557,279 +659,161 @@ class ChatUI:
                 composed = f"{composed} | {hint}" if composed else f"[{status}] {hint}"
             self.append_message('Status', composed)
 
-    def on_attach_file(self) -> None:
-        filenames = filedialog.askopenfilenames(
-            title="Attach Files",
-            filetypes=[("All Files", "*.*"), ("Documents", "*.pdf;*.docx;*.txt"), ("Images", "*.png;*.jpg;*.jpeg")]
-        )
-        if filenames:
-            self.selected_files.extend(filenames)
-            self._refresh_file_list()
-
-    def _refresh_file_list(self) -> None:
-        # Clear existing
-        for widget in self.file_list_frame.winfo_children():
-            widget.destroy()
-            
-        if not self.selected_files:
-            self.file_list_frame.grid_remove()
-            return
-
-        self.file_list_frame.grid()
+    def _insert_linked_trace_html(self, text: str, filepath: str = "", tag: str = 'default') -> None:
+        colors = {
+            'default': '#444444',
+            'llm_input': '#005fb8',      # Blue
+            'llm_output': '#2e7d32',     # Green
+            'tool_call': '#e65100',      # Orange
+            'tool_result': '#00838f',    # Teal
+            'permission': '#f57f17',     # Yellow/Orange
+            'error': '#d32f2f',          # Red
+            'status': '#757575'          # Gray
+        }
+        color = colors.get(tag, colors['default'])
         
-        # Add chips
-        for f in self.selected_files:
-            import os
-            name = os.path.basename(f)
-            # Chip Frame
-            chip = tk.Frame(self.file_list_frame, bg='#3c3f41', padx=5, pady=2)
-            chip.pack(side='left', padx=2, pady=5)
-            
-            lbl = tk.Label(chip, text=name, bg='#3c3f41', fg='white', font=('Segoe UI', 9))
-            lbl.pack(side='left')
-            
-            # X button to remove
-            # Using a closure to capture 'f' correctly? No, f changes. Use partial or default arg.
-            def remove_cb(target=f):
-                if target in self.selected_files:
-                    self.selected_files.remove(target)
-                    self._refresh_file_list()
-
-            btn_x = tk.Label(chip, text=" ×", bg='#3c3f41', fg='#ff6b6b', cursor='hand2', font=('Segoe UI', 10, 'bold'))
-            btn_x.pack(side='left')
-            btn_x.bind('<Button-1>', lambda e, t=f: remove_cb(t))
-
-    def on_send(self, event=None) -> None:
-        text = self.input_var.get().strip()
-        files = list(self.selected_files) # Copy
+        # Escape HTML chars in text to prevent bleeding, except for BRs
+        cleaned_text = text.replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br>')
         
-        if not text and not files: return
-        
-        self.input_var.set('')
-        self.selected_files.clear()
-        self._refresh_file_list()
-        
-        # Display logic
-        display_msg = text
-        if files:
-            file_names = [os.path.basename(f) for f in files]
-            display_msg += f"\n[Attached: {', '.join(file_names)}]"
-            
-        self.append_message('User', display_msg)
-        
-        # Ensure we have some text even if user only attached files
-        if not text and files:
-            text = "Process the attached files."
-
-        # Pass files to process_message
-        threading.Thread(target=self._process_message, args=(text, files), daemon=True).start()
-
-    def _process_message(self, text: str, files: List[str] = None) -> None:
-        try:
-            # Pass files to handle_user_message
-            response = self.controller.handle_user_message(text, files=files, ui_callback=self._thread_safe_feedback)
-            def _finish():
-                # We assume response.content is the final answer string
-                # If response object has other fields, adpat here.
-                # Assuming ExecutorResult with .content, .status
-                if hasattr(response, 'status') and response.status == 'error':
-                     self.append_message('Error', getattr(response, 'content', str(response)))
-                else:
-                     content = getattr(response, 'content', str(response))
-                     self.append_message('Assistant', content)
-            self.root.after(0, _finish)
-        except Exception as e:
-            self.root.after(0, lambda: self.append_message('Error', str(e)))
-
-    def _thread_safe_feedback(self, feedback: dict) -> None:
-        self.root.after(0, lambda: self._ui_feedback(feedback))
-
-    def run(self) -> None:
-        self.root.mainloop()
-
-    def _refresh_active_user_label(self) -> None:
-        uid = str(self.cda.get_setting('current_user_id', '') or '')
-        uname = str(self.cda.get_setting('current_username', '') or '')
-        uemail = str(self.cda.get_setting('current_user_email', '') or '')
-        if uname:
-            if uid and uemail:
-                text = f"Active User: {uname}\nID: {uid} | {uemail}"
-            elif uid:
-                text = f"Active User: {uname}\nID: {uid}"
-            else:
-                text = f"Active User: {uname}"
+        # Base formatting
+        if tag == 'status':
+            html_block = f"<div style='color: {color}; font-style: italic; margin-bottom: 2px;'>{cleaned_text}"
+        elif tag == 'error':
+            html_block = f"<div style='color: {color}; font-weight: bold; margin-bottom: 5px; background-color: #ffebee; padding: 5px;'>{cleaned_text}"
         else:
-            text = "Active User: (not set)"
-        self.active_user_label.configure(text=text)
-        self.root.after(1000, self._refresh_active_user_label)
-
-    def _is_debug_mode_enabled(self) -> bool:
-        raw = self.cda.get_setting('debug_mode', False)
-        if isinstance(raw, bool):
-            return raw
-        if isinstance(raw, str):
-            return raw.strip().lower() in ('1', 'true', 'yes', 'on')
-        return bool(raw)
-
-    def _refresh_debug_mode_label(self) -> None:
-        enabled = self._is_debug_mode_enabled()
-        self.debug_mode_label.configure(
-            text=f"Debug Mode: {'ON' if enabled else 'OFF'}",
-            fg=('#90be6d' if enabled else '#ef476f'),
-        )
-        self.root.after(1000, self._refresh_debug_mode_label)
-
-    def _append_executor_status(self, message: str, tag: str = 'default') -> None:
-        self.executor_status.configure(state='normal')
-        self.executor_status.insert('end', f"{message}\n\n", tag)
-        self.executor_status.configure(state='disabled')
-        self.executor_status.see('end')
-
-    def _insert_linked_trace(self, text: str, filepath: str = "", tag: str = 'default'):
-        self.executor_status.configure(state='normal')
-        self.executor_status.insert('end', text, tag)
+            html_block = f"<div style='color: {color}; font-weight: 500; margin-bottom: 5px;'>{cleaned_text}"
+            
+        # Add filepath if present
         if filepath:
+            uri = filepath.replace('\\\\', '\\').replace('\\', '/')
+            if not uri.startswith('/'): uri = '/' + uri
+            
             import os
-            import time
-            link_tag = f"link_{int(time.time()*1000)}_{hash(text)}"
-            self.executor_status.tag_config(link_tag, foreground='#8ecae6', underline=True)
-            self.executor_status.tag_bind(link_tag, '<Button-1>', lambda e, fp=filepath: os.startfile(fp))
-            self.executor_status.tag_bind(link_tag, '<Enter>', lambda e: self.executor_status.config(cursor="hand2"))
-            self.executor_status.tag_bind(link_tag, '<Leave>', lambda e: self.executor_status.config(cursor=""))
             display_name = os.path.basename(filepath)
-            self.executor_status.insert('end', f" [Link: {display_name}]\n", link_tag)
-        else:
-            self.executor_status.insert('end', "\n", tag)
-        self.executor_status.configure(state='disabled')
-        self.executor_status.see('end')
+            html_block += f" <a href='file://{uri}' style='color: #005fb8; text-decoration: underline;'>[Link: {display_name}]</a>"
+            
+        html_block += "</div>"
+        self.signals.executor_status.emit("", html_block)
 
     def _executor_trace_threadsafe(self, event_type: str, payload: Dict[str, Any]) -> None:
-        def _update():
-            # Initialize turn counter if absent
-            if not hasattr(self, '_trace_counter'):
-                self._trace_counter = 1
+        if not hasattr(self, '_trace_counter'):
+            self._trace_counter = 1
 
-            if event_type == 'user_input':
-                self._trace_counter = 1
-                self._insert_linked_trace(f"\n{'-'*60}\n1. User input received")
-                self._trace_counter += 1
+        if event_type == 'user_input':
+            self._trace_counter = 1
+            self._insert_linked_trace_html(f"\n{'-'*60}\n1. User input received")
+            self._trace_counter += 1
 
-            elif event_type == 'llm_prepared_prompt':
-                agent = payload.get('agent_name', 'Agent')
-                fp = payload.get('filepath', '')
-                self._insert_linked_trace(f"{self._trace_counter}. {agent} Prompt prepared", fp, 'llm_input')
-                self._trace_counter += 1
-                self._insert_linked_trace(f"{self._trace_counter}. LLM request in progress", tag='status')
+        elif event_type == 'llm_prepared_prompt':
+            agent = payload.get('agent_name', 'Agent')
+            fp = payload.get('filepath', '')
+            self._insert_linked_trace_html(f"{self._trace_counter}. {agent} Prompt prepared", fp, 'llm_input')
+            self._trace_counter += 1
+            self._insert_linked_trace_html(f"{self._trace_counter}. LLM request in progress", tag='status')
 
-            elif event_type == 'llm_response':
-                tt = payload.get('time_taken', 0)
-                tu = payload.get('tokens_used', 0)
-                fp = payload.get('response_file', '')
-                self._insert_linked_trace(f"  {self._trace_counter}.1. LLM call completed: Time {tt:.2f}s, Tokens used: {tu}", tag='status')
-                self._trace_counter += 1
-                self._insert_linked_trace(f"{self._trace_counter}. LLM response", fp, 'llm_output')
-                self._trace_counter += 1
+        elif event_type == 'llm_response':
+            tt = payload.get('time_taken', 0)
+            tu = payload.get('tokens_used', 0)
+            fp = payload.get('response_file', '')
+            self._insert_linked_trace_html(f"  {self._trace_counter}.1. LLM call completed: Time {tt:.2f}s, Tokens used: {tu}", tag='status')
+            self._trace_counter += 1
+            self._insert_linked_trace_html(f"{self._trace_counter}. LLM response", fp, 'llm_output')
+            self._trace_counter += 1
 
-            elif event_type == 'plan_step':
-                agent = payload.get('agent_name', 'Agent')
-                step = str(payload.get('current_step', '')).strip()
-                self._insert_linked_trace(f"{self._trace_counter}. {agent} executing step: {step}", tag='status')
-                self._trace_counter += 1
+        elif event_type == 'plan_step':
+            agent = payload.get('agent_name', 'Agent')
+            step = str(payload.get('current_step', '')).strip()
+            self._insert_linked_trace_html(f"{self._trace_counter}. {agent} executing step: {step}", tag='status')
+            self._trace_counter += 1
 
-            elif event_type == 'tool_prepared':
-                tn = payload.get('tool_name', 'Unknown')
-                fp = payload.get('param_file', '')
-                self._insert_linked_trace(f"{self._trace_counter}. Tool call in progress: {tn}", fp, 'tool_call')
-                self._trace_counter += 1
-                
-            elif event_type == 'tool_result':
-                tn = payload.get('tool_name', 'Unknown')
-                fp = payload.get('result_file', '')
-                self._insert_linked_trace(f"{self._trace_counter}. Tool call completed results: {tn}", fp, 'tool_result')
-                self._trace_counter += 1
+        elif event_type == 'tool_prepared':
+            tn = payload.get('tool_name', 'Unknown')
+            fp = payload.get('param_file', '')
+            self._insert_linked_trace_html(f"{self._trace_counter}. Tool call in progress: {tn}", fp, 'tool_call')
+            self._trace_counter += 1
+            
+        elif event_type == 'tool_result':
+            tn = payload.get('tool_name', 'Unknown')
+            fp = payload.get('result_file', '')
+            self._insert_linked_trace_html(f"{self._trace_counter}. Tool call completed results: {tn}", fp, 'tool_result')
+            self._trace_counter += 1
 
-            elif event_type == 'permission_required':
-                ts = datetime.now().strftime('%H:%M:%S')
-                title = f"[{ts}] PERMISSION REQUIRED"
-                action_type = payload.get('action_type', 'unknown')
-                action_payload = payload.get('payload', {})
-                body = f"Action: {action_type}\nSummary: {self._format_permission_summary(action_type, action_payload)}"
-                self._append_executor_status(f"{title}\n{body}", tag='permission')
+        elif event_type == 'permission_required':
+            ts = datetime.now().strftime('%H:%M:%S')
+            title = f"[{ts}] PERMISSION REQUIRED"
+            action_type = payload.get('action_type', 'unknown')
+            body = f"Action: {action_type}"
+            self._insert_linked_trace_html(f"{title}\n{body}", tag='permission')
 
-            elif event_type == 'permission_decision':
-                ts = datetime.now().strftime('%H:%M:%S')
-                title = f"[{ts}] PERMISSION DECISION"
-                body = f"Action: {payload.get('action_type', 'unknown')}\nApproved: {payload.get('approved', False)}"
-                self._append_executor_status(f"{title}\n{body}", tag='permission')
+        elif event_type == 'permission_decision':
+            ts = datetime.now().strftime('%H:%M:%S')
+            title = f"[{ts}] PERMISSION DECISION"
+            body = f"Action: {payload.get('action_type', 'unknown')}\nApproved: {payload.get('approved', False)}"
+            self._insert_linked_trace_html(f"{title}\n{body}", tag='permission')
 
-            elif event_type == 'router_summary':
-                selected = payload.get('selected_targets', [])
-                selected_txt = ", ".join([str(x) for x in selected]) if selected else "(none)"
-                self._insert_linked_trace(f"{self._trace_counter}. Router selected: {selected_txt}", tag='llm_output')
-                self._trace_counter += 1
+        elif event_type == 'router_summary':
+            selected = payload.get('selected_targets', [])
+            selected_txt = ", ".join([str(x) for x in selected]) if selected else "(none)"
+            self._insert_linked_trace_html(f"{self._trace_counter}. Router selected: {selected_txt}", tag='llm_output')
+            self._trace_counter += 1
 
-            elif event_type == 'router_decision':
-                # Keep router decision concise; do not expose router response payload/file here.
-                selected = payload.get('selected_targets', [])
-                types = payload.get('decision_types', [])
-                selected_txt = ", ".join([str(x) for x in selected]) if selected else "(none)"
-                types_txt = ", ".join([str(x) for x in types]) if types else "(unknown)"
-                self._insert_linked_trace(f"{self._trace_counter}. Router decision: {types_txt} -> {selected_txt}", tag='llm_output')
-                self._trace_counter += 1
+        elif event_type == 'router_decision':
+            # Keep router decision concise
+            selected = payload.get('selected_targets', [])
+            types = payload.get('decision_types', [])
+            selected_txt = ", ".join([str(x) for x in selected]) if selected else "(none)"
+            types_txt = ", ".join([str(x) for x in types]) if types else "(unknown)"
+            self._insert_linked_trace_html(f"{self._trace_counter}. Router decision: {types_txt} -> {selected_txt}", tag='llm_output')
+            self._trace_counter += 1
 
-            elif event_type == 'controller_task_queue':
-                queue_size = payload.get('queue_size', 0)
-                routes = payload.get('routes', [])
-                targets = []
-                for r in routes if isinstance(routes, list) else []:
-                    if not isinstance(r, dict):
-                        continue
-                    t = r.get('selected_agent') or r.get('tool_name') or r.get('type')
-                    if t:
-                        targets.append(str(t))
-                targets_txt = ", ".join(targets) if targets else "(none)"
-                self._insert_linked_trace(f"{self._trace_counter}. Controller queued {queue_size} task(s): {targets_txt}", tag='default')
-                self._trace_counter += 1
+        elif event_type == 'controller_task_queue':
+            queue_size = payload.get('queue_size', 0)
+            routes = payload.get('routes', [])
+            targets = []
+            for r in routes if isinstance(routes, list) else []:
+                if not isinstance(r, dict): continue
+                t = r.get('selected_agent') or r.get('tool_name') or r.get('type')
+                if t: targets.append(str(t))
+            targets_txt = ", ".join(targets) if targets else "(none)"
+            self._insert_linked_trace_html(f"{self._trace_counter}. Controller queued {queue_size} task(s): {targets_txt}", tag='default')
+            self._trace_counter += 1
 
-            elif event_type == 'controller_delegate_agent':
-                agent = payload.get('agent_name', 'unknown')
-                self._insert_linked_trace(f"{self._trace_counter}. Delegating to agent: {agent}", tag='default')
-                self._trace_counter += 1
+        elif event_type == 'controller_delegate_agent':
+            agent = payload.get('agent_name', 'unknown')
+            self._insert_linked_trace_html(f"{self._trace_counter}. Delegating to agent: {agent}", tag='default')
+            self._trace_counter += 1
 
-            elif event_type == 'request_user_input':
-                agent = payload.get('agent_name', 'Agent')
-                content = str(payload.get('content', '')).strip()
-                short = (content[:140] + '...') if len(content) > 140 else content
-                self._insert_linked_trace(f"{self._trace_counter}. {agent} requested user input: {short}", tag='status')
-                self._trace_counter += 1
+        elif event_type == 'request_user_input':
+            agent = payload.get('agent_name', 'Agent')
+            content = str(payload.get('content', '')).strip()
+            short = (content[:140] + '...') if len(content) > 140 else content
+            self._insert_linked_trace_html(f"{self._trace_counter}. {agent} requested user input: {short}", tag='status')
+            self._trace_counter += 1
 
-            elif event_type == 'router_trace_file':
-                phase = str(payload.get('phase', '')).strip().lower()
-                fp = payload.get('filepath', '')
-                label = "Router prompt file" if phase == 'prompt' else "Router response file"
-                self._insert_linked_trace(f"{self._trace_counter}. {label}", fp, 'llm_input')
-                self._trace_counter += 1
+        elif event_type == 'router_trace_file':
+            phase = str(payload.get('phase', '')).strip().lower()
+            fp = payload.get('filepath', '')
+            label = "Router prompt file" if phase == 'prompt' else "Router response file"
+            self._insert_linked_trace_html(f"{self._trace_counter}. {label}", fp, 'llm_input')
+            self._trace_counter += 1
 
-            elif 'error' in event_type.lower():
-                ts = datetime.now().strftime('%H:%M:%S')
-                title = f"[{ts}] ERROR: {event_type}"
-                try:
-                    body = json.dumps(payload, indent=2, ensure_ascii=False)
-                except:
-                    body = str(payload)
-                self._append_executor_status(f"{title}\n{body}", tag='error')
+        elif 'error' in event_type.lower():
+            ts = datetime.now().strftime('%H:%M:%S')
+            title = f"[{ts}] ERROR: {event_type}"
+            try:
+                body = json.dumps(payload, indent=2, ensure_ascii=False)
+            except:
+                body = str(payload)
+            self._insert_linked_trace_html(f"{title}\n{body}", tag='error')
 
-            else:
-                # Catch-all for unknown events
-                ts = datetime.now().strftime('%H:%M:%S')
-                title = f"[{ts}] {event_type.upper()}"
-                try:
-                    body = json.dumps(payload, indent=2, ensure_ascii=False)
-                except:
-                    body = str(payload)
-                self._append_executor_status(f"{title}\n{body}", tag='default')
-
-        self.root.after(0, _update)
+        else:
+            ts = datetime.now().strftime('%H:%M:%S')
+            title = f"[{ts}] {event_type.upper()}"
+            try:
+                body = json.dumps(payload, indent=2, ensure_ascii=False)
+            except:
+                body = str(payload)
+            self._insert_linked_trace_html(f"{title}\n{body}", tag='default')
 
     def _request_permission_threadsafe(self, action_type: str, payload: Dict[str, Any]) -> bool:
         if not self._is_debug_mode_enabled():
@@ -837,89 +821,249 @@ class ChatUI:
 
         decision = {'allow': False}
         event = threading.Event()
-
-        def _ask_inline():
-            # Mirror pending approval in Executor Status panel.
-            self._executor_trace_threadsafe('permission_required', {'action_type': action_type, 'payload': payload})
-            self.show_page('interaction')
-            self.nb.select(self.chat_tab)
-            self._pending_permission_event = event
-            self._pending_permission_decision = decision
-            self._pending_permission_action_type = action_type
-            self.permission_label.configure(
-                text=f"[Debug Approval] {self._format_permission_summary(action_type, payload)}\nProceed?"
-            )
-            # Use grid() instead of grid_remove() to show
-            self.permission_frame.grid()
-            self.append_message('Status', f"[debug] Approval required for {action_type}. Click Yes/No below.")
-
-        self.root.after(0, _ask_inline)
+        
+        self.signals.request_permission.emit(action_type, payload, event, decision)
         event.wait()
         return decision['allow']
 
-    def _format_permission_summary(self, action_type: str, payload: Dict[str, Any]) -> str:
-        if action_type == 'llm_call':
-            return f"LLM Generation | Agent: {payload.get('agent_name', '')} | Loop: {payload.get('loop', '?')} | Attempt: {payload.get('attempt', '?')}"
-        if action_type == 'tool_call':
-            params = json.dumps(payload.get('parameters', {}), indent=2, ensure_ascii=False)
-            return f"Tool Call | Tool: {payload.get('tool_name', '')}\nParameters:\n{params}"
-        if action_type == 'request_user_input':
-            return f"Request User Input | Content: {str(payload.get('content', ''))[:600]}"
-        return f"{action_type} | {json.dumps(payload, ensure_ascii=False)[:300]}"
+    def _safe_request_permission(self, action_type, payload, event, decision):
+        self._pending_permission_event = event
+        self._pending_permission_decision = decision
+        self._pending_permission_action_type = action_type
+        
+        params = ""
+        if 'parameters' in payload:
+             params = json.dumps(payload['parameters'], indent=2)
+             
+        self.permission_label.setText(f"<b>Approve Action: {action_type}</b><br><pre>{params}</pre>")
+        self.permission_frame.show()
+        self._handle_nav('interaction')
+        self.append_message('Status', f"Approval required for {action_type}. Click Approve/Deny above input area.")
 
     def _resolve_permission(self, allow: bool) -> None:
         if self._pending_permission_decision is None or self._pending_permission_event is None:
             return
+            
         self._pending_permission_decision['allow'] = bool(allow)
-        self._executor_trace_threadsafe(
-            'permission_decision',
-            {'action_type': self._pending_permission_action_type, 'approved': bool(allow)}
-        )
-        self.append_message('Status', f"[debug] {self._pending_permission_action_type} approval: {'yes' if allow else 'no'}")
-        self.permission_frame.grid_remove()
+        self.append_message('Status', f"[debug] Action {self._pending_permission_action_type} {'approved' if allow else 'denied'}")
+        
+        self.permission_frame.hide()
         pending_event = self._pending_permission_event
         self._pending_permission_event = None
         self._pending_permission_decision = None
         self._pending_permission_action_type = ""
         pending_event.set()
 
-    def _update_tool_status_threadsafe(self, message: str) -> None:
-        """Updates the transient status label and optionally logs to trace."""
-        def _update():
-            # 1. Update transient label
-            if message:
-                self.status_label.configure(text=f"⚡ {message}")
-            else:
-                self.status_label.configure(text="")
+    def _save_to_chat_history(self, role: str, content: str, agent_activity: str = "") -> None:
+        if role == 'Status' or not content.strip():
+            return
             
-            # 2. If debug mode is on, log to runtime trace as well
-            if self._is_debug_mode_enabled() and message:
-                ts = datetime.now().strftime('%H:%M:%S')
-                self._append_executor_status(f"[{ts}] [PROGRESS] {message}", tag='status')
+        db_path = _get_db_path()
+        if not db_path or not os.path.exists(db_path):
+            return
+            
+        try:
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            user_id = str(self.cda.get_setting('current_user_id', '') or '')
+            interface = str(self.cda.get_setting('interface', 'UI') or 'UI')
+            cur.execute("PRAGMA table_info(ChatHistory)")
+            ch_cols = [row[1] for row in cur.fetchall()]
+            cur.execute("PRAGMA table_info(ChatLog)")
+            cl_cols = [row[1] for row in cur.fetchall()]
+            
+            if self._current_chat_id is None:
+                title = content[:50].strip()
+                if not title:
+                    title = "New Chat"
+                if 'user_id' in ch_cols and 'interface' in ch_cols:
+                    cur.execute(
+                        "INSERT INTO ChatHistory (title, agent_activity, user_id, interface) VALUES (?, ?, ?, ?)",
+                        (title, agent_activity, user_id, interface),
+                    )
+                elif 'user_id' in ch_cols:
+                    cur.execute(
+                        "INSERT INTO ChatHistory (title, agent_activity, user_id) VALUES (?, ?, ?)",
+                        (title, agent_activity, user_id),
+                    )
+                else:
+                    cur.execute("INSERT INTO ChatHistory (title, agent_activity) VALUES (?, ?)", (title, agent_activity))
+                self._current_chat_id = cur.lastrowid
+            else:
+                if agent_activity:
+                    cur.execute("UPDATE ChatHistory SET agent_activity = ? WHERE id = ?", (agent_activity, self._current_chat_id))
+                
+            if 'user_id' in cl_cols and 'interface' in cl_cols:
+                cur.execute(
+                    "INSERT INTO ChatLog (chat_id, role, content, user_id, interface) VALUES (?, ?, ?, ?, ?)",
+                    (self._current_chat_id, role, content, user_id, interface),
+                )
+            elif 'user_id' in cl_cols:
+                cur.execute(
+                    "INSERT INTO ChatLog (chat_id, role, content, user_id) VALUES (?, ?, ?, ?)",
+                    (self._current_chat_id, role, content, user_id),
+                )
+            else:
+                cur.execute("INSERT INTO ChatLog (chat_id, role, content) VALUES (?, ?, ?)", 
+                            (self._current_chat_id, role, content))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            execution_logger.log_execution_step('CHAT_DB_ERROR', f"Failed to save chat: {e}")
 
-        self.root.after(0, _update)
+    def _refresh_history_list(self) -> None:
+        # Clear specific layout
+        while self.history_list_layout.count():
+            child = self.history_list_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+                
+        db_path = _get_db_path()
+        if not db_path or not os.path.exists(db_path):
+            lbl = QLabel("No Database Path Available.")
+            self.history_list_layout.addWidget(lbl)
+            self.history_list_layout.addStretch()
+            return
 
-    def _create_rounded_rect_image(self, width: int, height: int, radius: int, color: str, bg_color: str) -> ImageTk.PhotoImage:
-        """Creates a rounded rectangle image for use in ttk Styles."""
-        # Create a larger image for antialiasing
-        scale = 4
-        img = Image.new('RGBA', (width * scale, height * scale), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
+        try:
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            user_id = str(self.cda.get_setting('current_user_id', '') or '')
+            cur.execute("PRAGMA table_info(ChatHistory)")
+            ch_cols = [row[1] for row in cur.fetchall()]
+            if 'user_id' in ch_cols and user_id:
+                cur.execute(
+                    "SELECT id, title, created_at FROM ChatHistory WHERE user_id = ? OR user_id IS NULL OR user_id = '' ORDER BY created_at DESC LIMIT 50",
+                    (user_id,),
+                )
+            else:
+                cur.execute("SELECT id, title, created_at FROM ChatHistory ORDER BY created_at DESC LIMIT 50")
+            rows = cur.fetchall()
+            conn.close()
+            
+            for row in rows:
+                chat_id, title, created_at = row
+                
+                card = QPushButton()
+                card.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {self.bg_color};
+                        border: 1px solid {self.border_color};
+                        border-radius: 8px;
+                        text-align: left;
+                        padding: 15px;
+                    }}
+                    QPushButton:hover {{ background-color: {self.sidebar_bg}; }}
+                """)
+                card.setCursor(Qt.PointingHandCursor)
+                
+                # We can't use layout directly on QPushButton easily without breaking clicks in some configs,
+                # so we use rich text or just text, or build a widget and handle mouse events.
+                # In PySide6, QPushButton doesn't render HTML via setText, so we compose it with a layout:
+                card_layout = QHBoxLayout(card)
+                card_layout.setContentsMargins(15, 10, 15, 10)
+                
+                title_lbl = QLabel(f"<b>{title or 'New Chat'}</b>")
+                title_lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
+                title_lbl.setStyleSheet("border: none; background: transparent; padding: 0;")
+                
+                time_lbl = QLabel(created_at)
+                time_lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
+                time_lbl.setStyleSheet(f"color: {self.fg_muted}; font-size: 11px; border: none; background: transparent; padding: 0;")
+                
+                card_layout.addWidget(title_lbl)
+                card_layout.addStretch()
+                card_layout.addWidget(time_lbl)
+                card.clicked.connect(lambda checked=False, cid=chat_id: self._load_history_chat(cid))
+                
+                self.history_list_layout.addWidget(card)
+                
+            self.history_list_layout.addStretch()
+                
+        except Exception as e:
+            execution_logger.log_execution_step('HISTORY_ERROR', f"Failed to load history: {e}")
+            lbl = QLabel(f"Error loading history: {e}")
+            self.history_list_layout.addWidget(lbl)
+            self.history_list_layout.addStretch()
+
+    def _load_history_chat(self, chat_id: int) -> None:
+        self._current_chat_id = chat_id
+        self.transcript.clear()
         
-        # Fill background color (for the corners that aren't part of the tab)
-        # However, for tabs we usually want the background to be transparent or match the parent
-        # For simplicity, we use bg_color
+        history_text = ""
+        db_path = _get_db_path()
+        if not db_path or not os.path.exists(db_path): return
         
-        r = radius * scale
-        w = width * scale
-        h = height * scale
-        
-        # Draw the rounded rectangle (only top corners are rounded for tabs)
-        draw.pieslice([0, 0, r * 2, r * 2], 180, 270, fill=color) # Top Left
-        draw.pieslice([w - r * 2, 0, w, r * 2], 270, 360, fill=color) # Top Right
-        draw.rectangle([r, 0, w - r, h], fill=color) # Middle vertical
-        draw.rectangle([0, r, w, h], fill=color) # Bottom part + middle horizontal
-        
-        # Downsample for antialiasing
-        img = img.resize((width, height), Image.Resampling.LANCZOS)
-        return ImageTk.PhotoImage(img)
+        try:
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            user_id = str(self.cda.get_setting('current_user_id', '') or '')
+            res = None
+            
+            # Fetch agent_activity from parent ChatHistory record safely
+            cur.execute("PRAGMA table_info(ChatHistory)")
+            ch_cols = [col[1] for col in cur.fetchall()]
+            latest_agent_activity = ""
+            if 'agent_activity' in ch_cols and 'user_id' in ch_cols and user_id:
+                cur.execute(
+                    "SELECT agent_activity FROM ChatHistory WHERE id=? AND (user_id = ? OR user_id IS NULL OR user_id = '')",
+                    (chat_id, user_id),
+                )
+                res = cur.fetchone()
+                if not res:
+                    conn.close()
+                    execution_logger.log_execution_step('HISTORY_LOAD_DENY', f"Chat {chat_id} not accessible for user_id={user_id}")
+                    return
+            elif 'agent_activity' in ch_cols:
+                cur.execute("SELECT agent_activity FROM ChatHistory WHERE id=?", (chat_id,))
+                res = cur.fetchone()
+                if res and res[0]:
+                    latest_agent_activity = res[0]
+            if 'agent_activity' in ch_cols and res and res[0]:
+                latest_agent_activity = res[0]
+            
+            cur.execute("PRAGMA table_info(ChatLog)")
+            cl_cols = [col[1] for col in cur.fetchall()]
+            if 'user_id' in cl_cols and user_id:
+                cur.execute(
+                    "SELECT role, content FROM ChatLog WHERE chat_id=? AND (user_id = ? OR user_id IS NULL OR user_id = '') ORDER BY timestamp ASC",
+                    (chat_id, user_id),
+                )
+            else:
+                cur.execute("SELECT role, content FROM ChatLog WHERE chat_id=? ORDER BY timestamp ASC", (chat_id,))
+            rows = cur.fetchall()
+            conn.close()
+            
+            for role, content in rows:
+                # Add to UI without triggering db save
+                color = self.fg_color
+                weight = "normal"
+                if role == 'User':
+                    color = self.accent_color
+                    weight = "bold"
+                    display_msg = f"You: {content}"
+                elif role == 'Error':
+                    color = "#d32f2f"
+                    display_msg = f"Error: {content}"
+                elif role == 'Status':
+                    continue # Ignore status messages
+                else:
+                    display_msg = f"<b>Agent:</b><br>{content}"
+                    
+                html = f"<div style='color: {color}; font-weight: {weight}; margin-bottom: 10px;'>{display_msg.replace(chr(10), '<br>')}</div><br>"
+                self.transcript.append(html)
+                
+                # Rebuild history context
+                prefix = "User: " if role == 'User' else "Agent: "
+                history_text += f"{prefix}{content}\n"
+                
+            # Rehydrate context memory
+            self.cda.set_memory('chat_history', history_text)
+            self.cda.set_memory('agent_activity', latest_agent_activity)
+            self._handle_nav('interaction')
+                
+        except Exception as e:
+            execution_logger.log_execution_step('HISTORY_LOAD_ERROR', f"Failed to load chat {chat_id}: {e}")
+            
+        self.cda.set_memory('chat_history', history_text)
+        self._handle_nav('interaction')

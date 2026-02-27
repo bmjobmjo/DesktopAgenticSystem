@@ -6,5 +6,10 @@
   "default_directory": "",
   "sqlite_db_path": "backend.db",
   "custom_agents": [],
-  "file_storage_path": "storage/files"
+  "file_storage_path": "storage/files",
+  "agent_activity_level": "full",
+  "agent_activity_partial_keep_steps": 5,
+  "embedding_model_name": "all-MiniLM-L6-v2",
+  "embedding_model_path": "",
+  "embedding_local_files_only": false
 }

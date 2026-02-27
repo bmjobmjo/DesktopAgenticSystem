@@ -1,0 +1,6 @@
+{
+  "queries": [
+    "SELECT id FROM Roles WHERE name = 'Employee';",
+    "SELECT departmentID, department_name FROM Departments;"
+  ]
+}

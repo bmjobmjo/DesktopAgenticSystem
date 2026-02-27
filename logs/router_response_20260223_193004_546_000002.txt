@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "agent_creation",
-  "confidence": "high",
-  "reason": "User request explicitly asks for designing and creating a new AI agent for task management, which aligns with agent_creation's capabilities to plan database schemas and write prompts based on templates.",
-  "instruction": "Design and create an AI agent that manages team tasks with functionalities: create tasks, schedule tasks, close tasks, add notes to tasks, list tasks, and search tasks. Include planning for database schema if needed and write the prompt based on the standard agent template.",
-  "response_to_user": "I'm connecting you with the agent creation specialist to design and build your custom task management AI agent. They'll handle the database schema planning and prompt writing based on your requirements.",
-  "priority": 1
-}

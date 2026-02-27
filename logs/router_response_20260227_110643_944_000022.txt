@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "holiday_manager",
+  "confidence": "high",
+  "reason": "The user requested to list holidays, which is directly managed by the holiday_manager agent responsible for company-wide holiday lists.",
+  "instruction": "",
+  "response_to_user": "Retrieving the list of holidays for you...",
+  "priority": 1
+}

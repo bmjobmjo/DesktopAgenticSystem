@@ -1,0 +1,29 @@
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Execute SQL to list all holidays",
+        "status": "done",
+        "result": "Retrieved 12 holidays from HolidayList table"
+      }
+    ],
+    "current_step": 1
+  },
+  "action": {
+    "type": "complete",
+    "UserMessageType": "HTML",
+    "UserMessage": "<h3>Company Holiday Calendar</h3><table border='1' cellpadding='5' cellspacing='0'><thead><tr><th>Date</th><th>Holiday Name</th><th>Type</th><th>Optional</th></tr></thead><tbody><tr><td>2026-01-26</td><td>Republic Day</td><td>Company</td><td>No</td></tr><tr><td>2026-03-20</td><td>Eid ul fitr</td><td>Company</td><td>No</td></tr><tr><td>2026-04-03</td><td>Good Friday</td><td>Company</td><td>No</td></tr><tr><td>2026-04-15</td><td>Vishu</td><td>Company</td><td>No</td></tr><tr><td>2026-05-01</td><td>May Day</td><td>Company</td><td>No</td></tr><tr><td>2026-06-26</td><td>Muharam</td><td>Company</td><td>No</td></tr><tr><td>2026-08-25</td><td>First Onam</td><td>Company</td><td>No</td></tr><tr><td>2026-08-26</td><td>Thiruvonam (Onam)</td><td>Company</td><td>No</td></tr><tr><td>2026-10-02</td><td>Gandhi Jayanti</td><td>Company</td><td>No</td></tr><tr><td>2026-10-20</td><td>Maha Navami</td><td>Company</td><td>No</td></tr><tr><td>2026-10-21</td><td>vijayadashami</td><td>Company</td><td>No</td></tr><tr><td>2026-12-25</td><td>Christmas Day</td><td>Company</td><td>No</td></tr></tbody></table>"
+  },
+  "conversation_update": {
+    "content": "Successfully retrieved all holidays. Displaying 12 upcoming holidays in calendar order."
+  },
+  "reasoning": {
+    "summary": "User requested to list holidays. Executed SELECT query ordered by date and formatted results as HTML table for clear presentation."
+  },
+  "ui_feedback": {
+    "status": "complete",
+    "message": "Holiday list retrieved successfully",
+    "progress_hint": "Step: 1 (Completed)"
+  }
+}

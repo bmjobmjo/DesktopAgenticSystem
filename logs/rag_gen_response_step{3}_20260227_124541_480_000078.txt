@@ -1,0 +1,10 @@
+Looking at the search results, I can see we've identified the relevant file "VSM Smart Display UART AT Protocol.pdf" and have retrieved some command snippets. However, to provide a comprehensive list with descriptions, I need to extract the actual command reference section more thoroughly. Let me perform a more targeted search to get the complete command listings.<tool_call>
+<function=search_files>
+<parameter=query>
+command list AT+ VSM protocol description parameters
+</parameter>
+<parameter=top_k>
+10
+</parameter>
+</function>
+</tool_call>

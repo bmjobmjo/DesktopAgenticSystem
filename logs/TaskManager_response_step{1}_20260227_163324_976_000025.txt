@@ -1,0 +1,11 @@
+{
+  "action": {
+    "type": "tool_call",
+    "tool_request": {
+      "tool_name": "execute_sql",
+      "parameters": {
+        "queries": "SELECT id, title, status, due_date, description FROM Tasks WHERE assigned_to = '1' OR created_by = '1' ORDER BY due_date ASC;"
+      }
+    }
+  }
+}

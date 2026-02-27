@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "holiday_manager",
+  "confidence": "high",
+  "reason": "The user's request 'List holidays' directly matches the holiday_manager agent's purpose, which is to manage and list company-wide holidays.",
+  "instruction": "List all available company holidays.",
+  "response_to_user": "",
+  "priority": 1
+}

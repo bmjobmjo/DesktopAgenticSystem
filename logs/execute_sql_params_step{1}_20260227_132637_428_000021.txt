@@ -1,0 +1,5 @@
+{
+  "queries": [
+    "SELECT u.id, u.username, u.email, u.full_name, COUNT(a.id) AS session_count, SUM(a.total_hours) AS total_hours, SUM(CASE WHEN LOWER(a.status) = 'late' THEN 1 ELSE 0 END) AS late_count, COALESCE(b.break_count, 0) AS break_count, COALESCE(b.total_duration, 0) AS total_break_minutes FROM Users u JOIN Attendance a ON u.id = a.user_id LEFT JOIN (SELECT user_id, COUNT(*) AS break_count, SUM(COALESCE(duration_minutes,0)) AS total_duration FROM Breaks WHERE start_time >= '2026-02-01' AND start_time < '2026-03-01' GROUP BY user_id) b ON u.id = b.user_id WHERE a.check_in_time >= '2026-02-01' AND a.check_in_time < '2026-03-01' AND u.id != 1 GROUP BY u.id, u.username, u.email, u.full_name, b.break_count, b.total_duration ORDER BY u.id;"
+  ]
+}

@@ -1,6 +1,0 @@
-{
-  "queries": [
-    "UPDATE Tasks SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE id IN (13, 1, 11)",
-    "SELECT id, title, status, completed_at FROM Tasks WHERE id IN (13, 1, 11)"
-  ]
-}

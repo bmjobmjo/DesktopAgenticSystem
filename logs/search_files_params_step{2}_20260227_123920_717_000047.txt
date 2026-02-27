@@ -1,0 +1,4 @@
+{
+  "query": "centrifugation blood component separation protocol technique differential",
+  "top_k": 10
+}

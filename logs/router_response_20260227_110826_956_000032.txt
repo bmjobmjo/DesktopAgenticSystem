@@ -1,0 +1,9 @@
+{
+  "type": "agent_call",
+  "selected_agent": "attendance_manager",
+  "confidence": "high",
+  "reason": "User request 'Mark me in' directly indicates a need to record attendance or check-in, which aligns with the attendance_manager's capability to handle check-ins/outs with timestamps and location.",
+  "instruction": "Process the user's check-in request using current time and location data if available.",
+  "response_to_user": "Marking you in now.",
+  "priority": 1
+}
