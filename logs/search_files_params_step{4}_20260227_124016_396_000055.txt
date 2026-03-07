@@ -1,4 +1,0 @@
-{
-  "query": "differential centrifugation whole blood fractionation plasma platelets red cells",
-  "top_k": 10
-}

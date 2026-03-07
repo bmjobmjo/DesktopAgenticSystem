@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "TaskManager",
-  "confidence": "high",
-  "reason": "The user requested to 'list my tasks', which directly aligns with the TaskManager agent's capability to list, manage, and handle tasks.",
-  "instruction": "List all tasks associated with the current user, including details like task name, status, due dates, and any notes.",
-  "response_to_user": "Fetching your task list now...",
-  "priority": 1
-}

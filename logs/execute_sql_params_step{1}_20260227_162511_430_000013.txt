@@ -1,8 +1,0 @@
-{
-  "queries": [
-    "SELECT id, check_in_time, check_out_time, total_hours, status FROM Attendance WHERE user_id = 1 AND ((check_in_time >= '2026-02-01' AND check_in_time < '2026-03-01') OR (check_in_time >= '2026-05-01' AND check_in_time < '2026-06-01')) ORDER BY check_in_time;",
-    "SELECT SUM(total_hours) AS total_hours FROM Attendance WHERE user_id = 1 AND ((check_in_time >= '2026-02-01' AND check_in_time < '2026-03-01') OR (check_in_time >= '2026-05-01' AND check_in_time < '2026-06-01'));",
-    "SELECT id, start_time, end_time, duration_minutes FROM Breaks WHERE user_id = 1 AND ((start_time >= '2026-02-01' AND start_time < '2026-03-01') OR (start_time >= '2026-05-01' AND start_time < '2026-06-01')) ORDER BY start_time;",
-    "SELECT SUM(duration_minutes) AS total_break_minutes FROM Breaks WHERE user_id = 1 AND ((start_time >= '2026-02-01' AND start_time < '2026-03-01') OR (start_time >= '2026-05-01' AND start_time < '2026-06-01'));"
-  ]
-}

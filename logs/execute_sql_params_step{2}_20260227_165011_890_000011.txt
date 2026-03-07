@@ -1,5 +1,0 @@
-{
-  "queries": [
-    "SELECT full_name, email FROM Users WHERE id = 1;"
-  ]
-}

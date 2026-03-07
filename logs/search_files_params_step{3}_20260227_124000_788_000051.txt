@@ -1,4 +1,0 @@
-{
-  "query": "blood processing centrifugation",
-  "top_k": 15
-}

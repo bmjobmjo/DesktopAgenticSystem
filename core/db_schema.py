@@ -11,7 +11,7 @@ import time
 
 # DB Path
 DB_PATH = Path(r'd:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db')
-LEGACY_USER_COLUMNS = {'roleID'}
+LEGACY_USER_COLUMNS = {'roleID', 'chat_id'}
 
 def _quote_ident(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
@@ -123,12 +123,28 @@ def init_db():
     CREATE TABLE IF NOT EXISTS AgentPromptVersion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         agent_id INTEGER NOT NULL,
+        agent_name TEXT,
         prompt_content TEXT,
         version INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(agent_id) REFERENCES Agents(id) ON DELETE CASCADE
     )
     """)
+    cursor.execute("PRAGMA table_info(AgentPromptVersion)")
+    apv_cols = [row[1] for row in cursor.fetchall()]
+    if 'agent_name' not in apv_cols:
+        cursor.execute("ALTER TABLE AgentPromptVersion ADD COLUMN agent_name TEXT")
+    # Backfill missing agent_name from Agents for existing history rows.
+    try:
+        cursor.execute("""
+            UPDATE AgentPromptVersion
+            SET agent_name = (
+                SELECT name FROM Agents WHERE Agents.id = AgentPromptVersion.agent_id
+            )
+            WHERE agent_name IS NULL OR TRIM(agent_name) = ''
+        """)
+    except Exception:
+        pass
 
     # 2. Roles Table
     # Check if Roles table has correct schema
@@ -184,6 +200,9 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             email TEXT,
+            mobile_number TEXT,
+            whatsapp_number TEXT,
+            telegram_chat_id TEXT,
             password_hash TEXT,
             role_id INTEGER REFERENCES Roles(id),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -199,6 +218,12 @@ def init_db():
         elif 'role_id' not in u_cols and 'roleID' in u_cols:
             cursor.execute("ALTER TABLE Users ADD COLUMN role_id INTEGER REFERENCES Roles(id)")
             cursor.execute("UPDATE Users SET role_id = roleID WHERE role_id IS NULL")
+        if 'mobile_number' not in u_cols:
+            cursor.execute("ALTER TABLE Users ADD COLUMN mobile_number TEXT")
+        if 'whatsapp_number' not in u_cols:
+            cursor.execute("ALTER TABLE Users ADD COLUMN whatsapp_number TEXT")
+        if 'telegram_chat_id' not in u_cols:
+            cursor.execute("ALTER TABLE Users ADD COLUMN telegram_chat_id TEXT")
 
     # Drop legacy Users columns by rebuilding Users table.
     # SQLite drop-column support can vary; table rebuild is deterministic.
@@ -310,21 +335,71 @@ def init_db():
         file_size INTEGER,
         file_hash TEXT,
         upload_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-        description TEXT
+        description TEXT,
+        project_id INTEGER REFERENCES Projects(id) ON DELETE SET NULL
     )
     """)
 
+    cursor.execute("PRAGMA table_info(Files)")
+    file_cols = {row[1] for row in cursor.fetchall()}
+    if 'project_id' not in file_cols:
+        cursor.execute("ALTER TABLE Files ADD COLUMN project_id INTEGER")
+
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS FileEmbeddings (
+    CREATE TABLE IF NOT EXISTS Embeddings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        file_id INTEGER NOT NULL,
-        chunk_index INTEGER NOT NULL,
-        chunk_type TEXT DEFAULT 'text',
-        content_chunk TEXT,
+        source_type TEXT NOT NULL DEFAULT 'generic',
+        source_id INTEGER,
+        chunk_index INTEGER NOT NULL DEFAULT 0,
+        type TEXT NOT NULL DEFAULT 'info',
+        content TEXT,
+        char_count INTEGER,
+        token_count INTEGER,
         embedding_vector BLOB,
-        FOREIGN KEY(file_id) REFERENCES Files(id) ON DELETE CASCADE
+        enc INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    cursor.execute("PRAGMA table_info(Embeddings)")
+    emb_cols = {row[1] for row in cursor.fetchall()}
+    if 'source_type' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN source_type TEXT NOT NULL DEFAULT 'generic'")
+    if 'source_id' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN source_id INTEGER")
+    if 'chunk_index' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN chunk_index INTEGER NOT NULL DEFAULT 0")
+    if 'type' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN type TEXT NOT NULL DEFAULT 'info'")
+    if 'content' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN content TEXT")
+    if 'char_count' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN char_count INTEGER")
+    if 'token_count' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN token_count INTEGER")
+    if 'embedding_vector' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN embedding_vector BLOB")
+    if 'enc' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN enc INTEGER NOT NULL DEFAULT 0")
+    if 'created_at' not in emb_cols:
+        cursor.execute("ALTER TABLE Embeddings ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_embeddings_source ON Embeddings(source_type, source_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_embeddings_type ON Embeddings(type)")
+
+    # Migrate legacy file embedding rows once, then retire old table.
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='FileEmbeddings'")
+    if cursor.fetchone():
+        try:
+            cursor.execute("SELECT COUNT(*) FROM Embeddings")
+            new_count = int(cursor.fetchone()[0] or 0)
+            if new_count == 0:
+                cursor.execute("""
+                    INSERT INTO Embeddings (source_type, source_id, chunk_index, type, content, embedding_vector, enc)
+                    SELECT 'file', file_id, chunk_index, COALESCE(chunk_type, 'file_text'), content_chunk, embedding_vector, 0
+                    FROM FileEmbeddings
+                """)
+            cursor.execute("DROP TABLE IF EXISTS FileEmbeddings")
+        except Exception as e:
+            print(f"Warning during FileEmbeddings -> Embeddings migration: {e}")
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Expenses (
@@ -364,30 +439,9 @@ def init_db():
 
     # Populate Tools
     try:
-        from tools.tool_registry import list_tools
-        import inspect
-        
-        tools_map = list_tools()
-        print(f"Syncing {len(tools_map)} tools to registry...")
-        
-        for name, func in tools_map.items():
-            doc = (func.__doc__ or "").strip()
-            # Simple schema extraction from type hints
-            sig = inspect.signature(func)
-            input_schema = str(sig.parameters)
-            output_schema = str(sig.return_annotation)
-            version = "1.0" # Default
-            
-            # Upsert
-            cursor.execute("""
-                INSERT INTO ToolList (name, description, input_schema, output_schema, version)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(name) DO UPDATE SET
-                    description=excluded.description,
-                    input_schema=excluded.input_schema,
-                    output_schema=excluded.output_schema
-            """, (name, doc, input_schema, output_schema, version))
-            
+        from tools.tool_registry import sync_tools_to_db
+        count = sync_tools_to_db()
+        print(f"Syncing {count} tools to registry...")
     except Exception as e:
         print(f"Error syncing tools: {e}")
 
@@ -431,9 +485,104 @@ def init_db():
     if 'interface' not in cl_cols:
         cursor.execute("ALTER TABLE ChatLog ADD COLUMN interface TEXT")
 
+    # 11. Channel Identity and Inbound Dedupe
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ChannelUsers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL,
+        channel_user_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(provider, channel_user_id)
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ChannelInboundMessages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL,
+        message_id TEXT NOT NULL,
+        received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        handled INTEGER DEFAULT 0,
+        UNIQUE(provider, message_id)
+    )
+    """)
+
+    # 12. Scheduler table
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS Schedules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            nl_request TEXT,
+            task_prompt TEXT NOT NULL,
+            schedule_type TEXT NOT NULL DEFAULT 'other',
+            interval_minutes INTEGER NOT NULL DEFAULT 0,
+            run_hour INTEGER NOT NULL DEFAULT 9,
+            run_minute INTEGER NOT NULL DEFAULT 0,
+            run_day_of_week INTEGER NOT NULL DEFAULT 0,
+            run_day_of_month INTEGER NOT NULL DEFAULT 1,
+            timezone TEXT DEFAULT 'Asia/Calcutta',
+            is_enabled INTEGER NOT NULL DEFAULT 1,
+            status TEXT NOT NULL DEFAULT 'active',
+            next_run_at DATETIME,
+            last_run_at DATETIME,
+            last_result TEXT,
+            validation_reason TEXT,
+            owner TEXT,
+            created_by TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    cursor.execute("PRAGMA table_info(Schedules)")
+    sch_cols = {row[1] for row in cursor.fetchall()}
+    if 'nl_request' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN nl_request TEXT")
+    if 'task_prompt' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN task_prompt TEXT NOT NULL DEFAULT ''")
+    if 'schedule_type' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN schedule_type TEXT NOT NULL DEFAULT 'other'")
+    if 'interval_minutes' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN interval_minutes INTEGER NOT NULL DEFAULT 0")
+    if 'run_hour' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN run_hour INTEGER NOT NULL DEFAULT 9")
+    if 'run_minute' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN run_minute INTEGER NOT NULL DEFAULT 0")
+    if 'run_day_of_week' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN run_day_of_week INTEGER NOT NULL DEFAULT 0")
+    if 'run_day_of_month' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN run_day_of_month INTEGER NOT NULL DEFAULT 1")
+    if 'timezone' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN timezone TEXT DEFAULT 'Asia/Calcutta'")
+    if 'is_enabled' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN is_enabled INTEGER NOT NULL DEFAULT 1")
+    if 'status' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN status TEXT NOT NULL DEFAULT 'active'")
+    if 'next_run_at' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN next_run_at DATETIME")
+    if 'last_run_at' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN last_run_at DATETIME")
+    if 'last_result' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN last_result TEXT")
+    if 'validation_reason' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN validation_reason TEXT")
+    if 'owner' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN owner TEXT")
+    if 'created_by' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN created_by TEXT")
+    if 'updated_at' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_schedules_enabled_next_run ON Schedules(is_enabled, next_run_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_schedules_type ON Schedules(schedule_type)")
+
     conn.commit()
     conn.close()
     print("Database Schema Verified (Files, Expenses, ToolList added).")
 
 if __name__ == "__main__":
     init_db()
+
+

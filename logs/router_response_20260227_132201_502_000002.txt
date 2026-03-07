@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "attendance_manager",
-  "confidence": "high",
-  "reason": "User is requesting total hours worked in February until current date, which directly relates to attendance records (check-ins/check-outs) managed by the attendance_manager agent.",
-  "instruction": "Calculate total hours worked by the current user in February. Determine the relevant year: if current month is February or later, use current year; if current month is January, use previous year. Then: if current month is February, sum hours from February 1 to today; if current month is after February, sum entire February of the determined year. Aggregate daily hours from check-in/check-out timestamps.",
-  "response_to_user": "",
-  "priority": 1
-}

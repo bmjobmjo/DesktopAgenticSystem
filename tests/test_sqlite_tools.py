@@ -58,9 +58,16 @@ class TestSQLiteTools(unittest.TestCase):
         self.assertEqual(rows[1]['name'], 'Alice')
         self.assertEqual(rows[1]['age'], 30)
 
+    def test_execute_sql_accepts_single_string_query(self):
+        create_query = "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)"
+        execute_sql(create_query)
+        results = execute_sql("SELECT name FROM users")
+        self.assertIsInstance(results, list)
+        self.assertEqual(results[0], [])
     def test_execute_sql_error(self):
         with self.assertRaises(RuntimeError):
             execute_sql(["SELECT * FROM non_existent_table"])
 
 if __name__ == '__main__':
     unittest.main()
+

@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "attendance_manager",
-  "confidence": "high",
-  "reason": "User requests to check in after previously checking out. This is an attendance management operation.",
-  "instruction": "Process a check-in for the user. Record the current timestamp and location if available.",
-  "response_to_user": "Checking you in now.",
-  "priority": 1
-}

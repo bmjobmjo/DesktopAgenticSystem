@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "TaskManager",
-  "confidence": "high",
-  "reason": "User requested to see the revised task list after closing specific tasks, which is a task management operation handled by the TaskManager agent.",
-  "instruction": "List all tasks with status 'open' assigned to user 'bb' to show the current list after the closure of tasks with IDs 22, 25, 32, 33, 34, 39, and 43.",
-  "response_to_user": "Here is your updated list of open tasks after closing the specified ones:",
-  "priority": 1
-}

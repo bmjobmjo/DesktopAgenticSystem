@@ -1,4 +1,0 @@
-{
-  "query": "centrifugation blood component extraction separation processing",
-  "top_k": 5
-}

@@ -1,9 +1,0 @@
-[
-  {
-    "type": "agent_call",
-    "selected_agent": "holiday_manager",
-    "instruction": "Please list all company-wide holidays.",
-    "response_to_user": "Listing all the holidays for you...",
-    "priority": 1
-  }
-]

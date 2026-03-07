@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "agent_creation",
-  "confidence": "high",
-  "reason": "The user request is to repair and complete the creation of a TaskManager agent with specific task management functionalities. The agent_creation agent is specifically designed to assist with designing and creating new AI agents, including planning schemas and writing prompts, making it the appropriate choice.",
-  "instruction": "Please repair and complete the creation of the TaskManager agent. The agent should support: create tasks, schedule tasks, close tasks, add notes to tasks, list tasks, search tasks, and bulk add tasks from text. If there is any incomplete data from a previous attempt, attempt to recover and continue. If recovery is not possible, design and create the agent from scratch. Ensure the agent is robust and handles errors. After completion, provide a summary to the user.",
-  "response_to_user": "I've routed your request to the agent creation specialist. They will repair and complete the TaskManager agent for you.",
-  "priority": 1
-}

@@ -1,4 +1,0 @@
-{
-  "query": "AT commands VSM",
-  "top_k": 5
-}

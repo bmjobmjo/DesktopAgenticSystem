@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "TaskManager",
-  "confidence": "high",
-  "reason": "The user is explicitly requesting to list tasks assigned to them. The TaskManager agent is designed for task management operations including listing tasks.",
-  "instruction": "List all tasks currently assigned to the user (current user context). Format the response clearly with task details like description, assignee, status, priority, and any relevant metadata.",
-  "response_to_user": "Fetching your assigned tasks...",
-  "priority": 1
-}

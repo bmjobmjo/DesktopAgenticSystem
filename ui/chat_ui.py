@@ -1,4 +1,4 @@
-﻿"""Chat UI using PySide6 with Professional White Theme Layout."""
+"""Chat UI using PySide6 with Professional White Theme Layout."""
 
 from __future__ import annotations
 
@@ -6,15 +6,17 @@ import json
 import os
 import sqlite3
 import threading
+import re
 from datetime import datetime
 from typing import Dict, Any, List, Tuple, Optional
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QListWidget, QListWidgetItem, QStackedWidget, 
     QTextBrowser, QLineEdit, QPushButton, QLabel,
     QScrollArea, QFileDialog, QFrame, QSizePolicy, QTabWidget,
-    QDialog, QTextEdit
+    QDialog, QTextEdit, QTreeWidget, QTreeWidgetItem, QSplitter, QHeaderView
 )
 from PySide6.QtCore import Qt, QTimer, Signal, QObject, QUrl
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap, QDesktopServices
@@ -113,6 +115,7 @@ class ChatUI(QMainWindow):
         self.controller = controller
         self.selected_files: List[str] = []
         self._current_chat_id: Optional[int] = None
+        self._runtime_trace_file = self._init_runtime_trace_file()
         
         self.signals = Signals()
         self.signals.append_message.connect(self._safe_append_message)
@@ -171,6 +174,7 @@ class ChatUI(QMainWindow):
             ('interaction', '💬  Agent Console'),
             ('new_chat', '   ➕  New Chat'),
             ('history', '   🕰  History'),
+            ('sessions', '   🧵  Sessions'),
             ('logs', '📋  System Logs'),
             ('spacer', ''),
             ('settings', '⚙️  Settings')
@@ -240,6 +244,12 @@ class ChatUI(QMainWindow):
         self.trace_log = ExternalTextBrowser()
         self.trace_log.setStyleSheet(f"background-color: #f0f0f0; border: none; padding: 15px; font-family: Consolas, monospace; font-size: 12px; color: #444444;")
         self.inter_tabs.addTab(self.trace_log, "Runtime Trace")
+
+        self.btn_clear_trace = QPushButton("Clear Trace")
+        self.btn_clear_trace.setProperty("flat", "true")
+        self.btn_clear_trace.setCursor(Qt.PointingHandCursor)
+        self.btn_clear_trace.clicked.connect(self._clear_runtime_trace)
+        self.inter_tabs.setCornerWidget(self.btn_clear_trace, Qt.TopRightCorner)
         
         # Status Label
         self.status_label = QLabel("")
@@ -363,8 +373,48 @@ class ChatUI(QMainWindow):
         
         self.stacked_widget.addWidget(history_page)
         self.pages['history'] = history_page
+
+        # Page 3: Sessions
+        sessions_page = QWidget()
+        sessions_layout = QVBoxLayout(sessions_page)
+        sessions_layout.setContentsMargins(20, 20, 20, 20)
+
+        sessions_header = QHBoxLayout()
+        sessions_title = QLabel("Active Sessions")
+        sessions_title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        sessions_header.addWidget(sessions_title)
+        sessions_header.addStretch()
+        sessions_refresh = QPushButton("Refresh")
+        sessions_refresh.clicked.connect(self._refresh_sessions_list)
+        sessions_header.addWidget(sessions_refresh)
+        sessions_layout.addLayout(sessions_header)
+        self.sessions_meta_label = QLabel("")
+        self.sessions_meta_label.setStyleSheet(f"color: {self.fg_muted}; font-size: 12px;")
+        sessions_layout.addWidget(self.sessions_meta_label)
+
+        self.sessions_splitter = QSplitter(Qt.Horizontal)
+        self.sessions_tree = QTreeWidget()
+        self.sessions_tree.setHeaderLabels(["User", "Channel", "Last Message"])
+        self.sessions_tree.setAlternatingRowColors(True)
+        self.sessions_tree.setStyleSheet("QTreeWidget::item { padding: 8px; }")
+        self.sessions_tree.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.sessions_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.sessions_tree.header().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.sessions_tree.itemSelectionChanged.connect(self._on_session_select)
+        self.sessions_splitter.addWidget(self.sessions_tree)
+
+        self.session_chat_view = QTextBrowser()
+        self.session_chat_view.setStyleSheet(
+            f"background-color: #f9f9f9; border: 1px solid {self.border_color}; padding: 10px;"
+        )
+        self.sessions_splitter.addWidget(self.session_chat_view)
+        self.sessions_splitter.setSizes([450, 450])
+        sessions_layout.addWidget(self.sessions_splitter, 1)
+
+        self.stacked_widget.addWidget(sessions_page)
+        self.pages['sessions'] = sessions_page
         
-        # Page 3: Logs
+        # Page 4: Logs
         logs_page = QWidget()
         logs_layout = QVBoxLayout(logs_page)
         logs_layout.setContentsMargins(20, 20, 20, 20)
@@ -376,7 +426,7 @@ class ChatUI(QMainWindow):
         self.stacked_widget.addWidget(logs_page)
         self.pages['logs'] = logs_page
         
-        # Page 4: Settings
+        # Page 5: Settings
         self.settings_panel = SettingsPanel(self, self.cda)
         self.stacked_widget.addWidget(self.settings_panel)
         self.pages['settings'] = self.settings_panel
@@ -396,10 +446,30 @@ class ChatUI(QMainWindow):
         self._pending_permission_event = None
         self._pending_permission_decision = None
         self._pending_permission_action_type = ""
+        self._sessions_timer = QTimer(self)
+        self._sessions_timer.setInterval(2000)
+        self._sessions_timer.timeout.connect(self._refresh_sessions_list)
 
     def _is_debug_mode_enabled(self) -> bool:
         settings = config_loader.load_settings()
         return settings.get('debug_mode', False)
+
+    def _init_runtime_trace_file(self) -> str:
+        log_dir = Path.cwd() / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        session_id = str(self.cda.get_setting('active_log_session', datetime.now().strftime('%Y%m%d_%H%M%S')))
+        path = log_dir / f"runtime_trace_{session_id}.log"
+        return str(path)
+
+    def _append_runtime_trace_file(self, text: str) -> None:
+        try:
+            clean = str(text or "").strip()
+            if not clean:
+                return
+            with open(self._runtime_trace_file, "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {clean}\n")
+        except Exception:
+            return
 
     def _refresh_active_user_label(self):
         uid = self.cda.get_setting('current_user_id')
@@ -428,25 +498,20 @@ class ChatUI(QMainWindow):
             self.stacked_widget.setCurrentWidget(self.pages[key])
             if key == 'history':
                 self._refresh_history_list()
+            elif key == 'sessions':
+                self._refresh_sessions_list()
+                self._sessions_timer.start()
             elif key == 'settings':
                 self._refresh_active_user_label()
                 self._refresh_debug_mode_label()
+        else:
+            self._sessions_timer.stop()
 
     def _start_new_chat(self) -> None:
         self._current_chat_id = None
-        self.cda.set_memory('chat_history', '')
-        
-        # Explicitly wipe trace memories for fresh chat scope
-        self.cda.set_memory('AgentActivity', [])
-        self.cda.set_memory('agent_activity_collection', [])
-        self.cda.set_memory('agent_activity', '')
-        self.cda.set_memory('agent_activity_step', 1)
-        self.cda.set_memory('plan', '')
-        self.cda.set_memory('tool_data', '')
-        self.cda.set_memory('last_action', '')
-        
+        self.controller.reset_session_state(interface='UI', session_id='default')
+
         self.transcript.clear()
-        self.controller.clear_current_task()
         self._handle_nav('interaction')
 
     def append_message(self, sender: str, message: str) -> None:
@@ -480,19 +545,21 @@ class ChatUI(QMainWindow):
         
     def _safe_append_log(self, message: str) -> None:
         self.log_display.append(message)
+        self._append_runtime_trace_file(f"[LOG] {message}")
 
     def _safe_update_status(self, message: str) -> None:
         if message:
-            self.status_label.setText(f"⚡ {message}")
+            self.status_label.setText(f"? {message}")
         else:
             self.status_label.setText("")
 
     def _safe_executor_status(self, title: str, body: str) -> None:
         if not title:
             self.trace_log.append(body)
+            plain = re.sub(r'<[^>]+>', '', body).replace('&lt;', '<').replace('&gt;', '>')
+            self._append_runtime_trace_file(f"[TRACE] {plain}")
             return
 
-        import re
         def repl(m):
             raw_path = m.group(1)
             clean_path = raw_path.replace('\\\\', '\\')
@@ -514,6 +581,90 @@ class ChatUI(QMainWindow):
         if 'error' in title.lower() or 'failed' in title.lower():
             html = f"<div style='color: #d32f2f; font-size: 12px;'><b>{title}</b><br>{body_linked}</div><br>"
         self.trace_log.append(html)
+        plain = re.sub(r'<[^>]+>', '', f"{title}\n{body}")
+        self._append_runtime_trace_file(f"[TRACE] {plain}")
+
+    def _clear_runtime_trace(self) -> None:
+        self.trace_log.clear()
+        self._append_runtime_trace_file("[TRACE] Cleared from UI")
+
+    def _refresh_sessions_list(self) -> None:
+        sel_items = self.sessions_tree.selectedItems()
+        selected_key = sel_items[0].text(0) + ":" + sel_items[0].text(1) if sel_items else None
+        
+        self.sessions_tree.blockSignals(True)
+        self.sessions_tree.clear()
+        
+        raw = self.cda.get_setting('session_engine_enabled', True)
+        if isinstance(raw, bool):
+            session_engine = raw
+        elif isinstance(raw, str):
+            session_engine = raw.strip().lower() in ('1', 'true', 'yes', 'on')
+        else:
+            session_engine = bool(raw)
+        try:
+            sessions = self.controller.list_active_sessions()
+        except Exception as e:
+            self.sessions_meta_label.setText(f"Failed to load sessions: {e}")
+            self.session_chat_view.setText(f"Failed to load sessions: {e}")
+            self.sessions_tree.blockSignals(False)
+            return
+
+        store_count = 0
+        try:
+            store_count = int(self.controller.session_store.size())
+        except Exception:
+            store_count = len(sessions)
+        self.sessions_meta_label.setText(
+            f"Session engine: {'ON' if session_engine else 'OFF'} | Active in-memory sessions: {store_count}"
+        )
+
+        if not sessions:
+            empty = QTreeWidgetItem(["(No active sessions)", "", "Send a message first to create one."])
+            self.sessions_tree.addTopLevelItem(empty)
+            self.session_chat_view.setText(
+                "No active sessions found.\n\n"
+                "Notes:\n"
+                "- Sessions are in-memory (runtime), not loaded from DB history.\n"
+                "- A session is created when a message is handled by Controller."
+            )
+            self.sessions_tree.blockSignals(False)
+            return
+
+        for sess in sessions:
+            user = str(sess.get("user", "") or sess.get("user_id", "") or "unknown")
+            channel = str(sess.get("channel", "") or "")
+            last_msg = str(sess.get("last_message", "") or "")
+            if len(last_msg) > 120:
+                last_msg = last_msg[:117] + "..."
+            item = QTreeWidgetItem([user, channel, last_msg])
+            item.setData(0, Qt.UserRole, sess)
+            self.sessions_tree.addTopLevelItem(item)
+            
+            if selected_key and (user + ":" + channel) == selected_key:
+                item.setSelected(True)
+                
+        self.sessions_tree.blockSignals(False)
+        self._on_session_select()
+
+    def _on_session_select(self) -> None:
+        items = self.sessions_tree.selectedItems()
+        if not items:
+            self.session_chat_view.clear()
+            return
+        sess = items[0].data(0, Qt.UserRole) or {}
+        chat_history = str(sess.get("chat_history", "") or "")
+        if not chat_history:
+            self.session_chat_view.setText("(No chat history in this session)")
+            return
+            
+        scrollbar = self.session_chat_view.verticalScrollBar()
+        was_at_bottom = scrollbar.value() >= (scrollbar.maximum() - 5) if scrollbar else True
+            
+        self.session_chat_view.setText(chat_history)
+        
+        if was_at_bottom and scrollbar:
+            scrollbar.setValue(scrollbar.maximum())
 
     def on_attach_file(self) -> None:
         files, _ = QFileDialog.getOpenFileNames(self, "Attach Files", "", "All Files (*.*)")
@@ -543,7 +694,7 @@ class ChatUI(QMainWindow):
             lbl = QLabel(name)
             lbl.setStyleSheet(f"color: {self.fg_color}; font-size: 12px;")
             
-            btn_x = QPushButton("×")
+            btn_x = QPushButton("x")
             btn_x.setStyleSheet(f"background: none; border: none; color: #d32f2f; font-weight: bold;")
             btn_x.setCursor(Qt.PointingHandCursor)
             btn_x.clicked.connect(lambda checked=False, target=f: self._remove_file(target))
@@ -630,6 +781,20 @@ class ChatUI(QMainWindow):
         if cancel_event and isinstance(cancel_event, threading.Event):
             cancel_event.set()
             self.append_message('Status', "<i>Cancellation requested...</i>")
+
+    def closeEvent(self, event) -> None:  # noqa: N802
+        try:
+            wa_service = self.cda.get_runtime('whatsapp_channel_service')
+            if wa_service:
+                wa_service.stop()
+                self.cda.set_runtime('whatsapp_channel_service', None)
+            tg_service = self.cda.get_runtime('telegram_channel_service')
+            if tg_service:
+                tg_service.stop()
+                self.cda.set_runtime('telegram_channel_service', None)
+        except Exception:
+            pass
+        super().closeEvent(event)
             
     def _on_execution_started(self) -> None:
         self.btn_send.hide()
@@ -931,18 +1096,21 @@ class ChatUI(QMainWindow):
             user_id = str(self.cda.get_setting('current_user_id', '') or '')
             cur.execute("PRAGMA table_info(ChatHistory)")
             ch_cols = [row[1] for row in cur.fetchall()]
+            has_interface = 'interface' in ch_cols
             if 'user_id' in ch_cols and user_id:
+                select_cols = "id, title, created_at, interface" if has_interface else "id, title, created_at, '' as interface"
                 cur.execute(
-                    "SELECT id, title, created_at FROM ChatHistory WHERE user_id = ? OR user_id IS NULL OR user_id = '' ORDER BY created_at DESC LIMIT 50",
+                    f"SELECT {select_cols} FROM ChatHistory WHERE user_id = ? OR user_id IS NULL OR user_id = '' ORDER BY created_at DESC LIMIT 50",
                     (user_id,),
                 )
             else:
-                cur.execute("SELECT id, title, created_at FROM ChatHistory ORDER BY created_at DESC LIMIT 50")
+                select_cols = "id, title, created_at, interface" if has_interface else "id, title, created_at, '' as interface"
+                cur.execute(f"SELECT {select_cols} FROM ChatHistory ORDER BY created_at DESC LIMIT 50")
             rows = cur.fetchall()
             conn.close()
             
             for row in rows:
-                chat_id, title, created_at = row
+                chat_id, title, created_at, iface = row
                 
                 card = QPushButton()
                 card.setStyleSheet(f"""
@@ -967,7 +1135,8 @@ class ChatUI(QMainWindow):
                 title_lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
                 title_lbl.setStyleSheet("border: none; background: transparent; padding: 0;")
                 
-                time_lbl = QLabel(created_at)
+                channel = str(iface or "UI").strip() or "UI"
+                time_lbl = QLabel(f"{created_at}  [{channel}]")
                 time_lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
                 time_lbl.setStyleSheet(f"color: {self.fg_muted}; font-size: 11px; border: none; background: transparent; padding: 0;")
                 
@@ -1067,3 +1236,6 @@ class ChatUI(QMainWindow):
             
         self.cda.set_memory('chat_history', history_text)
         self._handle_nav('interaction')
+
+
+

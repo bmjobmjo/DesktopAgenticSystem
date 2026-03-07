@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "OrganizationManagementAgent",
-  "confidence": "high",
-  "reason": "The request 'list all users' directly aligns with the OrganizationManagementAgent's capability to manage users, including listing them with details.",
-  "instruction": "List all users currently in the system, including their names, emails, departments, and roles if available.",
-  "response_to_user": "Retrieving the list of all users from the organization...",
-  "priority": 1
-}

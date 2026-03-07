@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "OrganizationManagementAgent",
-  "confidence": "medium",
-  "reason": "The user is requesting their own name and email, which involves user profile information. OrganizationManagementAgent manages user data, including potential retrieval of user details, making it the most relevant available agent.",
-  "instruction": "Retrieve the current user's name and email address. If the current user context is not available, prompt for user identification or assume the requesting user.",
-  "response_to_user": "Fetching your name and email from your profile...",
-  "priority": 1
-}

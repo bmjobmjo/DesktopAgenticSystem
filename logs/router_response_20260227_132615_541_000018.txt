@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "attendance_manager",
-  "confidence": "high",
-  "reason": "User is asking about attendance records for other users in the current month, which is directly managed by the attendance_manager agent based on its description.",
-  "instruction": "Check if any users other than user bb (ID: 1) have marked attendance in February 2026. Provide a list of users and their attendance summaries if available.",
-  "response_to_user": "Checking attendance records for other users this month...",
-  "priority": 1
-}

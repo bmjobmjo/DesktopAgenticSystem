@@ -1,6 +1,0 @@
-{
-  "queries": [
-    "SELECT COUNT(*) AS late_count FROM Attendance WHERE user_id = 1 AND check_in_time >= '2026-02-01' AND check_in_time < '2026-03-01' AND LOWER(status) = 'late';",
-    "SELECT COUNT(*) AS break_count, SUM(COALESCE(duration_minutes,0)) AS total_duration FROM Breaks WHERE user_id = 1 AND start_time >= '2026-02-01' AND start_time < '2026-03-01';"
-  ]
-}

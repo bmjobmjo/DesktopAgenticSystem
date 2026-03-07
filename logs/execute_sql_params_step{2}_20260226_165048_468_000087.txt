@@ -1,6 +1,0 @@
-{
-  "queries": [
-    "UPDATE Users SET email = 'bmjobmjo@gmail.com', full_name = 'Bijumon', FirstName = 'Bijumon', LastName = '' WHERE id = 1 AND email = 'vishnukolachery994@gmail.com' AND full_name = 'bb';",
-    "SELECT u.id, u.email, u.full_name, u.FirstName, u.LastName, d.department_name, r.name as role_name FROM Users u LEFT JOIN Departments d ON u.department_id = d.departmentID LEFT JOIN Roles r ON u.role_id = r.id WHERE u.id = 1;"
-  ]
-}

@@ -1,6 +1,0 @@
-I'll help you recreate the 'rag_gen' agent based on these RAG requirements. I've read the standard agent template, and now I need to check the database schema to understand the current structure before designing the agent.
-
-Let me get the database schema:<tool_call>
-<function=get_database_schema>
-</function>
-</tool_call>

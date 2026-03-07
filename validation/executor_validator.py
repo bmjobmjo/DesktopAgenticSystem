@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Dict
+from typing import Any, Dict
 
 from validation.json_schema import SchemaError, require_dict, require_enum, require_keys, require_str
 
@@ -37,7 +37,7 @@ def _validate_plan(plan: Dict) -> None:
             plan['revised_plan'] = str(val)
 
 
-def _validate_action(action: Dict) -> None:
+def _validate_action(action: Dict[str, Any]) -> Dict[str, Any]:
     # Normalize common LLM deviations before strict validation.
     if action is None:
         action = {'type': 'complete'}
@@ -56,6 +56,8 @@ def _validate_action(action: Dict) -> None:
         'completed': 'complete',
         'tool': 'tool_call',
         'ask_user': 'request_user_input',
+        'userinput': 'request_user_input',
+        'user_input': 'request_user_input',
     }
     action['type'] = alias_map.get(action_type_raw, action_type_raw)
     action_type = require_enum(action.get('type'), 'action.type', _ACTION_TYPES)
@@ -82,6 +84,7 @@ def _validate_action(action: Dict) -> None:
         require_str(action.get('UserMessageType'), 'action.UserMessageType')
     if 'UserMessage' in action:
         require_str(action.get('UserMessage'), 'action.UserMessage')
+    return action
 
 
 def _validate_conversation_update(update: Dict | str) -> None:
@@ -119,13 +122,27 @@ def _validate_ui_feedback(ui_feedback: Dict) -> None:
 def validate_executor_response(data: Dict) -> Dict:
     try:
         data = require_dict(data, 'executor_response')
-        require_keys(
-            data,
-            ['plan', 'action', 'conversation_update', 'reasoning', 'ui_feedback'],
-            'executor_response'
-        )
+        require_keys(data, ['plan', 'conversation_update', 'reasoning', 'ui_feedback'], 'executor_response')
+        if 'action' not in data and 'actions' not in data:
+            raise SchemaError("executor_response must contain 'action' or 'actions'")
+
         _validate_plan(data.get('plan'))
-        _validate_action(data.get('action'))
+        if 'action' in data:
+            data['action'] = _validate_action(data.get('action'))
+        if 'actions' in data:
+            actions = data.get('actions')
+            if not isinstance(actions, list) or not actions:
+                raise SchemaError("executor_response.actions must be a non-empty list when provided")
+            normalized_actions = []
+            for idx, action_item in enumerate(actions):
+                if not isinstance(action_item, dict):
+                    raise SchemaError(f"executor_response.actions[{idx}] must be an object")
+                normalized_actions.append(_validate_action(action_item))
+            data['actions'] = normalized_actions
+            if 'action' not in data and normalized_actions:
+                # Backward-compatible mirror for old code paths.
+                data['action'] = normalized_actions[0]
+
         data['conversation_update'] = _validate_conversation_update(data.get('conversation_update'))
         _validate_reasoning(data.get('reasoning'))
         _validate_ui_feedback(data.get('ui_feedback'))

@@ -1,6 +1,0 @@
-{
-  "type": "request_user_input",
-  "reason": "The user is asking for their own name and email, but the system lacks context about which user profile to retrieve. This requires a user identifier (like user ID or email) to look up their information from the organization management system.",
-  "response_to_user": "To retrieve your name and email, I need your user ID or the email address associated with your account. Could you please provide that information?",
-  "priority": 1
-}

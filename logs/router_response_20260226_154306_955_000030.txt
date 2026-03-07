@@ -1,8 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "agent_creation",
-  "confidence": "high",
-  "reason": "The user request is to create a new agent for managing users, roles, projects, and departments, including database schema modifications. This directly matches the agent_creation agent's purpose of helping admins design and create new AI agents by checking tools, planning DB schemas, and writing prompts.",
-  "instruction": "Design and create an agent that can: 1) Manage users (add, edit) with required role assignment (provide a default role), status (active/deleted), and departmentID. 2) Create and manage roles, and assign users to roles (clarify if 'assign agents to roles' was intended). 3) Create and manage projects with fields: projID, ProjName, description, descembeddings (likely for semantic search of project descriptions), startDate, endDate, Status. 4) Manage departments (add, edit) with a department table (departmentID and department name). Also, modify the existing user table to include status and departmentID fields. Plan the database schema, consider vector storage for 'descembeddings', and write the agent's prompt. Use tools like get_database_schema to inspect current structure and save_new_agent to deploy the new agent.",
-  "response_to_user": "I'll help you create an agent to manage users, roles, projects, and departments. This will involve designing the database schema and writing the agent's prompt. I may ask clarifying questions if needed."
-}

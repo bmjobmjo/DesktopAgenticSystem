@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "holiday_manager",
-  "confidence": "high",
-  "reason": "User request is to list holidays, which matches exactly with the holiday_manager agent's described capability to manage company-wide holiday lists including listing.",
-  "instruction": "List all company holidays.",
-  "response_to_user": "Fetching the list of company holidays for you.",
-  "priority": 1
-}

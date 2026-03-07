@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "TaskManager",
-  "confidence": "high",
-  "reason": "The user requested to list their tasks, which is the core functionality of the TaskManager agent as described.",
-  "instruction": "List all tasks associated with the current user, including details like task name, status, due dates, etc.",
-  "response_to_user": "I am fetching your tasks from the TaskManager.",
-  "priority": 1
-}

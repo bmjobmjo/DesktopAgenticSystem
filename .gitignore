@@ -1,8 +1,44 @@
-/.idea
-/.pytest_cache
-/.venv
+# IDE / Python env
+.idea/
+.vscode/
+.venv/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Test / temp workdirs
+.tmp_pytest/
+.tmp_test/
+*.tmp
+*.temp
+
+# Logs / traces
+logs/
+*.log
+error.log
+
+# Local databases / journals
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
 /backend.db
+/data/*.db
+/data/*.db-journal
+
+# Runtime auth / sessions / local state
+auth_state/
+
+# Local model caches / downloads
+hf_cache_temp/
+EmbedingModel/
+
+# Generated file storage / uploads
+storage/
+/data/telegram_inbound/
+/data/channel_uploads/
+
+# Local helper/debug scripts not meant for commit
 /check_schema.py
 /check_schema_detailed.py
 /debug_migration.py
-/error.log

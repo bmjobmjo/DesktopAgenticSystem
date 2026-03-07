@@ -1,8 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "OrganizationManagementAgent",
-  "confidence": "high",
-  "reason": "The user request is to edit an existing user's name and email, which falls under the OrganizationManagementAgent's capabilities for managing users, including updates to user details.",
-  "instruction": "Update the user with current name 'bb' (ID: 1 from chat history) to new name 'Bijumon' and change email from 'vishnukolachery994@gmail.com' to 'bmjobmjo@gmail.com'. Ensure the update is applied correctly based on the provided information.",
-  "response_to_user": "I will rename user BB to Bijumon and update the email address to bmjobmjo@gmail.com as requested."
-}

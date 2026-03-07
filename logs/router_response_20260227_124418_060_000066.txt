@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "rag_gen",
-  "confidence": "medium",
-  "reason": "The user is asking for a list of AT commands used in VSM with descriptions, which requires retrieving information from files or the repository. The rag_gen agent is specifically designed for Retrieval-Augmented Generation (RAG) to answer such queries by sourcing from available data.",
-  "instruction": "Retrieve and list all AT commands related to VSM along with their descriptions from the knowledge base or files. If VSM is not clearly defined, use context to infer or indicate uncertainty.",
-  "response_to_user": "I'm searching for information on AT commands in VSM.",
-  "priority": 1
-}

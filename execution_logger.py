@@ -8,7 +8,7 @@ import traceback
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Callable
 
 from core.common_data_area import CommonDataArea
 
@@ -187,3 +187,8 @@ def log_tool_call(tool_name: str, parameters: Dict[str, Any], result: Dict[str, 
 # Initialize session immediately
 ExecutionLogger._init_session()
 ExecutionLogger.log_step('LOGGER_INIT', f"Session active: {ExecutionLogger._session_ts}")
+
+# Backward-compatible module-level file handles used by older tests/callers.
+DETAILED_LOG_FILE = ExecutionLogger._detailed_file
+PROMPT_LOG_FILE = ExecutionLogger._prompt_file
+CHAT_HISTORY_FILE = ExecutionLogger._history_file

@@ -1,4 +1,0 @@
-{
-  "query": "AT+ command syntax VSM Smart Display UART protocol",
-  "top_k": 10
-}

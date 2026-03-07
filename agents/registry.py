@@ -44,12 +44,28 @@ BUILTIN_AGENTS = {
         'name': 'agent_creation',
         'description': 'Helps admins design and create new AI agents by checking tools, planning DB schemas, and writing prompts.',
         'prompt_file': _ROOT / 'agent_creation' / 'agent_creation.prompt'
+    },
+    'schedule_manager': {
+        'name': 'schedule_manager',
+        'description': 'ScheduleManagerAgent: validate natural-language schedule requests and create/manage recurring schedules.',
+        'prompt_file': _ROOT / 'schedule_manager' / 'schedule_manager.prompt'
     }
+}
+
+# Backward-compatible in-memory registry used by legacy tests/callers.
+# DB-backed data remains source of truth where available.
+AGENTS: Dict[str, Dict[str, Any]] = {
+    name: {
+        'name': meta['name'],
+        'description': meta['description'],
+        'prompt_path': meta['prompt_file'],
+    }
+    for name, meta in BUILTIN_AGENTS.items()
 }
 
 ROLE_AGENT_POLICY = {
     'Admin': set(BUILTIN_AGENTS.keys()),
-    'User': {'file_manager', 'database_manager', 'attendance_manager', 'rag_gen'},
+    'User': {'file_manager', 'database_manager', 'attendance_manager', 'rag_gen', 'schedule_manager'},
 }
 
 def _get_db_path() -> Path:
@@ -75,7 +91,8 @@ def _ensure_builtins_seeded() -> None:
 
         for name, meta in BUILTIN_AGENTS.items():
             cursor.execute("SELECT id FROM Agents WHERE name = ?", (name,))
-            if not cursor.fetchone():
+            existing = cursor.fetchone()
+            if not existing:
                 # Read content
                 p_path = meta['prompt_file']
                 content = ""
@@ -87,6 +104,25 @@ def _ensure_builtins_seeded() -> None:
                     (name, meta['description'], content)
                 )
                 print(f"Seeded built-in agent: {name}")
+                agent_id = int(cursor.lastrowid or 0)
+            else:
+                agent_id = int(existing[0] or 0)
+
+            # Ensure role mappings for this built-in are present without removing user customizations.
+            if agent_id > 0:
+                for role_name, allowed_agents in ROLE_AGENT_POLICY.items():
+                    if name not in allowed_agents:
+                        continue
+                    cursor.execute("SELECT id FROM Roles WHERE name = ? LIMIT 1", (role_name,))
+                    role_row = cursor.fetchone()
+                    if not role_row:
+                        continue
+                    role_id = int(role_row[0] or 0)
+                    if role_id > 0:
+                        cursor.execute(
+                            "INSERT OR IGNORE INTO RoleAgents (role_id, agent_id) VALUES (?, ?)",
+                            (role_id, agent_id),
+                        )
         
         conn.commit()
         conn.close()
@@ -182,8 +218,9 @@ def list_agents(username: str | None = None, return_all: bool = False) -> List[D
     agents = []
     db_path = _get_db_path()
     
+    # Backward compatibility: list_agents() without args historically returned all agents.
     if not username and not return_all:
-        return []
+        return_all = True
 
     if db_path.exists():
         try:
@@ -238,12 +275,25 @@ def list_agents(username: str | None = None, return_all: bool = False) -> List[D
             conn.close()
         except Exception as e:
             print(f"DB Error listing agents: {e}")
-            return []
+            agents = []
+
+    # Legacy fallback/merge with in-memory map.
+    if return_all:
+        seen = {a.get('name') for a in agents}
+        for name, meta in AGENTS.items():
+            if name not in seen:
+                agents.append(
+                    {
+                        'name': name,
+                        'description': str(meta.get('description', '')),
+                    }
+                )
     
     return agents
 
 def get_agent(name: str) -> Dict[str, Any]:
     """Get agent details (including prompt) from DB."""
+    legacy_meta = AGENTS.get(name)
     db_path = _get_db_path()
     
     if db_path.exists():
@@ -255,23 +305,25 @@ def get_agent(name: str) -> Dict[str, Any]:
             conn.close()
             
             if row:
+                prompt_content = row[2]
+                fallback_path = legacy_meta.get('prompt_path') if legacy_meta else None
                 return {
                     'name': row[0],
                     'description': row[1],
-                    'prompt_content': row[2],
-                    'prompt_path': None # No longer file-based for DB agents
+                    'prompt_content': prompt_content,
+                    # Keep prompt_path populated when known for legacy callers/tests.
+                    'prompt_path': fallback_path if isinstance(fallback_path, Path) else None,
                 }
         except Exception:
             pass
 
-    # Fallback for bootstrap
-    if name in BUILTIN_AGENTS:
-        meta = BUILTIN_AGENTS[name]
+    # Fallback to in-memory registry (legacy/bootstrap behavior).
+    if legacy_meta:
         return {
-            'name': meta['name'],
-            'description': meta['description'],
-            'prompt_path': meta['prompt_file'],
-            'prompt_content': None
+            'name': str(legacy_meta.get('name', name)),
+            'description': str(legacy_meta.get('description', '')),
+            'prompt_path': legacy_meta.get('prompt_path'),
+            'prompt_content': legacy_meta.get('prompt_content'),
         }
     
     raise KeyError(f'Unknown agent: {name}')
@@ -281,14 +333,24 @@ def register_agent(name: str, description: str, prompt_content_or_path: str | Pa
     db_path = _get_db_path()
     
     content = ""
+    prompt_path: Optional[Path] = None
     if isinstance(prompt_content_or_path, Path) or (isinstance(prompt_content_or_path, str) and (prompt_content_or_path.endswith('.prompt') or prompt_content_or_path.endswith('.txt'))):
          # It's a path
          p = Path(prompt_content_or_path)
+         prompt_path = p
          if p.exists():
              content = p.read_text(encoding='utf-8')
     else:
         # It's content
         content = str(prompt_content_or_path)
+
+    # Keep legacy in-memory registry in sync.
+    AGENTS[name] = {
+        'name': name,
+        'description': description,
+        'prompt_path': prompt_path,
+        'prompt_content': content if not prompt_path else None,
+    }
 
     try:
         conn = sqlite3.connect(str(db_path))
@@ -305,7 +367,10 @@ def register_agent(name: str, description: str, prompt_content_or_path: str | Pa
             current_version = row[2] if len(row) > 2 and row[2] is not None else 1
             
             if old_prompt != content:
-                cursor.execute("INSERT INTO AgentPromptVersion (agent_id, prompt_content, version) VALUES (?, ?, ?)", (agent_id, old_prompt, current_version))
+                cursor.execute(
+                    "INSERT INTO AgentPromptVersion (agent_id, agent_name, prompt_content, version) VALUES (?, ?, ?, ?)",
+                    (agent_id, name, old_prompt, current_version),
+                )
                 new_version = current_version + 1
                 cursor.execute("UPDATE Agents SET description=?, prompt_content=?, version=?, is_active=1 WHERE id=?", (description, content, new_version, agent_id))
             else:
@@ -329,5 +394,5 @@ def register_agent(name: str, description: str, prompt_content_or_path: str | Pa
         conn.close()
     except Exception as e:
          print(f"Failed to register agent in DB: {e}")
-         # Fallback to memory map if DB fails? No, raise error
-         raise
+         # Backward-compatible behavior: keep in-memory registration even if DB write fails.
+         return

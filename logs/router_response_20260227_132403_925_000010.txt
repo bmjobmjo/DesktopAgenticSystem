@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "attendance_manager",
-  "confidence": "high",
-  "reason": "The user is asking about late arrivals and breaks for the current month, which is clearly within the attendance_manager's scope of managing attendance records, check-ins/outs, and breaks.",
-  "instruction": "Retrieve attendance data for the current user for February 2026. Provide: (1) The number of late arrivals (check-ins after the scheduled start time), (2) Details about breaks taken including total count and total duration. Use appropriate database queries to extract this information.",
-  "response_to_user": "I'm checking your attendance records for February 2026 to report on late arrivals and breaks.",
-  "priority": 1
-}

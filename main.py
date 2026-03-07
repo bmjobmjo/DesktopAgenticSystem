@@ -1,9 +1,10 @@
-﻿"""Application entrypoint."""
+"""Application entrypoint."""
 
 from __future__ import annotations
 
 import os
 import sys
+import atexit
 from PySide6.QtWidgets import QApplication
 
 from core.common_data_area import CommonDataArea
@@ -17,6 +18,9 @@ from ui.chat_ui import ChatUI
 def build_controller() -> Controller:
     cda = CommonDataArea()
     load_settings_into_cda(cda)
+
+    from tools.tool_registry import sync_tools_to_db
+    sync_tools_to_db(cda)
 
     # Register Custom Agents
     from agents.registry import register_agent
@@ -40,12 +44,67 @@ def build_controller() -> Controller:
     cda.set_runtime('executor', executor)
     cda.set_runtime('controller', controller)
 
+    # Optional WhatsApp channel integration (local webhook + gateway client).
+    try:
+        from core.whatsapp_channel import WhatsAppChannelService
+        wa_service = WhatsAppChannelService(cda=cda, controller=controller)
+        wa_service.start()
+        cda.set_runtime('whatsapp_channel_service', wa_service)
+        atexit.register(lambda: wa_service.stop())
+    except Exception as e:
+        print(f"WhatsApp channel init failed: {e}")
+
+    # Optional Telegram channel integration (polling mode).
+    try:
+        from telagram_gateways.telegram_controller import TelegramController
+        from telagram_gateways.telegram_service import TelegramChannelService
+
+        tg_controller = TelegramController(cda=cda, controller=controller)
+        tg_service = TelegramChannelService(cda=cda, telegram_controller=tg_controller)
+        tg_service.start()
+        cda.set_runtime('telegram_controller', tg_controller)
+        cda.set_runtime('telegram_channel_service', tg_service)
+        atexit.register(lambda: tg_service.stop())
+    except Exception as e:
+        print(f"Telegram channel init failed: {e}")
+
+    # Optional Scheduler service integration (background polling).
+    try:
+        from core.scheduler_service import SchedulerService
+
+        scheduler_service = SchedulerService(cda=cda, controller=controller)
+        scheduler_service.start()
+        cda.set_runtime('scheduler_service', scheduler_service)
+        atexit.register(lambda: scheduler_service.stop())
+    except Exception as e:
+        print(f"Scheduler service init failed: {e}")
+
     return controller
 
 
 def main() -> None:
     app = QApplication(sys.argv)
     controller = build_controller()
+
+    def _shutdown_whatsapp_channel() -> None:
+        try:
+            cda = controller.cda
+            wa_service = cda.get_runtime('whatsapp_channel_service')
+            if wa_service:
+                wa_service.stop()
+                cda.set_runtime('whatsapp_channel_service', None)
+            tg_service = cda.get_runtime('telegram_channel_service')
+            if tg_service:
+                tg_service.stop()
+                cda.set_runtime('telegram_channel_service', None)
+            scheduler_service = cda.get_runtime('scheduler_service')
+            if scheduler_service:
+                scheduler_service.stop()
+                cda.set_runtime('scheduler_service', None)
+        except Exception:
+            pass
+
+    app.aboutToQuit.connect(_shutdown_whatsapp_channel)
     ui = ChatUI(controller)
     ui.show()
     sys.exit(app.exec())
@@ -60,3 +119,5 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Database initialization failed: {e}")
     main()
+
+

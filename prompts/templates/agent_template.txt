@@ -56,6 +56,9 @@ When Outputting Messages (`request_user_input` or `complete`), include these fie
 - HTML can be used only if the interface type is UI.
 - "UserMessage": The actual response text or HTML string to show the user.
 
+Note : --if INTERFACE:whatsap or telegram - just send text formatted to display properly on those devices 
+if INTERFACE:UI - Use HTML format as needed
+
 Example Tool Call:
 ```json
 {

@@ -1,8 +1,0 @@
-[
-  [
-    {
-      "full_name": "Bijumon",
-      "email": "bmjobmjo@gmail.com"
-    }
-  ]
-]

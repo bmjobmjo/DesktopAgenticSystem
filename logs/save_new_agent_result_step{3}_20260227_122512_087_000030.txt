@@ -1,4 +1,0 @@
-{
-  "success": true,
-  "message": "Successfully registered new agent: rag_gen"
-}

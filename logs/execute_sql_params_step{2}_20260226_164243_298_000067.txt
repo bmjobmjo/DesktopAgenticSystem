@@ -1,5 +1,0 @@
-{
-  "queries": [
-    "INSERT INTO Users (email, full_name, FirstName, LastName, department_id, role_id, status) VALUES \n  ('abhishek.r@appleberrytech.com', 'abhishek', 'abhishek', '', 1, 310, 'active'),\n  ('Jishnu.h@appleberrytech.com', 'Jishnu', 'Jishnu', '', 1, 310, 'active'),\n  ('Vishnu.a@appleberrytech.com', 'Vishnu', 'Vishnu', '', 1, 310, 'active'),\n  ('satheerth.n@appleberrytech.com', 'Satheerth', 'Satheerth', '', 1, 310, 'active');"
-  ]
-}

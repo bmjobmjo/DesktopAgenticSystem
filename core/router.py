@@ -1,4 +1,4 @@
-﻿"""Router component for agent selection."""
+"""Router component for agent selection."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from agents.registry import ROUTER_PROMPT_PATH, list_agents
-from tools.tool_registry import list_tools
+from tools.tool_registry import list_tool_metadata
 from core.common_data_area import CommonDataArea
 from llm.mock_client import MockLLMClient
 from llm.response_validator import InvalidJSONError, parse_json
@@ -40,6 +40,8 @@ class Router:
         input_files: List[Path] | None = None,
         tool_output: str | None = None,
         chat_history: str = '', 
+        session_ctx: Any | None = None,
+        interface_type: str = 'UI',
         max_retries: int = 2
     ) -> List[Dict]:
         """
@@ -100,10 +102,11 @@ class Router:
         # 2. Prepare Tool List for Direct Execution
         # Retrieve all available tools and format their descriptions for the prompt.
         # This allows the router to call tools like 'list_directory' directly for simple tasks.
-        tools_map = list_tools()
+        tool_rows = list_tool_metadata(self.cda)
         tool_descriptions = []
-        for name, func in tools_map.items():
-            doc = (func.__doc__ or "").strip().split('\n')[0]
+        for row in tool_rows:
+            name = str(row.get('name', '') or '')
+            doc = str(row.get('description', '') or 'No description.')
             tool_descriptions.append(f"- {name}: {doc}")
         tool_list_str = "\n".join(tool_descriptions)
 
@@ -112,8 +115,12 @@ class Router:
         # We generally avoid reading full content here to save tokens, relying on agents/tools to process.
         file_context = ""
         if input_files:
-            file_list_str = "\n".join([f"- {f.name} ({f})" for f in input_files])
-            file_context = f"\n\n[ATTACHED FILES]\nThe user has attached the following files:\n{file_list_str}\n[END ATTACHED FILES]\n"
+            file_entries = [
+                f"{idx}. name: {f.name}\n   path: {f}"
+                for idx, f in enumerate(input_files, start=1)
+            ]
+            file_list_str = "\n".join(file_entries)
+            file_context = f"\n\n[ATTACHED FILES]\n{file_list_str}\n[END ATTACHED FILES]\n"
         
         # 4. Handle Tool Feedback Context
         # If this is a re-route after a tool execution, inject the tool's output.
@@ -131,6 +138,7 @@ class Router:
                 'USER_PROMPT': user_prompt + file_context + effective_context,
                 'CHAT_HISTORY': chat_history,
                 'TOOL_OUTPUT': tool_output or '',
+                'INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM': interface_type,
             },
         )
 
@@ -230,3 +238,4 @@ class Router:
         log_execution_step('ROUTER_ERROR', error_msg)
         self._emit_trace('error_router_fatal', {'message': error_msg})
         raise RouterError(str(last_error)) from last_error
+

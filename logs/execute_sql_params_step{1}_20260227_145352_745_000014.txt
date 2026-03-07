@@ -1,5 +1,0 @@
-{
-  "queries": [
-    "SELECT id, title, description, status, scheduled_date, due_date, priority, assigned_to FROM Tasks WHERE assigned_to = '1' ORDER BY due_date ASC, id ASC;"
-  ]
-}

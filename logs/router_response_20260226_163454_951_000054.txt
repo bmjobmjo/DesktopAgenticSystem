@@ -1,9 +1,0 @@
-{
-  "type": "agent_call",
-  "selected_agent": "OrganizationManagementAgent",
-  "confidence": "high",
-  "reason": "The user request to create new users directly matches the OrganizationManagementAgent's capability to add, edit users with role and department assignments.",
-  "instruction": "Create users with the following names: abhishek, Jishnu, Vishnu, Satheerth. Note that roles and departments are not specified; use default values or prompt for them as needed based on organizational policies.",
-  "response_to_user": "Initiating creation of users: abhishek, Jishnu, Vishnu, Satheerth. The agent will handle any missing details like roles or departments.",
-  "priority": 1
-}
