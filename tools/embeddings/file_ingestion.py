@@ -1,3 +1,5 @@
+__tool_exports__ = ['ingest_file', 'search_files']
+
 
 import os
 import shutil

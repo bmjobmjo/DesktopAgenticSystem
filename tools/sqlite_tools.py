@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Union
 
+__tool_exports__ = ['execute_sql']
+
 from core.common_data_area import CommonDataArea
 from execution_logger import log_execution_step, log_exception
 

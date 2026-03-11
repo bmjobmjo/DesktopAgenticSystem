@@ -1,4 +1,4 @@
-"""Settings UI for configuring LLM, directories, agents, roles, and users in PySide6."""
+﻿"""Settings UI for configuring LLM, directories, agents, roles, and users in PySide6."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from core.common_data_area import CommonDataArea
 from core.scheduler_agent import validate_schedule_request, compute_next_run
 from settings import config_loader
 from agents.registry import list_agents, register_agent, get_agent, _get_db_path
-from tools.tool_registry import list_tools, list_tool_metadata, sync_tools_to_db
+from tools.tool_registry import list_tools, list_tool_metadata, sync_tools_to_db, reload_tool_registry
 
 class SettingsPanel(QWidget):
     def __init__(self, parent: QWidget | None = None, cda: CommonDataArea | None = None) -> None:
@@ -1100,11 +1100,12 @@ class SettingsPanel(QWidget):
         prov_layout = QHBoxLayout(prov_group)
         
         self.provider_combo = QComboBox()
-        self.provider_combo.addItems(["Google Gemini", "Local LLM (LM Studio/Ollama)", "OpenRouter"])
+        self.provider_combo.addItems(["Google Gemini", "Groq", "Local LLM (LM Studio/Ollama)", "OpenRouter"])
         
         current_prov = self.settings.get('llm_provider', 'gemini')
-        if current_prov == 'local': self.provider_combo.setCurrentIndex(1)
-        elif current_prov == 'openrouter': self.provider_combo.setCurrentIndex(2)
+        if current_prov == 'groq': self.provider_combo.setCurrentIndex(1)
+        elif current_prov == 'local': self.provider_combo.setCurrentIndex(2)
+        elif current_prov == 'openrouter': self.provider_combo.setCurrentIndex(3)
         else: self.provider_combo.setCurrentIndex(0)
         
         self.provider_combo.currentIndexChanged.connect(self._on_ai_provider_change)
@@ -1144,6 +1145,37 @@ class SettingsPanel(QWidget):
         g_layout.addWidget(self.gemini_temp_slider, 2, 1)
         
         ai_configs_layout.addWidget(self.gemini_group)
+
+        # Groq
+        self.groq_group = QGroupBox("Groq Settings")
+        gr_layout = QGridLayout(self.groq_group)
+        gr_layout.addWidget(QLabel("API Key:"), 0, 0)
+        self.groq_api_edit = QLineEdit(self.settings.get('groq_api_key', ''))
+        self.groq_api_edit.setEchoMode(QLineEdit.Password)
+        gr_layout.addWidget(self.groq_api_edit, 0, 1)
+
+        gr_layout.addWidget(QLabel("Model ID:"), 1, 0)
+        self.groq_model_edit = QComboBox()
+        self.groq_model_edit.setEditable(True)
+        groq_models = [
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "deepseek-r1-distill-llama-70b",
+        ]
+        self.groq_model_edit.addItems(groq_models)
+        current_groq_model = self.settings.get('groq_model', 'llama-3.3-70b-versatile')
+        if current_groq_model and current_groq_model not in groq_models:
+            self.groq_model_edit.addItem(current_groq_model)
+        self.groq_model_edit.setCurrentText(current_groq_model)
+        gr_layout.addWidget(self.groq_model_edit, 1, 1)
+
+        gr_layout.addWidget(QLabel("Temperature:"), 2, 0)
+        self.groq_temp_slider = QSlider(Qt.Horizontal)
+        self.groq_temp_slider.setRange(0, 200)
+        self.groq_temp_slider.setValue(int(float(self.settings.get('groq_temperature', 1.0)) * 100))
+        gr_layout.addWidget(self.groq_temp_slider, 2, 1)
+
+        ai_configs_layout.addWidget(self.groq_group)
         
         # Local
         self.local_group = QGroupBox("Local LLM Settings")
@@ -1179,8 +1211,33 @@ class SettingsPanel(QWidget):
         self.openrouter_api_edit.setEchoMode(QLineEdit.Password)
         o_layout.addWidget(self.openrouter_api_edit, 0, 1)
         o_layout.addWidget(QLabel("Model ID:"), 1, 0)
-        self.openrouter_model_edit = QLineEdit(self.settings.get('openrouter_model', 'stepfun/step-3.5-flash'))
+        self.openrouter_model_edit = QComboBox()
+        self.openrouter_model_edit.setEditable(True)
+        openrouter_models = [
+            ("google/gemini-2.5-flash", "google/gemini-2.5-flash  [fast, optimum]"),
+            ("stepfun/step-3.5-flash:free", "stepfun/step-3.5-flash:free  [high latency]"),
+            ("stepfun/step-3.5-flash", "stepfun/step-3.5-flash  [high latency]"),
+            ("meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3.3-70b-instruct  [fast]"),
+        ]
+        for model_id, label in openrouter_models:
+            self.openrouter_model_edit.addItem(label, model_id)
+
+        current_openrouter_model = self.settings.get('openrouter_model', 'google/gemini-2.5-flash')
+        current_openrouter_index = next(
+            (index for index, (model_id, _label) in enumerate(openrouter_models) if model_id == current_openrouter_model),
+            -1,
+        )
+        if current_openrouter_index >= 0:
+            self.openrouter_model_edit.setCurrentIndex(current_openrouter_index)
+        else:
+            self.openrouter_model_edit.addItem(current_openrouter_model, current_openrouter_model)
+            self.openrouter_model_edit.setCurrentText(current_openrouter_model)
+
+        self.openrouter_model_edit.setToolTip("Select a preset or type any OpenRouter model ID manually.")
         o_layout.addWidget(self.openrouter_model_edit, 1, 1)
+        openrouter_hint = QLabel("You can pick a preset from the dropdown or type any other OpenRouter model ID.")
+        openrouter_hint.setStyleSheet("color: #666666; font-size: 11px;")
+        o_layout.addWidget(openrouter_hint, 2, 1)
         ai_configs_layout.addWidget(self.openrouter_group)
 
         # Embeddings
@@ -1223,24 +1280,29 @@ class SettingsPanel(QWidget):
     def _on_ai_provider_change(self):
         idx = self.provider_combo.currentIndex()
         self.gemini_group.setVisible(idx == 0)
-        self.local_group.setVisible(idx == 1)
-        self.openrouter_group.setVisible(idx == 2)
+        self.groq_group.setVisible(idx == 1)
+        self.local_group.setVisible(idx == 2)
+        self.openrouter_group.setVisible(idx == 3)
 
     def _save_general(self):
         # Gather all
         idx = self.provider_combo.currentIndex()
         if idx == 0: prov = 'gemini'
-        elif idx == 1: prov = 'local'
+        elif idx == 1: prov = 'groq'
+        elif idx == 2: prov = 'local'
         else: prov = 'openrouter'
         
         self.settings['llm_provider'] = prov
         self.settings['gemini_api_key'] = self.gemini_api_edit.text().strip()
         self.settings['gemini_model'] = self.gemini_model_combo.currentText().strip()
         self.settings['gemini_temperature'] = self.gemini_temp_slider.value() / 100.0
+        self.settings['groq_api_key'] = self.groq_api_edit.text().strip()
+        self.settings['groq_model'] = self.groq_model_edit.currentText().strip()
+        self.settings['groq_temperature'] = self.groq_temp_slider.value() / 100.0
         self.settings['local_llm_url'] = self.local_url_edit.text().strip()
         self.settings['local_llm_model'] = self.local_model_edit.currentText().strip()
         self.settings['openrouter_api_key'] = self.openrouter_api_edit.text().strip()
-        self.settings['openrouter_model'] = self.openrouter_model_edit.text().strip()
+        self.settings['openrouter_model'] = str(self.openrouter_model_edit.currentData() or self.openrouter_model_edit.currentText().strip())
         self.settings['embedding_model_name'] = 'jinaai/jina-embeddings-v3'
         self.settings.pop('embedding_model_path', None)
         self.settings.pop('embedding_max_tokens', None)
@@ -1412,7 +1474,7 @@ class SettingsPanel(QWidget):
             self.agent_tools_layout.itemAt(i).widget().setParent(None)
             
         self.agent_tool_vars = {}
-        tool_names = list(list_tools().keys())
+        tool_names = list(list_tools(force_refresh=True).keys())
         
         conn = self._get_conn()
         try:
@@ -1435,6 +1497,11 @@ class SettingsPanel(QWidget):
 
     def _refresh_agents(self):
         self.agent_tree.clear()
+        try:
+            sync_tools_to_db(self.cda)
+        except Exception:
+            pass
+        self._refresh_agent_tools_panel()
         agents = sorted(list_agents(return_all=True), key=lambda a: a.get('name', ''))
         for agent in agents:
             item = QTreeWidgetItem([agent['name']])
@@ -2032,6 +2099,15 @@ class SettingsPanel(QWidget):
         self.tool_output_schema_edit.setMinimumHeight(80)
         details_layout.addWidget(self.tool_output_schema_edit)
 
+        example_label = QLabel("Example Call")
+        example_label.setStyleSheet("font-weight: bold;")
+        details_layout.addWidget(example_label)
+
+        self.tool_example_call_edit = QTextEdit()
+        self.tool_example_call_edit.setReadOnly(True)
+        self.tool_example_call_edit.setMinimumHeight(110)
+        details_layout.addWidget(self.tool_example_call_edit)
+
         button_row = QHBoxLayout()
         button_row.addStretch()
         self.btn_save_tool_desc = QPushButton("Save Description")
@@ -2049,6 +2125,7 @@ class SettingsPanel(QWidget):
 
     def _sync_and_refresh_tools(self) -> None:
         try:
+            reload_tool_registry()
             count = sync_tools_to_db(self.cda)
             self._refresh_tools()
             QMessageBox.information(self, "System Tools", f"Refreshed {count} tools into ToolList.")
@@ -2057,7 +2134,7 @@ class SettingsPanel(QWidget):
 
     def _refresh_tools(self):
         self.tool_tree.clear()
-        registry_names = set(list(list_tools().keys()))
+        registry_names = set(list(list_tools(force_refresh=True).keys()))
         tool_status: Dict[str, str] = {}
         metadata_rows = {row["name"]: row for row in list_tool_metadata(self.cda)}
 
@@ -2113,6 +2190,7 @@ class SettingsPanel(QWidget):
             self.tool_description_edit.clear()
             self.tool_input_schema_edit.clear()
             self.tool_output_schema_edit.clear()
+            self.tool_example_call_edit.clear()
             return
 
         item = items[0]
@@ -2125,6 +2203,7 @@ class SettingsPanel(QWidget):
         self.tool_description_edit.setPlainText(str(meta.get("description", "") or ""))
         self.tool_input_schema_edit.setPlainText(str(meta.get("input_schema", "") or ""))
         self.tool_output_schema_edit.setPlainText(str(meta.get("output_schema", "") or ""))
+        self.tool_example_call_edit.setPlainText(str(meta.get("example_call", "") or ""))
 
     def _save_tool_description(self) -> None:
         items = self.tool_tree.selectedItems()
@@ -2154,6 +2233,10 @@ class SettingsPanel(QWidget):
         if matches:
             self.tool_tree.setCurrentItem(matches[0])
         QMessageBox.information(self, "System Tools", f"Updated description for '{name}'.")
+
+
+
+
 
 
 

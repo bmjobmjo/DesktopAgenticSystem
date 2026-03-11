@@ -1,4 +1,4 @@
-"""Chat UI using PySide6 with Professional White Theme Layout."""
+﻿"""Chat UI using PySide6 with Professional White Theme Layout."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import os
 import sqlite3
 import threading
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple, Optional
 from pathlib import Path
 
@@ -27,6 +27,7 @@ from ui.settings_ui import SettingsPanel
 import execution_logger
 from agents.registry import _get_db_path
 from settings import config_loader
+from ui.branding import BRAND_NAME, build_brand_icon, build_brand_pixmap
 
 
 class Signals(QObject):
@@ -53,6 +54,8 @@ class CreateAgentDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Create or Modify Agent")
+        if parent is not None and not parent.windowIcon().isNull():
+            self.setWindowIcon(parent.windowIcon())
         self.resize(500, 400)
         
         # Consistent theme for dialog
@@ -135,7 +138,9 @@ class ChatUI(QMainWindow):
         self.fg_muted = '#666666'
         self.border_color = '#e0e0e0'
         
-        self.setWindowTitle('Desktop Agentic System')
+        self.brand_icon = build_brand_icon()
+        self.setWindowTitle(BRAND_NAME)
+        self.setWindowIcon(self.brand_icon)
         self.resize(1100, 750)
         self.setStyleSheet(f"""
             QMainWindow {{ background-color: {self.bg_color}; }}
@@ -157,16 +162,56 @@ class ChatUI(QMainWindow):
         
         # 1. Sidebar
         self.sidebar = QWidget()
-        self.sidebar.setFixedWidth(240)
+        self.sidebar.setFixedWidth(236)
         self.sidebar.setStyleSheet(f"QWidget {{ background-color: {self.sidebar_bg}; border-right: 1px solid {self.border_color}; }}")
         sidebar_layout = QVBoxLayout(self.sidebar)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
         
-        title_lbl = QLabel("AGS CONSOLE")
-        title_lbl.setStyleSheet(f"font-weight: bold; font-size: 16px; padding: 30px 20px; color: {self.fg_color};")
-        title_lbl.setAlignment(Qt.AlignCenter)
-        sidebar_layout.addWidget(title_lbl)
+        brand_container = QWidget()
+        brand_container_layout = QVBoxLayout(brand_container)
+        brand_container_layout.setContentsMargins(12, 12, 12, 8)
+        brand_container_layout.setSpacing(0)
+
+        brand_card = QFrame()
+        brand_card.setFixedHeight(132)
+        brand_card.setObjectName("brandCard")
+        brand_card.setStyleSheet("""
+            QFrame#brandCard {
+                background-color: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #10253d,
+                    stop:0.55 #005fb8,
+                    stop:1 #14b8a6
+                );
+                border: 1px solid rgba(255, 255, 255, 28);
+                border-radius: 18px;
+            }
+            QLabel { background: transparent; }
+        """)
+
+        brand_layout = QVBoxLayout(brand_card)
+        brand_layout.setContentsMargins(14, 14, 14, 14)
+        brand_layout.setSpacing(4)
+
+        brand_logo = QLabel()
+        brand_logo.setAlignment(Qt.AlignCenter)
+        brand_logo.setPixmap(build_brand_pixmap(44, compact=False))
+        brand_layout.addWidget(brand_logo)
+
+        brand_title = QLabel(BRAND_NAME)
+        brand_title.setAlignment(Qt.AlignCenter)
+        brand_title.setWordWrap(True)
+        brand_title.setStyleSheet("color: white; font-size: 15px; font-weight: 700;")
+        brand_layout.addWidget(brand_title)
+
+        brand_subtitle = QLabel("Agent Console")
+        brand_subtitle.setAlignment(Qt.AlignCenter)
+        brand_subtitle.setStyleSheet("color: rgba(255, 255, 255, 190); font-size: 11px; font-weight: 600;")
+        brand_layout.addWidget(brand_subtitle)
+
+        brand_container_layout.addWidget(brand_card)
+        sidebar_layout.addWidget(brand_container)
         
         # Sidebar Navigation Buttons
         self.nav_buttons = {}
@@ -1076,6 +1121,34 @@ class ChatUI(QMainWindow):
         except Exception as e:
             execution_logger.log_execution_step('CHAT_DB_ERROR', f"Failed to save chat: {e}")
 
+    @staticmethod
+    def _format_history_timestamp(created_at: Any) -> str:
+        raw = str(created_at or "").strip()
+        if not raw:
+            return ""
+
+        local_tz = datetime.now().astimezone().tzinfo
+        candidates = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M:%S.%f",
+        ]
+
+        for fmt in candidates:
+            try:
+                parsed = datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+                return parsed.astimezone(local_tz).strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                continue
+
+        try:
+            iso_value = raw.replace("Z", "+00:00")
+            parsed = datetime.fromisoformat(iso_value)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(local_tz).strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return raw
+
     def _refresh_history_list(self) -> None:
         # Clear specific layout
         while self.history_list_layout.count():
@@ -1136,7 +1209,8 @@ class ChatUI(QMainWindow):
                 title_lbl.setStyleSheet("border: none; background: transparent; padding: 0;")
                 
                 channel = str(iface or "UI").strip() or "UI"
-                time_lbl = QLabel(f"{created_at}  [{channel}]")
+                display_created_at = self._format_history_timestamp(created_at)
+                time_lbl = QLabel(f"{display_created_at}  [{channel}]")
                 time_lbl.setAttribute(Qt.WA_TransparentForMouseEvents)
                 time_lbl.setStyleSheet(f"color: {self.fg_muted}; font-size: 11px; border: none; background: transparent; padding: 0;")
                 

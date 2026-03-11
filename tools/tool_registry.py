@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Any
 
 from core.common_data_area import CommonDataArea
+from tools.tool_metadata_registry import TOOL_METADATA
 
 # Base Tools Directory
 TOOLS_DIR = Path(__file__).parent
@@ -20,7 +21,8 @@ ToolFunc = Callable[..., Dict]
 TOOLS: Dict[str, ToolFunc] = {}
 
 
-def _discover_tools() -> None:
+
+def _discover_tools(force_reload: bool = False) -> None:
     """Dynamically discover tools in the tools directory."""
     global TOOLS
     TOOLS.clear()
@@ -30,36 +32,56 @@ def _discover_tools() -> None:
 
     for root, _, files in os.walk(TOOLS_DIR):
         for file in files:
+            if file == 'tool_registry.py':
+                continue
             if file.endswith('.py') and not file.startswith('__'):
                 module_path = Path(root) / file
                 try:
                     rel_path = module_path.relative_to(TOOLS_DIR.parent)
                     module_name = str(rel_path).replace(os.sep, '.')[:-3]
-                    module = importlib.import_module(module_name)
+                    if force_reload and module_name in sys.modules:
+                        module = importlib.reload(sys.modules[module_name])
+                    else:
+                        module = importlib.import_module(module_name)
 
                     tool_name = file[:-3]
+                    explicit_exports = getattr(module, '__tool_exports__', None)
+                    if isinstance(explicit_exports, (list, tuple, set)) and explicit_exports:
+                        for export_name in explicit_exports:
+                            name = str(export_name or '').strip()
+                            if not name or name.startswith('_'):
+                                continue
+                            func = getattr(module, name, None)
+                            if callable(func):
+                                TOOLS[name] = func
+                        continue
+
                     if hasattr(module, tool_name):
                         func = getattr(module, tool_name)
                         if callable(func):
                             TOOLS[tool_name] = func
                             continue
-
-                    for name, obj in inspect.getmembers(module):
-                        if inspect.isfunction(obj) and obj.__module__ == module.__name__ and not name.startswith('_'):
-                            TOOLS[name] = obj
                 except Exception as e:
                     print(f"Failed to load tool from {file} (module: {module_name if 'module_name' in locals() else 'N/A'}): {e}")
                     import traceback
                     traceback.print_exc()
+
+    TOOLS['list_tools'] = list_tools
+    TOOLS['list_tool_metadata'] = list_tool_metadata
 
     if 'ingest_file' in TOOLS:
         TOOLS['file_ingestion'] = TOOLS['ingest_file']
         TOOLS['file_embedding_tool'] = TOOLS['ingest_file']
 
 
-def list_tools() -> Dict[str, ToolFunc]:
-    if not TOOLS:
-        _discover_tools()
+def list_tools(force_refresh: bool = False) -> Dict[str, ToolFunc]:
+    if force_refresh or not TOOLS:
+        _discover_tools(force_reload=force_refresh)
+    return dict(TOOLS)
+
+
+def reload_tool_registry() -> Dict[str, ToolFunc]:
+    _discover_tools(force_reload=True)
     return dict(TOOLS)
 
 
@@ -79,11 +101,22 @@ def _tool_metadata(name: str, func: ToolFunc) -> Dict[str, str]:
     except Exception:
         param_names = []
         output_schema = ''
+
+    meta = dict(TOOL_METADATA.get(name, {}) or {})
+    parameters = meta.get('parameters')
+    if not isinstance(parameters, list):
+        parameters = [{'name': p, 'type': 'Any', 'required': True, 'description': ''} for p in param_names]
+
+    example_call = meta.get('example_call')
+    if example_call is None:
+        example_call = json.dumps({'tool_name': name, 'parameters': {p: f'<{p}>' for p in param_names}}, ensure_ascii=False)
+
     return {
         'name': name,
-        'description': first_line or 'No description.',
-        'input_schema': json.dumps({'parameters': param_names}),
-        'output_schema': output_schema,
+        'description': str(meta.get('description') or first_line or 'No description.'),
+        'input_schema': json.dumps({'parameters': parameters}, ensure_ascii=False),
+        'output_schema': str(meta.get('output_schema') or output_schema or ''),
+        'example_call': str(example_call),
         'version': '1.0',
     }
 
@@ -93,7 +126,7 @@ def sync_tools_to_db(cda: CommonDataArea | None = None) -> int:
     db_path = Path(str(cda.get_setting('sqlite_db_path', 'backend.db') or 'backend.db')).resolve()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    tools_map = list_tools()
+    tools_map = list_tools(force_refresh=True)
     tool_meta = [_tool_metadata(name, func) for name, func in tools_map.items()]
     active_names = {item['name'] for item in tool_meta}
 
@@ -108,22 +141,29 @@ def sync_tools_to_db(cda: CommonDataArea | None = None) -> int:
                 description TEXT,
                 input_schema TEXT,
                 output_schema TEXT,
-                version TEXT
+                version TEXT,
+                example_call TEXT
             )
             """
         )
+        cur.execute("PRAGMA table_info(ToolList)")
+        cols = {str(row[1]) for row in cur.fetchall()}
+        if 'example_call' not in cols:
+            cur.execute("ALTER TABLE ToolList ADD COLUMN example_call TEXT")
+
         for item in tool_meta:
             cur.execute(
                 """
-                INSERT INTO ToolList (name, description, input_schema, output_schema, version)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO ToolList (name, description, input_schema, output_schema, version, example_call)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(name) DO UPDATE SET
                     description=excluded.description,
                     input_schema=excluded.input_schema,
                     output_schema=excluded.output_schema,
-                    version=excluded.version
+                    version=excluded.version,
+                    example_call=excluded.example_call
                 """,
-                (item['name'], item['description'], item['input_schema'], item['output_schema'], item['version']),
+                (item['name'], item['description'], item['input_schema'], item['output_schema'], item['version'], item['example_call']),
             )
         cur.execute('SELECT name FROM ToolList')
         stale = [str(row[0]) for row in cur.fetchall() if str(row[0]) not in active_names]
@@ -150,7 +190,13 @@ def list_tool_metadata(cda: CommonDataArea | None = None, names: List[str] | Non
             sync_tools_to_db(cda)
             conn = sqlite3.connect(str(db_path))
             cur = conn.cursor()
-        cur.execute('SELECT name, description, input_schema, output_schema, version FROM ToolList ORDER BY name')
+        cur.execute("PRAGMA table_info(ToolList)")
+        cols = {str(row[1]) for row in cur.fetchall()}
+        has_example = 'example_call' in cols
+        if has_example:
+            cur.execute('SELECT name, description, input_schema, output_schema, version, example_call FROM ToolList ORDER BY name')
+        else:
+            cur.execute('SELECT name, description, input_schema, output_schema, version FROM ToolList ORDER BY name')
         rows = [
             {
                 'name': str(row[0]),
@@ -158,6 +204,7 @@ def list_tool_metadata(cda: CommonDataArea | None = None, names: List[str] | Non
                 'input_schema': str(row[2] or ''),
                 'output_schema': str(row[3] or ''),
                 'version': str(row[4] or ''),
+                'example_call': str(row[5] or '') if len(row) > 5 else '',
             }
             for row in cur.fetchall()
         ]

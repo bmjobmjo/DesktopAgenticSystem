@@ -13,6 +13,7 @@ from llm.mock_client import MockLLMClient
 from llm.response_validator import InvalidJSONError, parse_json
 from prompts.renderer import render
 from execution_logger import log_router_decision, log_prompt, log_execution_step, log_chat_history, ExecutionLogger
+from core.llm_attachments import build_llm_attachments, extract_attachment_paths, format_attachments_for_prompt
 from validation.router_validator import SchemaError, validate_router_response
 
 
@@ -23,6 +24,47 @@ class RouterError(RuntimeError):
 class Router:
     def __init__(self, cda: CommonDataArea | None = None) -> None:
         self.cda = cda or CommonDataArea()
+
+    @staticmethod
+    def _normalize_file_routes(data: List[Dict[str, Any]], attachment_paths: List[str]) -> List[Dict[str, Any]]:
+        if not attachment_paths:
+            return data
+
+        has_incoming = any(
+            isinstance(item, dict)
+            and str(item.get('type', '') or '') == 'agent_call'
+            and str(item.get('selected_agent', '') or '') == 'incoming_file_processor'
+            for item in data
+        )
+        if has_incoming:
+            return data
+
+        incoming_task: Dict[str, Any] = {
+            'type': 'agent_call',
+            'selected_agent': 'incoming_file_processor',
+            "instruction": "First inspect/process the attached file using the exact path from [ATTACHED FILES] and the user's request.",
+            'confidence': 'high',
+            'reason': 'Attached files must always go to the dedicated file processor first.',
+            'response_to_user': 'I am processing the attached file.',
+            'priority': 1,
+        }
+
+        downstream: List[Dict[str, Any]] = []
+        for idx, item in enumerate(data, start=2):
+            if not isinstance(item, dict):
+                continue
+            item_type = str(item.get('type', '') or '').strip()
+            if item_type not in ('agent_call', 'tool_call', 'continue'):
+                continue
+            cloned = dict(item)
+            cloned['priority'] = idx
+            if item_type == 'agent_call':
+                instruction = str(cloned.get('instruction', '') or '').strip()
+                prefix = 'After incoming_file_processor runs, continue using the same attached file path(s), the same file content, and the file processor findings.'
+                cloned['instruction'] = f"{prefix} {instruction}".strip()
+            downstream.append(cloned)
+
+        return [incoming_task, *downstream] if downstream else [incoming_task]
 
     def _emit_trace(self, event_type: str, payload: Dict[str, Any]) -> None:
         handler = self.cda.get_runtime('executor_trace_handler')
@@ -111,9 +153,9 @@ class Router:
         tool_list_str = "\n".join(tool_descriptions)
 
         # 3. Handle File Context
-        # If input files are provided, list them in the prompt.
-        # We generally avoid reading full content here to save tokens, relying on agents/tools to process.
+        # Paths remain in the prompt and bounded extracted content is sent separately to the LLM.
         file_context = ""
+        llm_attachments = build_llm_attachments(input_files, self.cda) if input_files else []
         if input_files:
             file_entries = [
                 f"{idx}. name: {f.name}\n   path: {f}"
@@ -157,7 +199,11 @@ class Router:
                 log_execution_step('ROUTER_CANCELLED', "Routing cancelled by user.")
                 return [{'type': 'error', 'message': 'Execution cancelled by user'}]
                 
-            prompt_file = ExecutionLogger.save_trace_file("router_prompt", prompt)
+            prompt_for_trace = prompt
+            attachment_trace = format_attachments_for_prompt(llm_attachments)
+            if attachment_trace:
+                prompt_for_trace = f"{prompt}\n\n{attachment_trace}"
+            prompt_file = ExecutionLogger.save_trace_file("router_prompt", prompt_for_trace)
             trace_payload = {
                 'agent_name': 'Router',
                 'loop': 1,
@@ -171,11 +217,22 @@ class Router:
 
             import time
             start_time = time.time()
-            response_text = llm_client.generate(
-                prompt, 
-                agent_name='Router', 
-                user_prompt=user_prompt
-            )
+            try:
+                response_text = llm_client.generate(
+                    prompt, 
+                    agent_name='Router', 
+                    user_prompt=user_prompt,
+                    attachments=llm_attachments,
+                )
+            except TypeError as exc:
+                if "unexpected keyword argument" in str(exc).lower():
+                    response_text = llm_client.generate(
+                        prompt, 
+                        agent_name='Router', 
+                        user_prompt=user_prompt
+                    )
+                else:
+                    raise
             time_taken = time.time() - start_time
             usage = getattr(llm_client, 'last_usage', {})
 
@@ -205,8 +262,19 @@ class Router:
                     data = [data]
                 
                 validate_router_response(data)
-                
+
+                attachment_paths = extract_attachment_paths(llm_attachments) if llm_attachments else []
+                if attachment_paths:
+                    data = self._normalize_file_routes(data, attachment_paths)
+
                 # Log the parsed decision (detailed log)
+                if llm_attachments:
+                    for item in data:
+                        if not isinstance(item, dict):
+                            continue
+                        item['_llm_attachments'] = llm_attachments
+                        item['_attached_file_paths'] = attachment_paths
+
                 log_router_decision(data)
                 selected_targets = [
                     (item.get('selected_agent') if item.get('type') in ('agent_call', 'continue') else item.get('tool_name'))

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Any, Dict
+from typing import Any, Dict, List
 from pathlib import Path
 
 from llm.base_client import BaseLLMClient
+from core.llm_attachments import format_attachments_for_prompt
 
 
 def _get_db_path() -> str:
@@ -23,10 +24,16 @@ class MockLLMClient(BaseLLMClient):
         self, 
         prompt: str, 
         agent_name: str = "Assistant", 
-        user_prompt: str = ""
+        user_prompt: str = "",
+        attachments: List[Dict[str, Any]] | None = None,
     ) -> str:
+        self.last_attachments = attachments or []
+        prompt_with_attachments = prompt
+        attachment_block = format_attachments_for_prompt(attachments)
+        if attachment_block:
+            prompt_with_attachments = f"{prompt}\n\n{attachment_block}"
         response_text = ""
-        if 'ROLE: ROUTER' in prompt:
+        if 'ROLE: ROUTER' in prompt_with_attachments:
             response_text = json.dumps(
                 {
                     'type': 'continue',
@@ -35,9 +42,9 @@ class MockLLMClient(BaseLLMClient):
                     'reason': 'File-related request detected.'
                 }
             )
-        elif 'Agent Name:\nFileManager Agent' in prompt or 'FileManager Agent' in prompt:
-            default_dir = _extract_default_directory(prompt)
-            tool_data_present = _has_tool_data(prompt)
+        elif 'Agent Name:\nFileManager Agent' in prompt_with_attachments or 'FileManager Agent' in prompt_with_attachments:
+            default_dir = _extract_default_directory(prompt_with_attachments)
+            tool_data_present = _has_tool_data(prompt_with_attachments)
             if not tool_data_present:
                 payload = {
                     'plan': {
@@ -77,7 +84,7 @@ class MockLLMClient(BaseLLMClient):
                     }
                 }
             response_text = json.dumps(payload)
-        elif 'AttendanceManager Agent' in prompt:
+        elif 'AttendanceManager Agent' in prompt_with_attachments:
              payload = {
               "plan": {
                  "original_plan": ["Clock in user"],
@@ -106,7 +113,7 @@ class MockLLMClient(BaseLLMClient):
               }
             }
              # Basic state toggling for mock (if tool data present, complete)
-             tool_data_present = _has_tool_data(prompt)
+             tool_data_present = _has_tool_data(prompt_with_attachments)
              if tool_data_present:
                  payload['action'] = {'type': 'complete'}
                  payload['conversation_update']['content'] = "Attendance marked successfully."
@@ -117,8 +124,8 @@ class MockLLMClient(BaseLLMClient):
             response_text = json.dumps({'message': 'unrecognized prompt'})
 
         # Log to DB
-        self.last_usage = {'tin': len(prompt) // 4, 'tout': len(response_text) // 4, 'total': (len(prompt) + len(response_text)) // 4}
-        self._log_usage(agent_name, user_prompt, prompt, response_text)
+        self.last_usage = {'tin': len(prompt_with_attachments) // 4, 'tout': len(response_text) // 4, 'total': (len(prompt_with_attachments) + len(response_text)) // 4}
+        self._log_usage(agent_name, user_prompt, prompt_with_attachments, response_text)
         return response_text
 
     def _log_usage(self, agent_name: str, user_prompt: str, prompt: str, response: str):

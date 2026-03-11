@@ -28,7 +28,12 @@ DATABASE SCHEMA REFERENCE
 [Include relevant tables here, if any]
 
 ====================================================
-AVAILABLE TOOLS
+DEFAULT TOOLS REQUIRED FOR AGENT TO PERFORM ITS TASK
+====================================================
+[[[TOOL_LIST]]]
+
+====================================================
+AVAILABLE TOOLS - EXTRA TOOLS ALLOWED TO USE
 ====================================================
 {{TOOL_LIST}}
 
@@ -46,20 +51,39 @@ INTERNAL WORKFLOW (LOOP PREVENTION)
 OUTPUT INTERFACE (STRICT JSON ONLY)
 ====================================================
 Return ONLY a valid JSON object. DO NOT OUTPUT ANY TEXT OTHER THAN THE BELOW DEFINED JSON.
-Keep "action" as a dictionary and "action.type" definitive. Return ONLY these exact string values:
-- "tool_call": to call a tool; requires "tool_name" and "parameters" inside "tool_request".
-- "request_user_input": to ask the user a question before proceeding.
-- "complete": to mark the task as finished and deliver the final answer to the user.
 
-When Outputting Messages (`request_user_input` or `complete`), include these fields INSIDE the `"action"` dictionary:
-- "UserMessageType": Set this to "Plaintext" for normal sentences. Set this to "HTML" ONLY if the output includes a data table (using <table>, <tr>, <td>) or unstructured lists.
+You may return either:
+1. `"action"`: a single action object, or
+2. `"actions"`: an array of action objects to be executed in order.
+
+Use `"actions"` whenever multiple independent tool calls or agent calls can be issued in one response to improve efficiency.
+
+Allowed action types:
+- `"tool_call"`: call a tool; requires `"tool_name"` and `"parameters"` inside `"tool_request"`.
+- `"agent_call"`: delegate to another agent; requires the target agent details as expected by the system.
+- `"request_user_input"`: ask the user a question before proceeding.
+- `"complete"`: mark the task as finished and deliver the final answer to the user.
+
+Rules for multi-action output:
+- If only one action is needed, return `"action"` as a dictionary.
+- If more than one action is needed, return `"actions"` as an array and DO NOT also return `"action"`.
+- Actions in `"actions"` are executed sequentially in the order provided.
+- Group related tool calls or agent calls into one `"actions"` array whenever they do not depend on the result of a later LLM step.
+- Do NOT use multiple actions if a later action depends on the result of an earlier action that must be analyzed first by the LLM.
+- Prefer batching independent retrieval, notification, file-send, or delegation steps into one `"actions"` array.
+- Use `"request_user_input"` only when the task cannot proceed safely with available information.
+- Use `"complete"` only when the task is fully finished.
+
+When Outputting Messages (`request_user_input` or `complete`), include these fields INSIDE each action object:
+- `"UserMessageType"`: Set this to `"Plaintext"` for normal sentences. Set this to `"HTML"` ONLY if the output includes a data table (using `<table>`, `<tr>`, `<td>`) or unstructured lists.
 - HTML can be used only if the interface type is UI.
-- "UserMessage": The actual response text or HTML string to show the user.
+- `"UserMessage"`: The actual response text or HTML string to show the user.
 
-Note : --if INTERFACE:whatsap or telegram - just send text formatted to display properly on those devices 
-if INTERFACE:UI - Use HTML format as needed
+Note:
+- if INTERFACE is WhatsApp or Telegram, send text formatted to display properly on those devices
+- if INTERFACE is UI, HTML may be used as needed
 
-Example Tool Call:
+Example Single Tool Call:
 ```json
 {
   "plan": {
@@ -97,5 +121,54 @@ Example Tool Call:
     "message": "Inspecting database schema..."
   }
 }
-```
 
+Example Mult-Action Output 
+{
+  "plan": {
+    "steps": [
+      {
+        "step": 1,
+        "planitem": "Fetch pending tasks",
+        "status": "done"
+      },
+      {
+        "step": 2,
+        "planitem": "Send notifications to all identified users",
+        "status": "ongoing"
+      }
+    ],
+    "current_step": 2
+  },
+  "actions": [
+    {
+      "type": "tool_call",
+      "tool_request": {
+        "tool_name": "send_telegram_message",
+        "parameters": {
+          "chat_id": "8307703708",
+          "message": "Here are your pending tasks ..."
+        }
+      }
+    },
+    {
+      "type": "tool_call",
+      "tool_request": {
+        "tool_name": "send_telegram_message",
+        "parameters": {
+          "chat_id": "6418599489",
+          "message": "Here are your pending tasks ..."
+        }
+      }
+    }
+  ],
+  "conversation_update": {
+    "content": "Sending notifications to all identified users in one response for efficiency."
+  },
+  "reasoning": {
+    "summary": "These sends are independent, so batching them avoids unnecessary extra LLM turns."
+  },
+  "ui_feedback": {
+    "status": "working",
+    "message": "Sending notifications..."
+  }
+}

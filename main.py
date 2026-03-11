@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import atexit
+from pathlib import Path
 from PySide6.QtWidgets import QApplication
 
 from core.common_data_area import CommonDataArea
@@ -13,6 +14,7 @@ from core.executor import Executor
 from core.router import Router
 from settings.config_loader import load_settings_into_cda
 from ui.chat_ui import ChatUI
+from ui.branding import BRAND_APP_ID, BRAND_NAME, build_brand_icon, ensure_brand_icon_files
 
 
 def build_controller() -> Controller:
@@ -82,8 +84,53 @@ def build_controller() -> Controller:
     return controller
 
 
+def _configure_windows_identity() -> None:
+    if sys.platform != 'win32':
+        return
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(BRAND_APP_ID)
+    except Exception:
+        pass
+
+
+def _apply_windows_taskbar_icon(window, icon_path: Path | None) -> None:
+    if sys.platform != 'win32' or icon_path is None or not icon_path.exists():
+        return
+    try:
+        import ctypes
+
+        image_icon = 1
+        lr_loadfromfile = 0x00000010
+        wm_seticon = 0x0080
+        icon_small = 0
+        icon_big = 1
+
+        user32 = ctypes.windll.user32
+        hwnd = int(window.winId())
+        small_handle = user32.LoadImageW(None, str(icon_path), image_icon, 16, 16, lr_loadfromfile)
+        big_handle = user32.LoadImageW(None, str(icon_path), image_icon, 32, 32, lr_loadfromfile)
+        if small_handle:
+            user32.SendMessageW(hwnd, wm_seticon, icon_small, small_handle)
+        if big_handle:
+            user32.SendMessageW(hwnd, wm_seticon, icon_big, big_handle)
+        window._brand_hicon_small = small_handle
+        window._brand_hicon_big = big_handle
+    except Exception:
+        pass
+
+
 def main() -> None:
+    _configure_windows_identity()
     app = QApplication(sys.argv)
+    app.setApplicationName(BRAND_NAME)
+    app.setApplicationDisplayName(BRAND_NAME)
+    icon_assets = ensure_brand_icon_files(Path.cwd() / 'assets' / 'generated')
+    icon_path = icon_assets.get('ico')
+    app_icon = build_brand_icon()
+    if icon_path and icon_path.exists():
+        app_icon.addFile(str(icon_path))
+    app.setWindowIcon(app_icon)
     controller = build_controller()
 
     def _shutdown_whatsapp_channel() -> None:
@@ -106,7 +153,9 @@ def main() -> None:
 
     app.aboutToQuit.connect(_shutdown_whatsapp_channel)
     ui = ChatUI(controller)
+    ui.setWindowIcon(app_icon)
     ui.show()
+    _apply_windows_taskbar_icon(ui, icon_path)
     sys.exit(app.exec())
 
 

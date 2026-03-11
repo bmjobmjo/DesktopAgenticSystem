@@ -1,5 +1,7 @@
 """Tools specifically to support the AgentCreationAgent in making new agents."""
 
+__tool_exports__ = ['get_database_schema', 'list_available_tools', 'read_agent_template', 'save_new_agent']
+
 from typing import Dict, List, Any
 import sqlite3
 from pathlib import Path

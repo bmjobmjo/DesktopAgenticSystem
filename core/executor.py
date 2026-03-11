@@ -19,6 +19,8 @@ from llm.mock_client import MockLLMClient
 from llm.response_validator import InvalidJSONError, parse_json
 from execution_logger import log_tool_call, log_prompt, log_execution_step, log_exception, log_chat_history, ExecutionLogger
 from tools.tool_registry import call_tool, list_tool_metadata
+from tools.output_utils import collect_created_file_info
+from core.llm_attachments import build_llm_attachments, format_attachments_for_prompt
 from validation.executor_validator import SchemaError, validate_executor_response
 
 
@@ -250,6 +252,23 @@ class Executor:
         ctx[key] = value
         self._ctx_set_memory('prompt_context_dict', ctx)
 
+    def _record_tool_result(self, result: Any) -> None:
+        self._ctx_set_memory('tool_data', result)
+        self.execution_context['TOOL_DATA'] = json.dumps(result, ensure_ascii=False, default=str)
+        created = collect_created_file_info(result)
+        if created is None:
+            return
+
+        created_files = self._ctx_get_memory('created_files', [])
+        if not isinstance(created_files, list):
+            created_files = []
+        created_files = list(created_files)
+        created_files.append(created)
+        self._ctx_set_memory('created_files', created_files)
+        self._ctx_set_memory('last_created_file', created)
+        self._set_cda_prompt_context_value('LAST_CREATED_FILE', created)
+        self._set_cda_prompt_context_value('CREATED_FILES', created_files)
+
     def _replace_placeholders(self, template: str, context: Dict[str, Any]) -> str:
         """
         Replace placeholders found in template by scanning for {{TAG}}.
@@ -317,31 +336,53 @@ class Executor:
             name = str(row.get('name', '') or '')
             doc = str(row.get('description', '') or 'No description.')
             input_schema_raw = str(row.get('input_schema', '') or '')
-            param_names: List[str] = []
+            example_call = str(row.get('example_call', '') or '').strip()
+            param_descriptions: List[str] = []
+            example_params: Dict[str, Any] = {}
             if input_schema_raw:
                 try:
                     parsed = json.loads(input_schema_raw)
-                    if isinstance(parsed, dict) and isinstance(parsed.get('parameters'), list):
-                        param_names = [str(p) for p in parsed.get('parameters', []) if str(p)]
+                    raw_params = parsed.get('parameters', []) if isinstance(parsed, dict) else []
+                    if isinstance(raw_params, list):
+                        for item in raw_params:
+                            if isinstance(item, dict):
+                                param_name = str(item.get('name', '') or '').strip()
+                                if not param_name:
+                                    continue
+                                required = bool(item.get('required', False))
+                                p_type = str(item.get('type', 'Any') or 'Any').strip()
+                                p_desc = str(item.get('description', '') or '').strip()
+                                label = f"{param_name} ({p_type}{', required' if required else ''})"
+                                if p_desc:
+                                    label += f": {p_desc}"
+                                param_descriptions.append(label)
+                                example_params[param_name] = f"<{param_name}>"
+                            else:
+                                param_name = str(item or '').strip()
+                                if not param_name:
+                                    continue
+                                param_descriptions.append(param_name)
+                                example_params[param_name] = f"<{param_name}>"
                 except Exception:
-                    param_names = []
+                    param_descriptions = []
+                    example_params = {}
 
-            params_desc = ", ".join(param_names) if param_names else "none"
-            example_params = {p: f"<{p}>" for p in param_names}
-            example_json = json.dumps(
-                {
-                    "action": {
-                        "type": "tool_call",
-                        "tool_request": {"tool_name": name, "parameters": example_params},
-                    }
-                },
-                ensure_ascii=False,
-            )
+            params_desc = '; '.join(param_descriptions) if param_descriptions else 'none'
+            if not example_call:
+                example_call = json.dumps(
+                    {
+                        'action': {
+                            'type': 'tool_call',
+                            'tool_request': {'tool_name': name, 'parameters': example_params},
+                        }
+                    },
+                    ensure_ascii=False,
+                )
 
             lines.append(f"- {name}")
             lines.append(f"  Description: {doc}")
             lines.append(f"  Parameters: {params_desc}")
-            lines.append(f"  Example: {example_json}")
+            lines.append(f"  Example: {example_call}")
         return "\n".join(lines)
 
     def _init_execution_context(self, agent_name: str, user_prompt: str) -> None:
@@ -371,11 +412,22 @@ class Executor:
             tool_rows = []
         tool_list_str = self._build_detailed_tool_list(tool_rows)
 
+        accessible_dirs = self.cda.get_setting('accessible_directories', []) or []
+        default_directory = self.cda.get_setting('default_directory', '')
+        tool_data = self._ctx_get_memory('tool_data', '')
         self.execution_context = {
             'TOOL_LIST': tool_list_str,
             'USER_PROMPT': user_prompt,
             'USER_INPUT': user_prompt,
             'AGENT_ACTIVITY': '',
+            'ACCESSIBLE_DIRECTORIES': json.dumps(accessible_dirs, ensure_ascii=False, default=str),
+            'DEFAULT_DIRECTORY': str(default_directory or ''),
+            'PATH_RULES': 'Operate only inside accessible directories.',
+            'PLAN': '',
+            'PREV_STEP': '',
+            'CURRENT_STEP': '',
+            'TOOL_DATA': self._to_placeholder_text(tool_data),
+            'RUNTIME_CONTEXT': '',
             'IS_SCHEDULED_TASK': '1' if bool(execution_metadata.get('is_scheduled_task')) else '0',
             'SCHEDULE_ID': str(execution_metadata.get('schedule_id', '') or ''),
             'SCHEDULE_OWNER_ID': str(execution_metadata.get('schedule_owner_id', '') or ''),
@@ -410,6 +462,7 @@ class Executor:
         user_prompt: str,
         status_cb: Optional[Callable[[str], None]],
         max_attempts: int = 5,
+        attachments: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         last_exc: Exception | None = None
         for attempt in range(1, max_attempts + 1):
@@ -419,6 +472,7 @@ class Executor:
                         prompt,
                         agent_name=agent_name,
                         user_prompt=user_prompt,
+                        attachments=attachments,
                     )
                 except TypeError as exc:
                     # Backward compatibility for simple clients/tests that only accept (prompt).
@@ -469,6 +523,7 @@ class Executor:
         loop_idx: int,
         max_retries: int,
         status_cb: Optional[Callable[[str], None]],
+        attachments: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         ExecutePrompt:
@@ -480,13 +535,17 @@ class Executor:
         last_error: Exception | None = None
 
         for attempt in range(max_retries + 1):
+            prompt_for_trace = prompt
+            attachment_trace = format_attachments_for_prompt(attachments)
+            if attachment_trace:
+                prompt_for_trace = f"{prompt}\n\n{attachment_trace}"
             llm_payload = {
                 'agent_name': agent_name,
                 'loop': loop_idx + 1,
                 'attempt': attempt + 1,
-                'prompt': prompt,
+                'prompt': prompt_for_trace,
                 'user_prompt': user_prompt,
-                'filepath': ExecutionLogger.save_trace_file(f"{agent_name}_prompt_step{{{loop_idx+1}}}", prompt)
+                'filepath': ExecutionLogger.save_trace_file(f"{agent_name}_prompt_step{{{loop_idx+1}}}", prompt_for_trace)
             }
             self._emit_trace('llm_prepared_prompt', llm_payload)
             if not self._request_permission('llm_call', llm_payload):
@@ -503,6 +562,7 @@ class Executor:
                 user_prompt=user_prompt,
                 status_cb=status_cb,
                 max_attempts=5,
+                attachments=attachments,
             )
             time_taken = time.time() - start_time
             usage = getattr(llm_client, 'last_usage', {})
@@ -586,6 +646,7 @@ class Executor:
             },
         )
         log_tool_call(tool_name, parameters, result)
+        self._record_tool_result(result)
         self._append_agent_activity("ToolResult", result)
         return result
 
@@ -822,6 +883,8 @@ class Executor:
         resume: bool = False,
         session_ctx: SessionContext | None = None,
         interface_type: str = 'UI',
+        llm_attachments: Optional[List[Dict[str, Any]]] = None,
+        input_files: Optional[List[str]] = None,
     ) -> ExecutorResult:
         """
         Executes a task using a specific Agent.
@@ -868,6 +931,9 @@ class Executor:
             self.execution_context['USER_INPUT'] = user_prompt
             self.execution_context['INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM'] = interface_type
 
+            if llm_attachments is None and input_files:
+                llm_attachments = build_llm_attachments(input_files, self.cda)
+            self.execution_context['LLM_ATTACHMENTS'] = llm_attachments or []
             self._append_agent_activity("UserInput", user_prompt)
 
             # 2. Main Execution Loop
@@ -898,6 +964,7 @@ class Executor:
                     loop_idx=loop_idx,
                     max_retries=max_retries,
                     status_cb=status_cb,
+                    attachments=llm_attachments,
                 )
 
                 result = self._process_result(

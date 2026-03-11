@@ -11,6 +11,29 @@ from validation.json_schema import SchemaError, require_dict, require_enum, requ
 _ACTION_TYPES = ['tool_call', 'request_user_input', 'continue', 'agent_call', 'complete']
 
 
+def _lift_misnested_top_level_fields(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalize a common model deviation where top-level fields are nested
+    inside the single `action` object.
+    """
+    field_names = ('conversation_update', 'reasoning', 'ui_feedback')
+
+    action = data.get('action')
+    if isinstance(action, dict):
+        for field_name in field_names:
+            if field_name not in data and field_name in action:
+                data[field_name] = action.pop(field_name)
+
+    actions = data.get('actions')
+    if isinstance(actions, list) and len(actions) == 1 and isinstance(actions[0], dict):
+        first_action = actions[0]
+        for field_name in field_names:
+            if field_name not in data and field_name in first_action:
+                data[field_name] = first_action.pop(field_name)
+
+    return data
+
+
 def _validate_plan(plan: Dict) -> None:
     require_dict(plan, 'plan')
     
@@ -122,6 +145,7 @@ def _validate_ui_feedback(ui_feedback: Dict) -> None:
 def validate_executor_response(data: Dict) -> Dict:
     try:
         data = require_dict(data, 'executor_response')
+        data = _lift_misnested_top_level_fields(data)
         require_keys(data, ['plan', 'conversation_update', 'reasoning', 'ui_feedback'], 'executor_response')
         if 'action' not in data and 'actions' not in data:
             raise SchemaError("executor_response must contain 'action' or 'actions'")

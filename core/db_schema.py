@@ -13,6 +13,18 @@ import time
 DB_PATH = Path(r'd:\Works\GenericAgent\DesktopAgenticSystem\data\office_automation.db')
 LEGACY_USER_COLUMNS = {'roleID', 'chat_id'}
 
+
+def _resolve_db_path() -> Path:
+    try:
+        from core.common_data_area import CommonDataArea
+
+        configured = str(CommonDataArea().get_setting('sqlite_db_path', '') or '').strip()
+        if configured:
+            return Path(configured).resolve()
+    except Exception:
+        pass
+    return Path(DB_PATH).resolve()
+
 def _quote_ident(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
@@ -60,7 +72,9 @@ def _repair_holiday_list_fk_if_needed(cursor: sqlite3.Cursor) -> None:
     cursor.execute("DROP TABLE HolidayList_Old")
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH, timeout=20)
+    db_path = _resolve_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path, timeout=20)
     cursor = conn.cursor()
 
     print("Checking Database Schema...")
@@ -423,9 +437,14 @@ def init_db():
         description TEXT,
         input_schema TEXT,
         output_schema TEXT,
-        version TEXT
+        version TEXT,
+        example_call TEXT
     )
     """)
+    cursor.execute("PRAGMA table_info(ToolList)")
+    tool_cols = {str(row[1]) for row in cursor.fetchall()}
+    if 'example_call' not in tool_cols:
+        cursor.execute("ALTER TABLE ToolList ADD COLUMN example_call TEXT")
 
     # 9. Agent -> Tool Mapping
     cursor.execute("""

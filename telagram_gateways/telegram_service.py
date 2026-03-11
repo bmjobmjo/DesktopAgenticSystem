@@ -156,6 +156,14 @@ class TelegramChannelService:
         candidate = re.sub(r'[\/:*?"<>|]+', '_', candidate)
         return candidate[:180] or fallback
 
+    def _inbound_base_dir(self, chat_id: str) -> Path:
+        default_directory = str(self.cda.get_setting("default_directory", "") or "").strip()
+        if default_directory:
+            root = Path(default_directory).expanduser()
+        else:
+            root = Path("data")
+        return root / "telegram_inbound" / (str(chat_id or "").strip() or "unknown")
+
     def _download_telegram_file(self, file_id: str, suggested_name: str, chat_id: str) -> str:
         file_id = str(file_id or "").strip()
         if not file_id:
@@ -180,7 +188,7 @@ class TelegramChannelService:
         with urlrequest.urlopen(urlrequest.Request(download_url, method='GET'), timeout=60) as res:
             data = res.read()
 
-        base_dir = Path('data') / 'telegram_inbound' / (str(chat_id or '').strip() or 'unknown')
+        base_dir = self._inbound_base_dir(chat_id)
         base_dir.mkdir(parents=True, exist_ok=True)
 
         remote_name = Path(remote_path).name

@@ -17,6 +17,7 @@ from core.session_context import SessionContext
 from core.executor import Executor, ExecutorError
 from core.router import Router, RouterError
 from execution_logger import log_execution_step, log_exception, log_chat_history
+from tools.output_utils import collect_created_file_info
 
 
 @dataclass
@@ -363,6 +364,8 @@ class Controller:
         self.cda.set_memory('agent_activity_step', 0)
         self.cda.set_memory('plan', '')
         self.cda.set_memory('tool_data', '')
+        self.cda.set_memory('created_files', [])
+        self.cda.set_memory('last_created_file', None)
         self.cda.set_memory('last_action', '')
 
         prompt_ctx = self.cda.get_memory('prompt_context_dict', {})
@@ -610,7 +613,9 @@ class Controller:
                     'type': 'agent_call',
                     'selected_agent': new_agent,
                     'instruction': result.content, # Use the summary from previous agent as instruction
-                    'priority': 1
+                    'priority': 1,
+                    '_llm_attachments': self.current_task.get('_llm_attachments', []),
+                    '_attached_file_paths': self.current_task.get('_attached_file_paths', []),
                 }
                 self.task_queue.insert(0, handoff_task)
                 continue
@@ -668,7 +673,18 @@ class Controller:
                 result_data = call_tool(tool_name, params, status_callback=status_cb)
                 if status_cb:
                     status_cb("") # Clear progress
-                
+
+                self.cda.set_memory('tool_data', result_data)
+                created = collect_created_file_info(result_data)
+                if created is not None:
+                    created_files = self.cda.get_memory('created_files', [])
+                    if not isinstance(created_files, list):
+                        created_files = []
+                    created_files = list(created_files)
+                    created_files.append(created)
+                    self.cda.set_memory('created_files', created_files)
+                    self.cda.set_memory('last_created_file', created)
+
                 self._emit_trace('tool_result', {**tool_payload, 'result': result_data})
                 
                 # Feedback Loop: Send tool result back to Router for synthesis
@@ -678,8 +694,10 @@ class Controller:
                 log_execution_step('CONTROLLER_TOOL_FEEDBACK', f"Feeding result back to Router: {tool_output_str[:100]}...")
                 
                 # Re-route with tool output
+                task_input_files = self.current_task.get('_attached_file_paths') or None
                 new_routes = self._route(
                     prompt,
+                    input_files=[Path(f) for f in task_input_files] if task_input_files else None,
                     tool_output=tool_output_str,
                     chat_history=self._get_chat_history(),
                     interface_type=interface_type,
@@ -737,6 +755,8 @@ class Controller:
                 resume=resume,
                 session_ctx=self._get_session_context(),
                 interface_type=interface_type,
+                llm_attachments=self.current_task.get('_llm_attachments'),
+                input_files=self.current_task.get('_attached_file_paths'),
             )
             
             self._append_history(prompt, result.content)

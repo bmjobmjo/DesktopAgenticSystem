@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import sqlite3
 import urllib.request
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from core.common_data_area import CommonDataArea
 from llm.base_client import BaseLLMClient
+from core.llm_attachments import format_attachments_for_prompt
 
 
 def _get_db_path() -> str:
@@ -29,7 +30,8 @@ class GeminiClient(BaseLLMClient):
         self, 
         prompt: str, 
         agent_name: str = "Assistant", 
-        user_prompt: str = ""
+        user_prompt: str = "",
+        attachments: List[Dict[str, Any]] | None = None,
     ) -> str:
         api_key = self.cda.get_setting('gemini_api_key', '')
         if not api_key:
@@ -42,13 +44,24 @@ class GeminiClient(BaseLLMClient):
         )
         temperature = float(self.cda.get_setting('gemini_temperature', 0.0))
         
+        attachment_block = format_attachments_for_prompt(attachments)
+        prompt_with_attachments = prompt if not attachment_block else f"{prompt}\n\n{attachment_block}"
+
+        parts: List[Dict[str, Any]] = [{'text': prompt_with_attachments}]
+        for item in attachments or []:
+            if str(item.get('kind', '') or '') != 'image':
+                continue
+            mime_type = str(item.get('mime_type', '') or '').strip()
+            data_base64 = str(item.get('data_base64', '') or '').strip()
+            if not mime_type or not data_base64:
+                continue
+            parts.append({'inline_data': {'mime_type': mime_type, 'data': data_base64}})
+
         body = {
             'contents': [
                 {
                     'role': 'user',
-                    'parts': [
-                        {'text': prompt}
-                    ]
+                    'parts': parts
                 }
             ],
             'generationConfig': {
@@ -95,7 +108,7 @@ class GeminiClient(BaseLLMClient):
             self.last_usage = {'tin': tin, 'tout': tout, 'total': total}
             
             # Log to DB
-            self._log_usage(agent_name, user_prompt, prompt, response_text, tin, tout, total)
+            self._log_usage(agent_name, user_prompt, prompt_with_attachments, response_text, tin, tout, total)
             
             return response_text
         except (KeyError, IndexError, TypeError) as exc:

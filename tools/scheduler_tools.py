@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+__tool_exports__ = ['validate_schedule', 'create_schedule', 'list_schedules', 'update_schedule', 'delete_schedule']
+
 import sqlite3
 from datetime import datetime
 from pathlib import Path

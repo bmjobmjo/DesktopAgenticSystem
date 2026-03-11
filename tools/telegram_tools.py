@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+__tool_exports__ = ['send_telegram_message', 'send_telegram_file']
+
 import sqlite3
 from pathlib import Path
 from typing import Any, Dict, Optional

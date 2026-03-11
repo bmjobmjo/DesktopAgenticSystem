@@ -5,11 +5,12 @@ from __future__ import annotations
 import json
 import sqlite3
 import urllib.request
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from core.common_data_area import CommonDataArea
 from llm.base_client import BaseLLMClient
 from execution_logger import log_execution_step, log_exception
+from core.llm_attachments import format_attachments_for_prompt
 
 
 def _get_db_path() -> str:
@@ -30,7 +31,8 @@ class LocalLLMClient(BaseLLMClient):
         self, 
         prompt: str, 
         agent_name: str = "Assistant", 
-        user_prompt: str = ""
+        user_prompt: str = "",
+        attachments: List[Dict[str, Any]] | None = None,
     ) -> str:
         base_url = self.cda.get_setting('local_llm_url', 'http://127.0.0.1:1234/v1')
         model_id = self.cda.get_setting('local_llm_model', 'qwen2.5-14b-instruct-1m')
@@ -42,10 +44,25 @@ class LocalLLMClient(BaseLLMClient):
         if not url.endswith('/chat/completions'):
             url += '/chat/completions'
 
+        attachment_block = format_attachments_for_prompt(attachments)
+        prompt_with_attachments = prompt if not attachment_block else f"{prompt}\n\n{attachment_block}"
+
+        message_content: Any = prompt_with_attachments
+        image_parts = []
+        for item in attachments or []:
+            if str(item.get('kind', '') or '') != 'image':
+                continue
+            data_url = str(item.get('data_url', '') or '').strip()
+            if not data_url:
+                continue
+            image_parts.append({"type": "image_url", "image_url": {"url": data_url}})
+        if image_parts:
+            message_content = [{"type": "text", "text": prompt_with_attachments}, *image_parts]
+
         body = {
             "model": model_id,
             "messages": [
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": message_content}
             ],
             "temperature": 0.3
         }
@@ -79,7 +96,7 @@ class LocalLLMClient(BaseLLMClient):
             self.last_usage = {'tin': tin, 'tout': tout, 'total': total}
             
             # Log to DB
-            self._log_usage(agent_name, user_prompt, prompt, response_text, tin, tout, total)
+            self._log_usage(agent_name, user_prompt, prompt_with_attachments, response_text, tin, tout, total)
             
             return response_text
         except (KeyError, IndexError, TypeError) as exc:
