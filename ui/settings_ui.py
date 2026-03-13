@@ -1215,6 +1215,11 @@ class SettingsPanel(QWidget):
         self.openrouter_model_edit.setEditable(True)
         openrouter_models = [
             ("google/gemini-2.5-flash", "google/gemini-2.5-flash  [fast, optimum]"),
+            ("google/gemini-2.0-flash-lite-001", "google/gemini-2.0-flash-lite-001  [fast, low cost, medium accuracy $0.075]"),
+            ("openai/gpt-oss-120b", "openai/gpt-oss-120b  [medium fast, low cost, low accuracy $0.039]"),
+            ("openai/gpt-oss-20b", "openai/gpt-oss-20b  [medium fast, low cost, low accuracy $0.03]"),
+            ("openrouter/hunter-alpha", "openrouter/hunter-alpha  [slow, low accuracy, free]"),
+            ("nvidia/nemotron-3-super-120b-a12b:free", "nvidia/nemotron-3-super-120b-a12b:free  [slow, low accuracy, free]"),
             ("stepfun/step-3.5-flash:free", "stepfun/step-3.5-flash:free  [high latency]"),
             ("stepfun/step-3.5-flash", "stepfun/step-3.5-flash  [high latency]"),
             ("meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3.3-70b-instruct  [fast]"),

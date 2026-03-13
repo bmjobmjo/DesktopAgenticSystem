@@ -1,4 +1,4 @@
-"""WhatsApp channel integration: local webhook receiver + gateway client."""
+﻿"""WhatsApp channel integration: local webhook receiver + gateway client."""
 
 from __future__ import annotations
 
@@ -18,13 +18,20 @@ from urllib import request as urlrequest
 from urllib.parse import urlparse
 
 from core.common_data_area import CommonDataArea
+from core.inbound_request import InboundRequest
 from execution_logger import log_exception, log_execution_step
 
 
 class WhatsAppChannelService:
-    def __init__(self, cda: CommonDataArea, controller: Any) -> None:
+    def __init__(
+        self,
+        cda: CommonDataArea,
+        controller: Any | None = None,
+        conversation_manager: Any | None = None,
+    ) -> None:
         self.cda = cda
         self.controller = controller
+        self.conversation_manager = conversation_manager
         self._http_server: ThreadingHTTPServer | None = None
         self._server_thread: threading.Thread | None = None
         self._gateway_proc: subprocess.Popen | None = None
@@ -469,7 +476,12 @@ class WhatsAppChannelService:
         try:
             # Expire stale channel sessions and notify users.
             try:
-                expired = self.controller.close_inactive_channel_sessions("WhatsApp", timeout_seconds=timeout_seconds)
+                if self.conversation_manager is not None:
+                    expired = self.conversation_manager.close_inactive("WhatsApp", timeout_seconds=timeout_seconds)
+                elif self.controller is not None:
+                    expired = self.controller.close_inactive_channel_sessions("WhatsApp", timeout_seconds=timeout_seconds)
+                else:
+                    expired = []
                 for item in expired:
                     to_id = str(item.get("session_id", "") or "").replace("whatsapp:", "").strip()
                     if to_id:
@@ -501,19 +513,42 @@ class WhatsAppChannelService:
                 except Exception:
                     return
 
-            result = self.controller.handle_user_message(
-                text,
-                files=files or None,
-                interface="WhatsApp",
-                user_id=user_id,
-                channel_id=channel_user_id,
-                session_id=f"whatsapp:{channel_user_id}",
-                ui_callback=_channel_ui_feedback,
-            )
-            out_text = str(getattr(result, "content", "") or "").strip()
-            if out_text:
-                self.send_text(target_id, out_text)
-            self._mark_handled(provider, message_id)
+            if self.conversation_manager is not None:
+                def _complete(result: Any) -> None:
+                    try:
+                        out_text = str(getattr(result, "content", "") or "").strip()
+                        if out_text:
+                            self.send_text(target_id, out_text)
+                    finally:
+                        self._mark_handled(provider, message_id)
+
+                self.conversation_manager.submit(
+                    InboundRequest(
+                        conversation_id=f"whatsapp:{channel_user_id}",
+                        interface="WhatsApp",
+                        user_id=user_id,
+                        message=text,
+                        files=list(files or []),
+                        ui_callback=_channel_ui_feedback,
+                        completion_callback=_complete,
+                    )
+                )
+            elif self.controller is not None:
+                result = self.controller.handle_user_message(
+                    text,
+                    files=files or None,
+                    interface="WhatsApp",
+                    user_id=user_id,
+                    channel_id=channel_user_id,
+                    session_id=f"whatsapp:{channel_user_id}",
+                    ui_callback=_channel_ui_feedback,
+                )
+                out_text = str(getattr(result, "content", "") or "").strip()
+                if out_text:
+                    self.send_text(target_id, out_text)
+                self._mark_handled(provider, message_id)
+            else:
+                raise RuntimeError("No WhatsApp execution backend configured.")
         except Exception as exc:
             log_exception("WHATSAPP_INBOUND_EXEC_ERROR", exc, payload)
 
@@ -557,3 +592,4 @@ class WhatsAppChannelService:
                 return data if isinstance(data, dict) else {"success": True}
         except Exception as exc:
             return {"success": False, "error": str(exc)}
+

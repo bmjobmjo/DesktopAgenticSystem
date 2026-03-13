@@ -1,30 +1,27 @@
-"""Application entrypoint."""
+﻿"""Application entrypoint."""
 
 from __future__ import annotations
 
-import os
-import sys
 import atexit
+import sys
 from pathlib import Path
+
 from PySide6.QtWidgets import QApplication
 
 from core.common_data_area import CommonDataArea
-from core.controller import Controller
-from core.executor import Executor
-from core.router import Router
+from core.conversation_manager import ConversationManager
 from settings.config_loader import load_settings_into_cda
 from ui.chat_ui import ChatUI
 from ui.branding import BRAND_APP_ID, BRAND_NAME, build_brand_icon, ensure_brand_icon_files
 
 
-def build_controller() -> Controller:
+def build_application() -> tuple[CommonDataArea, ConversationManager]:
     cda = CommonDataArea()
     load_settings_into_cda(cda)
 
     from tools.tool_registry import sync_tools_to_db
     sync_tools_to_db(cda)
 
-    # Register Custom Agents
     from agents.registry import register_agent
     custom_agents = cda.get_setting('custom_agents', [])
     for agent in custom_agents:
@@ -38,30 +35,23 @@ def build_controller() -> Controller:
     llm_client = get_llm_client(cda)
     cda.set_runtime('llm_client', llm_client)
 
-    router = Router(cda)
-    executor = Executor(cda)
-    controller = Controller(cda=cda, router=router, executor=executor)
+    conversation_manager = ConversationManager(cda)
+    cda.set_runtime('conversation_manager', conversation_manager)
 
-    cda.set_runtime('router', router)
-    cda.set_runtime('executor', executor)
-    cda.set_runtime('controller', controller)
-
-    # Optional WhatsApp channel integration (local webhook + gateway client).
     try:
         from core.whatsapp_channel import WhatsAppChannelService
-        wa_service = WhatsAppChannelService(cda=cda, controller=controller)
+        wa_service = WhatsAppChannelService(cda=cda, conversation_manager=conversation_manager)
         wa_service.start()
         cda.set_runtime('whatsapp_channel_service', wa_service)
         atexit.register(lambda: wa_service.stop())
     except Exception as e:
         print(f"WhatsApp channel init failed: {e}")
 
-    # Optional Telegram channel integration (polling mode).
     try:
         from telagram_gateways.telegram_controller import TelegramController
         from telagram_gateways.telegram_service import TelegramChannelService
 
-        tg_controller = TelegramController(cda=cda, controller=controller)
+        tg_controller = TelegramController(cda=cda, conversation_manager=conversation_manager)
         tg_service = TelegramChannelService(cda=cda, telegram_controller=tg_controller)
         tg_service.start()
         cda.set_runtime('telegram_controller', tg_controller)
@@ -70,18 +60,17 @@ def build_controller() -> Controller:
     except Exception as e:
         print(f"Telegram channel init failed: {e}")
 
-    # Optional Scheduler service integration (background polling).
     try:
         from core.scheduler_service import SchedulerService
 
-        scheduler_service = SchedulerService(cda=cda, controller=controller)
+        scheduler_service = SchedulerService(cda=cda, conversation_manager=conversation_manager)
         scheduler_service.start()
         cda.set_runtime('scheduler_service', scheduler_service)
         atexit.register(lambda: scheduler_service.stop())
     except Exception as e:
         print(f"Scheduler service init failed: {e}")
 
-    return controller
+    return cda, conversation_manager
 
 
 def _configure_windows_identity() -> None:
@@ -131,11 +120,10 @@ def main() -> None:
     if icon_path and icon_path.exists():
         app_icon.addFile(str(icon_path))
     app.setWindowIcon(app_icon)
-    controller = build_controller()
+    cda, conversation_manager = build_application()
 
-    def _shutdown_whatsapp_channel() -> None:
+    def _shutdown_services() -> None:
         try:
-            cda = controller.cda
             wa_service = cda.get_runtime('whatsapp_channel_service')
             if wa_service:
                 wa_service.stop()
@@ -148,11 +136,12 @@ def main() -> None:
             if scheduler_service:
                 scheduler_service.stop()
                 cda.set_runtime('scheduler_service', None)
+            conversation_manager.shutdown()
         except Exception:
             pass
 
-    app.aboutToQuit.connect(_shutdown_whatsapp_channel)
-    ui = ChatUI(controller)
+    app.aboutToQuit.connect(_shutdown_services)
+    ui = ChatUI(conversation_manager=conversation_manager, cda=cda)
     ui.setWindowIcon(app_icon)
     ui.show()
     _apply_windows_taskbar_icon(ui, icon_path)
@@ -168,5 +157,3 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Database initialization failed: {e}")
     main()
-
-

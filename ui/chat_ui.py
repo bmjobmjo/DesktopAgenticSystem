@@ -6,6 +6,7 @@ import json
 import os
 import sqlite3
 import threading
+import uuid
 import re
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple, Optional
@@ -21,8 +22,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, Signal, QObject, QUrl
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap, QDesktopServices
 
-from core.controller import Controller
 from core.common_data_area import CommonDataArea
+from core.conversation_manager import ConversationManager
+from core.inbound_request import InboundRequest
 from ui.settings_ui import SettingsPanel
 import execution_logger
 from agents.registry import _get_db_path
@@ -112,12 +114,13 @@ class CreateAgentDialog(QDialog):
 
 
 class ChatUI(QMainWindow):
-    def __init__(self, controller: Controller, cda: CommonDataArea | None = None) -> None:
+    def __init__(self, conversation_manager: ConversationManager, cda: CommonDataArea | None = None) -> None:
         super().__init__()
         self.cda = cda or CommonDataArea()
-        self.controller = controller
+        self.conversation_manager = conversation_manager
         self.selected_files: List[str] = []
         self._current_chat_id: Optional[int] = None
+        self._conversation_id = self._new_ui_conversation_id()
         self._runtime_trace_file = self._init_runtime_trace_file()
         
         self.signals = Signals()
@@ -532,6 +535,24 @@ class ChatUI(QMainWindow):
             self.debug_mode_label.setText("")
             self.nav_buttons['logs'].hide()
 
+    def _active_user_id(self) -> str:
+        return str(self.cda.get_setting('current_user_id', '') or '')
+
+    def _new_ui_conversation_id(self, chat_id: Optional[int] = None) -> str:
+        if chat_id is not None:
+            return f"ui:chat:{int(chat_id)}"
+        return f"ui:live:{uuid.uuid4().hex}"
+
+    def _handle_ui_completion(self, result: Any) -> None:
+        try:
+            status = str(getattr(result, 'status', '') or '').strip().lower()
+            content = str(getattr(result, 'content', '') or '').strip()
+            if content:
+                role = 'Error' if status == 'error' else 'Agent'
+                self.signals.append_message.emit(role, content)
+        finally:
+            self.signals.execution_ended.emit()
+
     def _handle_nav(self, key: str):
         # Update button checks
         for k, btn in self.nav_buttons.items():
@@ -554,8 +575,7 @@ class ChatUI(QMainWindow):
 
     def _start_new_chat(self) -> None:
         self._current_chat_id = None
-        self.controller.reset_session_state(interface='UI', session_id='default')
-
+        self._conversation_id = self._new_ui_conversation_id()
         self.transcript.clear()
         self._handle_nav('interaction')
 
@@ -565,7 +585,7 @@ class ChatUI(QMainWindow):
     def _safe_append_message(self, sender: str, message: str) -> None:
         agent_activity = ""
         if sender == 'Agent':
-            agent_activity = self.cda.get_memory('agent_activity', '')
+            agent_activity = self.conversation_manager.get_agent_activity(self._conversation_id)
             
         # Save raw message to database before prefixing
         self._save_to_chat_history(sender, message, agent_activity)
@@ -648,18 +668,18 @@ class ChatUI(QMainWindow):
         else:
             session_engine = bool(raw)
         try:
-            sessions = self.controller.list_active_sessions()
+            sessions = self.conversation_manager.list_active_sessions()
         except Exception as e:
             self.sessions_meta_label.setText(f"Failed to load sessions: {e}")
             self.session_chat_view.setText(f"Failed to load sessions: {e}")
             self.sessions_tree.blockSignals(False)
             return
 
-        store_count = 0
+        store_count = len(sessions)
         try:
-            store_count = int(self.controller.session_store.size())
+            store_count = int(self.conversation_manager.size())
         except Exception:
-            store_count = len(sessions)
+            pass
         self.sessions_meta_label.setText(
             f"Session engine: {'ON' if session_engine else 'OFF'} | Active in-memory sessions: {store_count}"
         )
@@ -782,49 +802,45 @@ class ChatUI(QMainWindow):
             return
 
         self.input_entry.clear()
-        
-        # Display instantly
+
         if message:
             self.append_message('User', message)
-        
-        # Process files silently
+
         if self.selected_files:
             docs_msg = f"Attached {len(self.selected_files)} document(s)."
-            if message: docs_msg += " " + message
+            if message:
+                docs_msg += " " + message
             if not message:
                 self.append_message('User', f"<i>Attached {len(self.selected_files)} document(s)</i>")
             message = docs_msg
-            
+
         files_to_send = list(self.selected_files)
         self.selected_files.clear()
         self.file_list_frame.hide()
 
-        def _run_controller():
-            self.signals.execution_started.emit()
-            cancel_event = threading.Event()
-            self.cda.set_runtime('cancel_event', cancel_event)
-            try:
-                result = self.controller.handle_user_message(
-                    message,
-                    files=files_to_send,
+        self.signals.execution_started.emit()
+        try:
+            self.conversation_manager.submit(
+                InboundRequest(
+                    conversation_id=self._conversation_id,
                     interface='UI',
-                    ui_callback=self._ui_feedback
+                    user_id=self._active_user_id(),
+                    message=message,
+                    files=files_to_send,
+                    ui_callback=self._ui_feedback,
+                    status_callback=lambda status: self.signals.update_status.emit(str(status or '')),
+                    trace_callback=self._executor_trace_threadsafe,
+                    permission_callback=self._request_permission_threadsafe,
+                    completion_callback=self._handle_ui_completion,
                 )
-                if result.content:
-                    self.append_message('Agent', result.content)
-            except Exception as e:
-                execution_logger.log_exception('CONTROLLER_FAIL', e)
-                self.append_message('Error', f"System error: {e}")
-            finally:
-                self.signals.execution_ended.emit()
-
-        t = threading.Thread(target=_run_controller, daemon=True)
-        t.start()
+            )
+        except Exception as e:
+            execution_logger.log_exception('CONTROLLER_FAIL', e)
+            self.append_message('Error', f"System error: {e}")
+            self.signals.execution_ended.emit()
 
     def on_stop(self) -> None:
-        cancel_event = self.cda.get_runtime('cancel_event')
-        if cancel_event and isinstance(cancel_event, threading.Event):
-            cancel_event.set()
+        if self.conversation_manager.cancel(self._conversation_id):
             self.append_message('Status', "<i>Cancellation requested...</i>")
 
     def closeEvent(self, event) -> None:  # noqa: N802
@@ -1076,7 +1092,7 @@ class ChatUI(QMainWindow):
             conn = sqlite3.connect(db_path)
             cur = conn.cursor()
             user_id = str(self.cda.get_setting('current_user_id', '') or '')
-            interface = str(self.cda.get_setting('interface', 'UI') or 'UI')
+            interface = 'UI'
             cur.execute("PRAGMA table_info(ChatHistory)")
             ch_cols = [row[1] for row in cur.fetchall()]
             cur.execute("PRAGMA table_info(ChatLog)")
@@ -1231,6 +1247,7 @@ class ChatUI(QMainWindow):
 
     def _load_history_chat(self, chat_id: int) -> None:
         self._current_chat_id = chat_id
+        self._conversation_id = self._new_ui_conversation_id(chat_id)
         self.transcript.clear()
         
         history_text = ""
@@ -1300,16 +1317,20 @@ class ChatUI(QMainWindow):
                 prefix = "User: " if role == 'User' else "Agent: "
                 history_text += f"{prefix}{content}\n"
                 
-            # Rehydrate context memory
-            self.cda.set_memory('chat_history', history_text)
-            self.cda.set_memory('agent_activity', latest_agent_activity)
+            self.conversation_manager.hydrate_ui_history(
+                self._conversation_id,
+                self._active_user_id(),
+                history_text,
+                latest_agent_activity,
+                chat_id,
+            )
             self._handle_nav('interaction')
                 
         except Exception as e:
             execution_logger.log_execution_step('HISTORY_LOAD_ERROR', f"Failed to load chat {chat_id}: {e}")
             
-        self.cda.set_memory('chat_history', history_text)
         self._handle_nav('interaction')
+
 
 
 

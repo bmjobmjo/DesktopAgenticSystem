@@ -325,6 +325,197 @@ def test_export_file_builds_docx_from_sections_table_payload():
         assert doc.tables[0].rows[1].cells[1].text == 'Refactor NEERS app'
 
 
+def test_export_file_uses_generic_table_template_for_generic_pdf():
+    cda = CommonDataArea()
+    cda.reset()
+
+    with tempfile.TemporaryDirectory() as storage_dir:
+        cda.set_setting('file_storage_path', storage_dir)
+
+        result = call_tool(
+            'export_file',
+            {
+                'output_filename': 'generic_six_col_report.pdf',
+                'format': 'pdf',
+                'subfolder': 'reports',
+                'title': 'Generic Six Column Report',
+                'columns': [
+                    {'key': 'col1', 'header': 'Col 1'},
+                    {'key': 'col2', 'header': 'Col 2'},
+                    {'key': 'col3', 'header': 'Col 3'},
+                    {'key': 'col4', 'header': 'Col 4'},
+                    {'key': 'col5', 'header': 'Col 5'},
+                    {'key': 'col6', 'header': 'Col 6'},
+                ],
+                'rows': [
+                    {
+                        'col1': 'A',
+                        'col2': 'Long text that should wrap inside the fixed width second column without breaking alignment.',
+                        'col3': 'Value 3',
+                        'col4': 'Value 4',
+                        'col5': 'Value 5',
+                        'col6': 'Value 6',
+                    }
+                ],
+            },
+        )
+
+        assert result['success'] is True
+        assert Path(result['file_path']).exists()
+        assert result['meta']['layout'] == 'generic_table_6'
+        assert result['meta']['page_orientation'] == 'landscape'
+
+
+
+def test_export_file_uses_generic_table_template_for_generic_docx():
+    cda = CommonDataArea()
+    cda.reset()
+
+    with tempfile.TemporaryDirectory() as storage_dir:
+        cda.set_setting('file_storage_path', storage_dir)
+
+        result = call_tool(
+            'export_file',
+            {
+                'output_filename': 'generic_six_col_report.docx',
+                'format': 'docx',
+                'subfolder': 'reports',
+                'title': 'Generic Six Column Report',
+                'columns': [
+                    {'key': 'col1', 'header': 'Col 1'},
+                    {'key': 'col2', 'header': 'Col 2'},
+                    {'key': 'col3', 'header': 'Col 3'},
+                    {'key': 'col4', 'header': 'Col 4'},
+                    {'key': 'col5', 'header': 'Col 5'},
+                    {'key': 'col6', 'header': 'Col 6'},
+                ],
+                'rows': [
+                    {
+                        'col1': 'A',
+                        'col2': 'Long text that should wrap inside the fixed width second column without breaking alignment.',
+                        'col3': 'Value 3',
+                        'col4': 'Value 4',
+                        'col5': 'Value 5',
+                        'col6': 'Value 6',
+                    }
+                ],
+            },
+        )
+
+        assert result['success'] is True
+        assert Path(result['file_path']).exists()
+        assert result['meta']['layout'] == 'generic_table_6'
+        assert result['meta']['page_orientation'] == 'landscape'
+
+
+
+
+def test_export_file_supports_generic_docx_with_more_than_ten_columns():
+    cda = CommonDataArea()
+    cda.reset()
+
+    with tempfile.TemporaryDirectory() as storage_dir:
+        cda.set_setting('file_storage_path', storage_dir)
+
+        columns = [
+            {'key': 'id', 'header': 'ID'},
+            {'key': 'amount', 'header': 'Amount'},
+            {'key': 'currency', 'header': 'Currency'},
+            {'key': 'expense_date', 'header': 'Date'},
+            {'key': 'description', 'header': 'Description'},
+            {'key': 'vendor', 'header': 'Vendor'},
+            {'key': 'category', 'header': 'Category'},
+            {'key': 'project', 'header': 'Project'},
+            {'key': 'entered_by', 'header': 'Entered By'},
+            {'key': 'purchased_by', 'header': 'Purchased By'},
+            {'key': 'status', 'header': 'Status'},
+        ]
+        rows = [
+            {
+                'id': 9,
+                'amount': 7430.0,
+                'currency': 'INR',
+                'expense_date': '2026-03-12',
+                'description': 'Bakon BK8586 700W Comprehensive Maintenance Hot Air Gun Soldering and Desoldering Iron Rework Station 2 in 1',
+                'vendor': 'MACFOS LIMITED',
+                'category': None,
+                'project': None,
+                'entered_by': 'Bijumon',
+                'purchased_by': None,
+                'status': 'pending',
+            }
+        ]
+
+        result = call_tool(
+            'export_file',
+            {
+                'output_filename': 'generic_eleven_col_report.docx',
+                'format': 'docx',
+                'subfolder': 'reports',
+                'title': 'Generic Eleven Column Report',
+                'columns': columns,
+                'rows': rows,
+            },
+        )
+
+        assert result['success'] is True
+        assert Path(result['file_path']).exists()
+        assert result['meta']['layout'] == 'generic_table_11'
+        assert result['meta']['page_orientation'] == 'landscape'
+
+        document = Document(result['file_path'])
+        assert len(document.tables) == 1
+        assert len(document.tables[0].rows[0].cells) == 11
+
+def test_export_file_uses_expense_report_layout_for_expense_pdf():
+    cda = CommonDataArea()
+    cda.reset()
+
+    with tempfile.TemporaryDirectory() as storage_dir:
+        cda.set_setting('file_storage_path', storage_dir)
+
+        result = call_tool(
+            'export_file',
+            {
+                'output_filename': 'monthly_expense_report.pdf',
+                'format': 'pdf',
+                'subfolder': 'expense_reports',
+                'title': 'Monthly Expense Report - March 2026',
+                'columns': [
+                    {'key': 'expense_date', 'header': 'Date'},
+                    {'key': 'description', 'header': 'Description'},
+                    {'key': 'vendor', 'header': 'Vendor'},
+                    {'key': 'category', 'header': 'Category'},
+                    {'key': 'amount', 'header': 'Amount'},
+                    {'key': 'currency', 'header': 'Currency'},
+                ],
+                'rows': [
+                    {
+                        'expense_date': '2026-03-08',
+                        'description': 'Transaction of USD23.60 at OPENAICHATGPTSUBSCR against E-mandate registered by you at merchant has been debited to your SBI Credit Card ending 0811 on 08-03-26.',
+                        'vendor': 'OPENAICHATGPTSUBSCR',
+                        'category': 'office expense',
+                        'amount': 23.6,
+                        'currency': 'USD',
+                    },
+                    {
+                        'expense_date': '2026-03-11',
+                        'description': 'Electricity Bill Payment for consumer number 1145195029983 (MURALIDHARAN P K)',
+                        'vendor': 'Kerala Electricity (KSEB)',
+                        'category': None,
+                        'amount': 871.0,
+                        'currency': 'INR',
+                    },
+                ],
+            },
+        )
+
+        assert result['success'] is True
+        assert Path(result['file_path']).exists()
+        assert result['meta']['layout'] == 'expense_report'
+        assert result['meta']['page_orientation'] == 'landscape'
+
+
 def test_export_file_uses_task_report_layout_from_sections_table_pdf():
     cda = CommonDataArea()
     cda.reset()

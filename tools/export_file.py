@@ -79,6 +79,28 @@ _TASK_REPORT_LAYOUT_WIDTHS = {
     "assigned_to": 0.07,
 }
 _DOCX_TASK_REPORT_WIDTH_IN = 10.4
+_EXPENSE_REPORT_CORE_KEYS = {"expense_date", "description", "vendor", "amount", "currency"}
+_EXPENSE_REPORT_LAYOUT_WIDTHS = {
+    "expense_date": 0.12,
+    "description": 0.39,
+    "vendor": 0.19,
+    "category": 0.10,
+    "amount": 0.11,
+    "currency": 0.09,
+}
+_GENERIC_TABLE_TEMPLATES = {
+    2: {"name": "generic_table_2", "orientation": "portrait", "ratios": [0.38, 0.62]},
+    3: {"name": "generic_table_3", "orientation": "portrait", "ratios": [0.22, 0.48, 0.30]},
+    4: {"name": "generic_table_4", "orientation": "portrait", "ratios": [0.16, 0.38, 0.24, 0.22]},
+    5: {"name": "generic_table_5", "orientation": "portrait", "ratios": [0.14, 0.30, 0.20, 0.18, 0.18]},
+    6: {"name": "generic_table_6", "orientation": "landscape", "ratios": [0.12, 0.30, 0.18, 0.14, 0.14, 0.12]},
+    7: {"name": "generic_table_7", "orientation": "landscape", "ratios": [0.10, 0.24, 0.16, 0.12, 0.12, 0.13, 0.13]},
+    8: {"name": "generic_table_8", "orientation": "landscape", "ratios": [0.09, 0.21, 0.15, 0.11, 0.11, 0.11, 0.11, 0.11]},
+    9: {"name": "generic_table_9", "orientation": "landscape", "ratios": [0.08, 0.18, 0.13, 0.10, 0.10, 0.10, 0.10, 0.10, 0.11]},
+    10: {"name": "generic_table_10", "orientation": "landscape", "ratios": [0.07, 0.16, 0.12, 0.09, 0.09, 0.09, 0.09, 0.09, 0.10, 0.10]},
+}
+_DOCX_GENERIC_TABLE_WIDTH_PORTRAIT_IN = 6.8
+_DOCX_GENERIC_TABLE_WIDTH_LANDSCAPE_IN = 10.1
 
 
 def _validate_mode(mode: str) -> str:
@@ -95,18 +117,54 @@ def _validate_format(fmt: str) -> str:
     return normalized
 
 
-def _append_rows_to_docx(document: Any, columns: List[Dict[str, str]], rows: List[Dict[str, Any]] | None) -> None:
+def _append_rows_to_docx(document: Any, columns: List[Dict[str, str]], rows: List[Dict[str, Any]] | None) -> str:
     if not columns or not rows:
-        return
+        return "generic"
+    layout = _generic_table_layout(columns)
+    if layout["orientation"] == "landscape":
+        _docx_set_landscape(document.sections[0])
     table = document.add_table(rows=1, cols=len(columns))
     table.style = "Table Grid"
-    header_cells = table.rows[0].cells
+    table.autofit = False
+    widths = _generic_table_col_widths(len(columns), layout["width_in"])
+    header_row = table.rows[0]
+    _docx_set_repeat_table_header(header_row)
     for idx, col in enumerate(columns):
-        header_cells[idx].text = col["header"]
-    for row in rows:
+        cell = header_row.cells[idx]
+        if Inches is not None:
+            cell.width = Inches(widths[idx])
+        if WD_CELL_VERTICAL_ALIGNMENT is not None:
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        _docx_set_cell_shading(cell, "334155")
+        _docx_set_cell_border(cell, color="334155", size="8")
+        _docx_set_cell_text(
+            cell,
+            col["header"],
+            bold=True,
+            font_size=8,
+            font_color=RGBColor(255, 255, 255) if RGBColor is not None else None,
+            align=WD_ALIGN_PARAGRAPH.CENTER,
+        )
+    for row_index, row in enumerate(rows or [], start=1):
+        if not isinstance(row, dict):
+            continue
         row_cells = table.add_row().cells
+        fill = "F8FAFC" if row_index % 2 == 0 else "FFFFFF"
         for idx, col in enumerate(columns):
-            row_cells[idx].text = placeholder_text(row.get(col["key"], ""))
+            cell = row_cells[idx]
+            if Inches is not None:
+                cell.width = Inches(widths[idx])
+            if WD_CELL_VERTICAL_ALIGNMENT is not None:
+                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.TOP
+            _docx_set_cell_shading(cell, fill)
+            _docx_set_cell_border(cell, color="CBD5E1", size="6")
+            _docx_set_cell_text(
+                cell,
+                placeholder_text(row.get(col["key"], "")) or "-",
+                font_size=8,
+                align=WD_ALIGN_PARAGRAPH.LEFT,
+            )
+    return layout["name"]
 
 
 def _section_text(section: Dict[str, Any]) -> str:
@@ -126,6 +184,42 @@ def _extract_table_section_payload(
         if normalized or section_rows:
             return normalized, section_rows
     return [], None
+
+
+def _generic_table_template(column_count: int) -> Dict[str, Any]:
+    normalized = max(2, int(column_count or 2))
+    template = _GENERIC_TABLE_TEMPLATES.get(normalized)
+    if template is None:
+        leading_ratios = [0.07, 0.16, 0.12]
+        trailing_slots = max(0, normalized - len(leading_ratios))
+        trailing_ratio = (1.0 - sum(leading_ratios)) / trailing_slots if trailing_slots else 0.0
+        template = {
+            "name": f"generic_table_{normalized}",
+            "orientation": "landscape" if normalized > 5 else "portrait",
+            "ratios": leading_ratios + ([trailing_ratio] * trailing_slots),
+        }
+    return {
+        "name": template["name"],
+        "orientation": template["orientation"],
+        "ratios": list(template["ratios"]),
+    }
+
+
+def _generic_table_col_widths(column_count: int, available_width: float) -> List[float]:
+    template = _generic_table_template(column_count)
+    ratios = template["ratios"]
+    total = sum(ratios) or 1.0
+    return [available_width * (ratio / total) for ratio in ratios]
+
+
+def _generic_table_layout(columns: List[Dict[str, str]]) -> Dict[str, Any]:
+    template = _generic_table_template(len(columns))
+    width_in = _DOCX_GENERIC_TABLE_WIDTH_LANDSCAPE_IN if template["orientation"] == "landscape" else _DOCX_GENERIC_TABLE_WIDTH_PORTRAIT_IN
+    return {
+        "name": template["name"],
+        "orientation": template["orientation"],
+        "width_in": width_in,
+    }
 
 
 def _replace_docx_placeholders(document: Any, data: Dict[str, Any] | None) -> int:
@@ -231,6 +325,11 @@ def _is_task_report_table(columns: List[Dict[str, str]]) -> bool:
     return _TASK_REPORT_CORE_KEYS.issubset(keys) and len(keys.intersection(_TASK_REPORT_LAYOUT_WIDTHS)) >= 5
 
 
+def _is_expense_report_table(columns: List[Dict[str, str]]) -> bool:
+    keys = {str(col.get("key", "") or "").strip().lower() for col in columns if isinstance(col, dict)}
+    return _EXPENSE_REPORT_CORE_KEYS.issubset(keys) and len(keys.intersection(_EXPENSE_REPORT_LAYOUT_WIDTHS)) >= 5
+
+
 def _derive_report_title(title: str | None, sections: List[Dict[str, Any]] | None, fallback: str) -> str:
     if str(title or "").strip():
         return str(title).strip()
@@ -275,6 +374,47 @@ def _build_task_report_summary(rows: List[Dict[str, Any]] | None) -> str:
     parts = [f"Total: {len(rows or [])}"]
     for label in sorted(status_counts):
         parts.append(f"{label}: {status_counts[label]}")
+    return " | ".join(parts)
+
+
+def _format_expense_report_value(key: str, value: Any) -> str:
+    key_name = str(key or "").strip().lower()
+    if value in (None, ""):
+        return "-"
+    if key_name == "amount":
+        try:
+            return f"{float(value):,.2f}"
+        except Exception:
+            return placeholder_text(value)
+    if key_name == "expense_date":
+        text_value = placeholder_text(value).strip()
+        return text_value[:10] if len(text_value) > 10 else text_value
+    return placeholder_text(value).strip() or "-"
+
+
+def _expense_report_col_widths(columns: List[Dict[str, str]], available_width: float) -> List[float]:
+    weights: List[float] = []
+    for col in columns:
+        key = str(col.get("key", "") or "").strip().lower()
+        weights.append(_EXPENSE_REPORT_LAYOUT_WIDTHS.get(key, 0.10))
+    total_weight = sum(weights) or 1.0
+    return [available_width * (weight / total_weight) for weight in weights]
+
+
+def _build_expense_report_summary(rows: List[Dict[str, Any]] | None) -> str:
+    currency_totals: Dict[str, float] = {}
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        currency = placeholder_text(row.get("currency", "Unknown")).strip().upper() or "UNKNOWN"
+        try:
+            amount = float(row.get("amount", 0) or 0)
+        except Exception:
+            amount = 0.0
+        currency_totals[currency] = currency_totals.get(currency, 0.0) + amount
+    parts = [f"Entries: {len(rows or [])}"]
+    for currency in sorted(currency_totals):
+        parts.append(f"{currency}: {currency_totals[currency]:,.2f}")
     return " | ".join(parts)
 
 
@@ -490,6 +630,8 @@ def _write_docx_raw(
     else:
         if title:
             document.add_heading(title, level=1)
+        generic_layout = "generic"
+        generic_orientation = "portrait"
         for section in sections or []:
             if not isinstance(section, dict):
                 continue
@@ -504,14 +646,18 @@ def _write_docx_raw(
             elif section_type == "table":
                 table_rows = section.get("rows") if isinstance(section.get("rows"), list) else effective_rows
                 table_columns = normalize_columns(section.get("columns"), table_rows) or effective_columns
-                _append_rows_to_docx(document, table_columns, table_rows)
+                generic_layout = _append_rows_to_docx(document, table_columns, table_rows)
+                generic_orientation = "landscape" if _generic_table_layout(table_columns)["orientation"] == "landscape" else "portrait"
         if data and not sections:
             for key, value in data.items():
                 document.add_paragraph(f"{key}: {placeholder_text(value)}")
         if effective_columns and effective_rows and not any(
             str((section or {}).get("type", "")).strip().lower() == "table" for section in sections or []
         ):
-            _append_rows_to_docx(document, effective_columns, effective_rows)
+            generic_layout = _append_rows_to_docx(document, effective_columns, effective_rows)
+            generic_orientation = "landscape" if _generic_table_layout(effective_columns)["orientation"] == "landscape" else "portrait"
+        layout = generic_layout
+        orientation = generic_orientation
 
     document.save(output_path)
     return {
@@ -543,12 +689,61 @@ def _pdf_text(value: Any) -> str:
     return escape(placeholder_text(value)).replace("\n", "<br/>")
 
 
+def _build_generic_pdf_table(columns: List[Dict[str, str]], rows: List[Dict[str, Any]] | None, available_width: float) -> Any:
+    if Paragraph is None or ParagraphStyle is None or Table is None or TableStyle is None or colors is None:
+        raise RuntimeError("reportlab is not installed.")
+    styles = getSampleStyleSheet()
+    header_style = ParagraphStyle(
+        "GenericTableHeader",
+        parent=styles["BodyText"],
+        fontSize=8,
+        leading=10,
+        alignment=TA_CENTER,
+        textColor=colors.white,
+    )
+    cell_style = ParagraphStyle(
+        "GenericTableCell",
+        parent=styles["BodyText"],
+        fontSize=7,
+        leading=9,
+        textColor=colors.HexColor("#111827"),
+    )
+    table_rows: List[List[Any]] = []
+    table_rows.append([Paragraph(_pdf_text(col["header"]), header_style) for col in columns])
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        rendered_row = []
+        for col in columns:
+            rendered_row.append(Paragraph(_pdf_text(placeholder_text(row.get(col["key"], "")) or "-"), cell_style))
+        table_rows.append(rendered_row)
+    col_widths = _generic_table_col_widths(len(columns), available_width)
+    table = Table(table_rows, colWidths=col_widths, repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#334155")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#CBD5E1")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+            ]
+        )
+    )
+    return table
+
+
 def _build_generic_pdf_story(
     title: str | None,
     data: Dict[str, Any] | None,
     columns: List[Dict[str, str]],
     rows: List[Dict[str, Any]] | None,
     sections: List[Dict[str, Any]] | None,
+    available_width: float,
 ) -> List[Any]:
     if getSampleStyleSheet is None or Paragraph is None or Spacer is None:
         raise RuntimeError("reportlab is not installed.")
@@ -581,18 +776,7 @@ def _build_generic_pdf_story(
             table_rows = section.get("rows") if isinstance(section.get("rows"), list) else effective_rows
             table_columns = normalize_columns(section.get("columns"), table_rows) or effective_columns
             if table_columns:
-                table_data = [[col["header"] for col in table_columns]] + rows_as_matrix(table_columns, table_rows)
-                table = Table(table_data, repeatRows=1)
-                table.setStyle(
-                    TableStyle(
-                        [
-                            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d9e8fb")),
-                            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                        ]
-                    )
-                )
-                story.append(table)
+                story.append(_build_generic_pdf_table(table_columns, table_rows, available_width))
                 story.append(Spacer(1, 8))
                 table_rendered = True
     if data and not sections:
@@ -600,18 +784,7 @@ def _build_generic_pdf_story(
             story.append(Paragraph(f"<b>{key}</b>: {placeholder_text(value)}", styles["BodyText"]))
             story.append(Spacer(1, 4))
     if effective_columns and not table_rendered and Table is not None and TableStyle is not None and colors is not None:
-        table_data = [[col["header"] for col in effective_columns]] + rows_as_matrix(effective_columns, effective_rows)
-        table = Table(table_data, repeatRows=1)
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d9e8fb")),
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ]
-            )
-        )
-        story.append(table)
+        story.append(_build_generic_pdf_table(effective_columns, effective_rows, available_width))
     return story
 
 
@@ -690,6 +863,87 @@ def _build_task_report_pdf_story(
     return story
 
 
+def _build_expense_report_pdf_story(
+    title: str | None,
+    columns: List[Dict[str, str]],
+    rows: List[Dict[str, Any]] | None,
+    page_width: float,
+) -> List[Any]:
+    if getSampleStyleSheet is None or Paragraph is None or Spacer is None or ParagraphStyle is None:
+        raise RuntimeError("reportlab is not installed.")
+
+    styles = getSampleStyleSheet()
+    story: List[Any] = []
+    report_title = title or "Expense Report"
+    meta_style = ParagraphStyle(
+        "ExpenseReportMeta",
+        parent=styles["BodyText"],
+        fontSize=9,
+        leading=11,
+        textColor=colors.HexColor("#4b5563"),
+        spaceAfter=6,
+    )
+    header_style = ParagraphStyle(
+        "ExpenseReportHeader",
+        parent=styles["BodyText"],
+        fontSize=8,
+        leading=10,
+        alignment=TA_CENTER,
+        textColor=colors.white,
+    )
+    left_cell_style = ParagraphStyle(
+        "ExpenseReportCellLeft",
+        parent=styles["BodyText"],
+        fontSize=7,
+        leading=9,
+        textColor=colors.HexColor("#111827"),
+    )
+    right_cell_style = ParagraphStyle(
+        "ExpenseReportCellRight",
+        parent=left_cell_style,
+        alignment=2,
+    )
+
+    story.append(Paragraph(_pdf_text(report_title), styles["Title"]))
+    story.append(Spacer(1, 8))
+    story.append(Paragraph(_pdf_text(_build_expense_report_summary(rows)), meta_style))
+    story.append(Paragraph(_pdf_text(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"), meta_style))
+    story.append(Spacer(1, 8))
+
+    table_rows: List[List[Any]] = []
+    table_rows.append([Paragraph(_pdf_text(col["header"]), header_style) for col in columns])
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        rendered_row = []
+        for col in columns:
+            key = col["key"]
+            style = right_cell_style if key == "amount" else left_cell_style
+            rendered_row.append(Paragraph(_pdf_text(_format_expense_report_value(key, row.get(key, ""))), style))
+        table_rows.append(rendered_row)
+
+    col_widths = _expense_report_col_widths(columns, page_width)
+    table = Table(table_rows, colWidths=col_widths, repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f766e")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#99f6e4")),
+                ("LINEBELOW", (0, 0), (-1, 0), 0.75, colors.HexColor("#115e59")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f0fdfa")]),
+            ]
+        )
+    )
+    story.append(table)
+    return story
+
+
 def _write_pdf(
     output_path: Path,
     title: str | None,
@@ -718,14 +972,31 @@ def _write_pdf(
         left_margin = right_margin = 18
         top_margin = 24
         bottom_margin = 18
+    elif effective_columns and _is_expense_report_table(effective_columns):
+        layout = "expense_report"
+        page_size = landscape(A4)
+        left_margin = right_margin = 22
+        top_margin = 24
+        bottom_margin = 18
+    elif effective_columns:
+        generic_template = _generic_table_template(len(effective_columns))
+        layout = generic_template["name"]
+        if generic_template["orientation"] == "landscape":
+            page_size = landscape(A4)
+            left_margin = right_margin = 24
+            top_margin = 24
+            bottom_margin = 18
 
     available_width = page_size[0] - left_margin - right_margin
     if layout == "task_report":
         story = _build_task_report_pdf_story(title, effective_columns, effective_rows, available_width)
         orientation = "landscape"
+    elif layout == "expense_report":
+        story = _build_expense_report_pdf_story(title, effective_columns, effective_rows, available_width)
+        orientation = "landscape"
     else:
-        story = _build_generic_pdf_story(title, data, effective_columns, effective_rows, sections)
-        orientation = "portrait"
+        story = _build_generic_pdf_story(title, data, effective_columns, effective_rows, sections, available_width)
+        orientation = "landscape" if effective_columns and _generic_table_template(len(effective_columns))["orientation"] == "landscape" else "portrait"
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(

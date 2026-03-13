@@ -1,4 +1,4 @@
-"""Background scheduler service for executing scheduled prompts."""
+﻿"""Background scheduler service for executing scheduled prompts."""
 
 from __future__ import annotations
 
@@ -10,14 +10,21 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from core.common_data_area import CommonDataArea
+from core.inbound_request import InboundRequest
 from core.scheduler_agent import compute_next_run
 from execution_logger import log_exception, log_execution_step
 
 
 class SchedulerService:
-    def __init__(self, cda: CommonDataArea, controller: Any) -> None:
+    def __init__(
+        self,
+        cda: CommonDataArea,
+        controller: Any | None = None,
+        conversation_manager: Any | None = None,
+    ) -> None:
         self.cda = cda
         self.controller = controller
+        self.conversation_manager = conversation_manager
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._lock = threading.RLock()
@@ -288,18 +295,37 @@ class SchedulerService:
         run_output = ""
         owner_user_id = self._schedule_owner_id(row, str(self.cda.get_setting("current_user_id", "") or ""))
         try:
-            response = self.controller.handle_user_message(
-                task_prompt,
-                interface="Scheduler",
-                user_id=owner_user_id or None,
-                session_id=f"scheduler:{sid}",
-                execution_metadata={
-                    "is_scheduled_task": True,
-                    "schedule_id": sid,
-                    "schedule_owner_id": owner_user_id,
-                    "execution_source": "scheduler",
-                },
-            )
+            if self.conversation_manager is not None:
+                response = self.conversation_manager.execute_sync(
+                    InboundRequest(
+                        conversation_id=f"scheduler:{sid}",
+                        interface="Scheduler",
+                        user_id=owner_user_id or "unknown",
+                        message=task_prompt,
+                        execution_metadata={
+                            "is_scheduled_task": True,
+                            "schedule_id": sid,
+                            "schedule_owner_id": owner_user_id,
+                            "execution_source": "scheduler",
+                        },
+                    ),
+                    timeout=3600,
+                )
+            elif self.controller is not None:
+                response = self.controller.handle_user_message(
+                    task_prompt,
+                    interface="Scheduler",
+                    user_id=owner_user_id or None,
+                    session_id=f"scheduler:{sid}",
+                    execution_metadata={
+                        "is_scheduled_task": True,
+                        "schedule_id": sid,
+                        "schedule_owner_id": owner_user_id,
+                        "execution_source": "scheduler",
+                    },
+                )
+            else:
+                raise RuntimeError("No scheduler execution backend configured.")
             run_status = "ok" if str(response.status or "") != "error" else "error"
             run_output = str(response.content or "").strip()
         except Exception as exc:

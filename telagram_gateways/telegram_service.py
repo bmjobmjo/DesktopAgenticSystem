@@ -1,4 +1,4 @@
-"""Telegram polling service."""
+﻿"""Telegram polling service."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import threading
 import time
 import uuid
 import re
+import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List
 from urllib import parse as urlparse
@@ -49,6 +50,40 @@ class TelegramChannelService:
     def _api_url(self, method: str) -> str:
         token = self._token()
         return f"https://api.telegram.org/bot{token}/{method}"
+
+    def _db_path(self) -> Path:
+        return Path(str(self.cda.get_setting("sqlite_db_path", "backend.db") or "backend.db")).resolve()
+
+    def _is_duplicate_update(self, update_id: int) -> bool:
+        if int(update_id or 0) <= 0:
+            return False
+        conn = sqlite3.connect(str(self._db_path()))
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO ChannelInboundMessages (provider, message_id, handled) VALUES (?, ?, 0)",
+                ("telegram", str(update_id)),
+            )
+            conn.commit()
+            return False
+        except sqlite3.IntegrityError:
+            return True
+        finally:
+            conn.close()
+
+    def _mark_update_handled(self, update_id: int) -> None:
+        if int(update_id or 0) <= 0:
+            return
+        conn = sqlite3.connect(str(self._db_path()))
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE ChannelInboundMessages SET handled=1 WHERE provider=? AND message_id=?",
+                ("telegram", str(update_id)),
+            )
+            conn.commit()
+        finally:
+            conn.close()
 
     def start(self) -> None:
         if not bool(self.cda.get_setting("telegram_enabled", False)):
@@ -153,7 +188,7 @@ class TelegramChannelService:
     def _safe_filename(name: str, fallback: str) -> str:
         raw = str(name or "").strip()
         candidate = raw or fallback
-        candidate = re.sub(r'[\/:*?"<>|]+', '_', candidate)
+        candidate = re.sub(r'[\\/:*?"<>|]+', '_', candidate)
         return candidate[:180] or fallback
 
     def _inbound_base_dir(self, chat_id: str) -> Path:
@@ -237,64 +272,72 @@ class TelegramChannelService:
     def _poll_loop(self) -> None:
         while not self._stop_event.is_set():
             try:
-                # Expire stale channel sessions and notify users.
                 try:
-                    expired = self.telegram_controller.controller.close_inactive_channel_sessions(
-                        "Telegram",
-                        timeout_seconds=self._session_timeout_seconds,
-                    )
+                    manager = getattr(self.telegram_controller, 'conversation_manager', None)
+                    if manager is not None:
+                        expired = manager.close_inactive(
+                            'Telegram',
+                            timeout_seconds=self._session_timeout_seconds,
+                        )
+                    elif getattr(self.telegram_controller, 'controller', None) is not None:
+                        expired = self.telegram_controller.controller.close_inactive_channel_sessions(
+                            'Telegram',
+                            timeout_seconds=self._session_timeout_seconds,
+                        )
+                    else:
+                        expired = []
                     for item in expired:
-                        sid = str(item.get("session_id", "") or "").replace("telegram:", "").strip()
+                        sid = str(item.get('session_id', '') or '').replace('telegram:', '').strip()
                         if sid:
-                            self.send_text(sid, "Your chat session expired due to inactivity (1 hour). Session closed.")
+                            self.send_text(sid, 'Your chat session expired due to inactivity (1 hour). Session closed.')
                 except Exception:
                     pass
 
                 updates = self._get_updates()
                 for upd in updates:
-                    update_id = int(upd.get("update_id", 0) or 0)
+                    update_id = int(upd.get('update_id', 0) or 0)
                     if update_id >= self._offset:
                         self._offset = update_id + 1
+                    if self._is_duplicate_update(update_id):
+                        telegram_log('duplicate', f"update_id={update_id}")
+                        continue
+
 
                     chat_id, text, files = self._extract_inbound_payload(upd)
                     if not chat_id or (not text and not files):
                         continue
                     telegram_log(
-                        "inbound",
+                        'inbound',
                         f"chat_id={chat_id} text_len={len(text)} file_count={len(files)} update_id={update_id}",
                     )
-                    ack = "File received. Working on it..." if files else "Message received. Working on it..."
+                    ack = 'File received. Working on it...' if files else 'Message received. Working on it...'
                     self.send_text(chat_id, ack)
-                    worker = threading.Thread(
-                        target=self._process_inbound_message,
-                        args=(chat_id, text, files),
-                        daemon=True,
-                    )
-                    worker.start()
-                self._last_error = ""
+                    self._process_inbound_message(chat_id, text, files)
+                    self._mark_update_handled(update_id)
+                self._last_error = ''
             except Exception as exc:
                 self._last_error = str(exc)
-                log_exception("TELEGRAM_POLL_ERROR", exc, {})
-                telegram_log("poll_error", self._last_error)
+                log_exception('TELEGRAM_POLL_ERROR', exc, {})
+                telegram_log('poll_error', self._last_error)
                 time.sleep(self._poll_retry_seconds())
 
     def _process_inbound_message(self, chat_id: str, text: str, files: List[str] | None = None) -> None:
-        last_status = {"value": ""}
+        last_status = {'value': ''}
 
         def _channel_ui_feedback(feedback: Dict[str, Any]) -> None:
             try:
-                status = str((feedback or {}).get("status", "") or "").strip()
-                message = str((feedback or {}).get("message", "") or "").strip()
-                hint = str((feedback or {}).get("progress_hint", "") or "").strip()
+                status = str((feedback or {}).get('status', '') or '').strip()
+                message = str((feedback or {}).get('message', '') or '').strip()
+                hint = str((feedback or {}).get('progress_hint', '') or '').strip()
                 parts = [x for x in [message, hint] if x]
-                text_out = " | ".join(parts).strip()
+                text_out = ' | '.join(parts).strip()
                 if not text_out:
                     return
-                prefix = f"[{status}] " if status else ""
+                prefix = f"[{status}] " if status else ''
                 full = f"{prefix}{text_out}"
-                if full == last_status["value"]:
+                if full == last_status['value']:
                     return
-                last_status["value"] = full
+                last_status['value'] = full
                 self.send_text(chat_id, full)
             except Exception:
                 return
@@ -308,59 +351,66 @@ class TelegramChannelService:
             else:
                 effective_text = docs_msg
 
+        def _completion(text_out: str) -> None:
+            if text_out:
+                self.send_text(chat_id, text_out)
+
         response_text = self.telegram_controller.handle_inbound_safe(
             chat_id,
             effective_text,
             files=inbound_files,
             ui_callback=_channel_ui_feedback,
+            completion_callback=_completion,
         )
         if response_text:
             self.send_text(chat_id, response_text)
 
     def send_text(self, chat_id: str, text: str) -> Dict[str, Any]:
         payload = {
-            "chat_id": str(chat_id),
-            "text": str(text or ""),
+            'chat_id': str(chat_id),
+            'text': str(text or ''),
         }
         try:
-            data = self._http_post_json(self._api_url("sendMessage"), payload, timeout=15)
-            telegram_log("outbound", f"chat_id={chat_id} ok={bool(data.get('ok', False))} text_len={len(str(text or ''))}")
+            data = self._http_post_json(self._api_url('sendMessage'), payload, timeout=15)
+            telegram_log('outbound', f"chat_id={chat_id} ok={bool(data.get('ok', False))} text_len={len(str(text or ''))}")
             return data
         except Exception as exc:
-            telegram_log("outbound_error", f"chat_id={chat_id} error={exc}")
-            return {"ok": False, "error": str(exc)}
+            telegram_log('outbound_error', f"chat_id={chat_id} error={exc}")
+            return {'ok': False, 'error': str(exc)}
 
-    def send_document(self, chat_id: str, file_path: str, caption: str = "") -> Dict[str, Any]:
-        path = Path(str(file_path or "")).expanduser().resolve()
+    def send_document(self, chat_id: str, file_path: str, caption: str = '') -> Dict[str, Any]:
+        path = Path(str(file_path or '')).expanduser().resolve()
         if not path.exists() or not path.is_file():
-            return {"ok": False, "error": f"File not found: {path}"}
+            return {'ok': False, 'error': f"File not found: {path}"}
 
-        fields = {"chat_id": str(chat_id)}
-        if str(caption or "").strip():
-            fields["caption"] = str(caption)
+        fields = {'chat_id': str(chat_id)}
+        if str(caption or '').strip():
+            fields['caption'] = str(caption)
 
         try:
             data = self._http_post_multipart(
-                self._api_url("sendDocument"),
+                self._api_url('sendDocument'),
                 fields=fields,
-                file_field="document",
+                file_field='document',
                 file_path=path,
                 timeout=60,
             )
             telegram_log(
-                "outbound_document",
+                'outbound_document',
                 f"chat_id={chat_id} ok={bool(data.get('ok', False))} file={path.name}",
             )
             return data
         except Exception as exc:
-            telegram_log("outbound_document_error", f"chat_id={chat_id} file={path.name} error={exc}")
-            return {"ok": False, "error": str(exc)}
+            telegram_log('outbound_document_error', f"chat_id={chat_id} file={path.name} error={exc}")
+            return {'ok': False, 'error': str(exc)}
 
     def get_status(self) -> Dict[str, Any]:
         return {
-            "running": bool(self._running and self._thread is not None and self._thread.is_alive()),
-            "offset": self._offset,
-            "last_error": self._last_error,
-            "enabled": bool(self.cda.get_setting("telegram_enabled", False)),
-            "has_token": bool(self._token()),
+            'running': bool(self._running and self._thread is not None and self._thread.is_alive()),
+            'offset': self._offset,
+            'last_error': self._last_error,
+            'enabled': bool(self.cda.get_setting('telegram_enabled', False)),
+            'has_token': bool(self._token()),
         }
+
+

@@ -11,7 +11,7 @@
   "custom_agents": [],
   "debug_mode": false,
   "default_directory": "C:\\Users\\Bijumon\\Downloads",
-  "embedding_model_name": "Qwen/Qwen3-Embedding-0.6B",
+  "embedding_model_name": "jinaai/jina-embeddings-v3",
   "file_storage_path": "D:/IVA",
   "gemini_api_key": "AIzaSyD0Ju7YN42u27N-wOJ8DbBXUZShHdi5MxY",
   "gemini_model": "gemini-2.5-flash",

@@ -1,4 +1,4 @@
-const fs = require("fs");
+﻿const fs = require("fs");
 const path = require("path");
 const pino = require("pino");
 const QRCode = require("qrcode");
@@ -127,6 +127,7 @@ class WhatsAppGatewayClient {
       });
 
       this.sock.ev.on("messages.upsert", async (event) => {
+      if (event?.type !== "notify") return;
       const messages = event?.messages || [];
       for (const msg of messages) {
         try {

@@ -1,21 +1,28 @@
-"""Telegram identity and message controller."""
+﻿"""Telegram identity and message controller."""
 
 from __future__ import annotations
 
 import re
 import sqlite3
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Callable, List, Optional
 
 from core.common_data_area import CommonDataArea
+from core.inbound_request import InboundRequest
 from execution_logger import log_exception, log_execution_step
 from telagram_gateways.telegram_log import telegram_log
 
 
 class TelegramController:
-    def __init__(self, cda: CommonDataArea, controller: Any) -> None:
+    def __init__(
+        self,
+        cda: CommonDataArea,
+        controller: Any | None = None,
+        conversation_manager: Any | None = None,
+    ) -> None:
         self.cda = cda
         self.controller = controller
+        self.conversation_manager = conversation_manager
         self._pending_email_by_chat: set[str] = set()
 
     def _db_path(self) -> Path:
@@ -128,6 +135,8 @@ class TelegramController:
         files: List[str] | None = None,
         ui_callback=None,
     ) -> str:
+        if self.controller is None:
+            return ""
         telegram_log(
             "controller_dispatch",
             f"user_id={user_id} chat_id={chat_id} text_len={len(text)} file_count={len(files or [])}",
@@ -143,7 +152,49 @@ class TelegramController:
         )
         return str(getattr(result, "content", "") or "").strip()
 
-    def handle_inbound_text(self, chat_id: str, text: str, files: List[str] | None = None, ui_callback=None) -> str:
+    def _submit_to_conversation_manager(
+        self,
+        user_id: str,
+        chat_id: str,
+        text: str,
+        files: List[str] | None = None,
+        ui_callback=None,
+        completion_callback: Optional[Callable[[str], None]] = None,
+    ) -> str:
+        if self.conversation_manager is None:
+            return self._dispatch_to_main_controller(user_id, chat_id, text, files=files, ui_callback=ui_callback)
+
+        telegram_log(
+            "conversation_submit",
+            f"user_id={user_id} chat_id={chat_id} text_len={len(text)} file_count={len(files or [])}",
+        )
+
+        def _complete(result: Any) -> None:
+            if not callable(completion_callback):
+                return
+            text_out = str(getattr(result, "content", "") or "").strip()
+            completion_callback(text_out)
+
+        request = InboundRequest(
+            conversation_id=f"telegram:{chat_id}",
+            interface="Telegram",
+            user_id=user_id,
+            message=text,
+            files=list(files or []),
+            ui_callback=ui_callback,
+            completion_callback=_complete,
+        )
+        self.conversation_manager.submit(request)
+        return ""
+
+    def handle_inbound_text(
+        self,
+        chat_id: str,
+        text: str,
+        files: List[str] | None = None,
+        ui_callback=None,
+        completion_callback: Optional[Callable[[str], None]] = None,
+    ) -> str:
         chat_id = self._normalize_chat_id(chat_id)
         text = str(text or "").strip()
         if not chat_id or (not text and not files):
@@ -157,7 +208,14 @@ class TelegramController:
 
         if user_id:
             telegram_log("chat_verified", f"chat_id={chat_id} user_id={user_id} source=telegram_chat_id_or_mapping")
-            return self._dispatch_to_main_controller(user_id, chat_id, text, files=files, ui_callback=ui_callback)
+            return self._submit_to_conversation_manager(
+                user_id,
+                chat_id,
+                text,
+                files=files,
+                ui_callback=ui_callback,
+                completion_callback=completion_callback,
+            )
 
         if chat_id in self._pending_email_by_chat:
             if not self._is_valid_email(text):
@@ -180,9 +238,22 @@ class TelegramController:
         telegram_log("email_requested", f"chat_id={chat_id}")
         return "Please provide your registered email ID to verify your account."
 
-    def handle_inbound_safe(self, chat_id: str, text: str, files: List[str] | None = None, ui_callback=None) -> str:
+    def handle_inbound_safe(
+        self,
+        chat_id: str,
+        text: str,
+        files: List[str] | None = None,
+        ui_callback=None,
+        completion_callback: Optional[Callable[[str], None]] = None,
+    ) -> str:
         try:
-            response = self.handle_inbound_text(chat_id, text, files=files, ui_callback=ui_callback)
+            response = self.handle_inbound_text(
+                chat_id,
+                text,
+                files=files,
+                ui_callback=ui_callback,
+                completion_callback=completion_callback,
+            )
             if "Session lock timeout" in response:
                 return "Previous Telegram request is still processing. Please wait a moment and try again."
             return response
