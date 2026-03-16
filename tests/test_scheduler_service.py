@@ -40,15 +40,6 @@ class FakeTelegramService:
         return {"ok": True}
 
 
-class FakeWhatsAppService:
-    def __init__(self) -> None:
-        self.sent_messages = []
-
-    def send_text(self, to: str, text: str):
-        self.sent_messages.append((to, text))
-        return {"success": True}
-
-
 class FakeController:
     def handle_user_message(self, *args, **kwargs):
         return SimpleNamespace(status="complete", content="owner-result")
@@ -98,10 +89,6 @@ def test_scheduler_service_sends_result_to_owner_channels(tmp_path: Path):
             ("telegram", "tg-chat-1", "owner-1"),
         )
         cur.execute(
-            "INSERT INTO ChannelUsers (provider, channel_user_id, user_id) VALUES (?, ?, ?)",
-            ("whatsapp", "wa-user-1", "owner-1"),
-        )
-        cur.execute(
             """
             INSERT INTO Schedules (
                 title, task_prompt, schedule_type, interval_minutes,
@@ -131,13 +118,10 @@ def test_scheduler_service_sends_result_to_owner_channels(tmp_path: Path):
         conn.close()
 
     tg_service = FakeTelegramService()
-    wa_service = FakeWhatsAppService()
     cda.set_runtime("telegram_channel_service", tg_service)
-    cda.set_runtime("whatsapp_channel_service", wa_service)
 
     svc = SchedulerService(cda=cda, controller=FakeController())
     result = svc.run_schedule_now(1)
 
     assert result["last_result"] == "[ok] owner-result"
     assert tg_service.sent_messages == [("tg-chat-1", "[ok] owner-result")]
-    assert wa_service.sent_messages == [("wa-user-1", "[ok] owner-result")]

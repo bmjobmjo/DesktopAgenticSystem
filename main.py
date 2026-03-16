@@ -39,15 +39,6 @@ def build_application() -> tuple[CommonDataArea, ConversationManager]:
     cda.set_runtime('conversation_manager', conversation_manager)
 
     try:
-        from core.whatsapp_channel import WhatsAppChannelService
-        wa_service = WhatsAppChannelService(cda=cda, conversation_manager=conversation_manager)
-        wa_service.start()
-        cda.set_runtime('whatsapp_channel_service', wa_service)
-        atexit.register(lambda: wa_service.stop())
-    except Exception as e:
-        print(f"WhatsApp channel init failed: {e}")
-
-    try:
         from telagram_gateways.telegram_controller import TelegramController
         from telagram_gateways.telegram_service import TelegramChannelService
 
@@ -124,10 +115,6 @@ def main() -> None:
 
     def _shutdown_services() -> None:
         try:
-            wa_service = cda.get_runtime('whatsapp_channel_service')
-            if wa_service:
-                wa_service.stop()
-                cda.set_runtime('whatsapp_channel_service', None)
             tg_service = cda.get_runtime('telegram_channel_service')
             if tg_service:
                 tg_service.stop()

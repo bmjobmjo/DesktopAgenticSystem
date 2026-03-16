@@ -922,14 +922,14 @@ class Executor:
         self._session_ctx = session_ctx
         try:
             self._ctx_set_memory('active_executor_agent', agent_name)
-            self._ctx_set_memory('INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM', interface_type)
-            self._set_cda_prompt_context_value('INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM', interface_type)
+            self._ctx_set_memory('INTERFACE_TYPE', interface_type)
+            self._set_cda_prompt_context_value('INTERFACE_TYPE', interface_type)
 
             # Always preserve prior execution context across agents to maintain session-wide history
             self._init_execution_context(agent_name, user_prompt)
             self.execution_context['USER_PROMPT'] = user_prompt
             self.execution_context['USER_INPUT'] = user_prompt
-            self.execution_context['INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM'] = interface_type
+            self.execution_context['INTERFACE_TYPE'] = interface_type
 
             if llm_attachments is None and input_files:
                 llm_attachments = build_llm_attachments(input_files, self.cda)

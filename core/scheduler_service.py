@@ -160,7 +160,6 @@ class SchedulerService:
     def _lookup_owner_channels(self, user_id: str) -> Dict[str, str]:
         channels = {
             "telegram_chat_id": "",
-            "whatsapp_target": "",
         }
         uid = str(user_id or "").strip()
         if not uid:
@@ -176,20 +175,11 @@ class SchedulerService:
                 select_cols.append("telegram_chat_id")
             else:
                 select_cols.append("'' AS telegram_chat_id")
-            if "whatsapp_number" in user_cols:
-                select_cols.append("whatsapp_number")
-            else:
-                select_cols.append("'' AS whatsapp_number")
-            if "mobile_number" in user_cols:
-                select_cols.append("mobile_number")
-            else:
-                select_cols.append("'' AS mobile_number")
 
             cur.execute(f"SELECT {', '.join(select_cols)} FROM Users WHERE id=? LIMIT 1", (uid,))
             row = cur.fetchone()
             if row:
                 channels["telegram_chat_id"] = str(row[1] or "").strip()
-                channels["whatsapp_target"] = str(row[2] or row[3] or "").strip()
 
             cur.execute("PRAGMA table_info(ChannelUsers)")
             channel_cols = {str(r[1]) for r in cur.fetchall()}
@@ -202,14 +192,6 @@ class SchedulerService:
                     row = cur.fetchone()
                     if row and row[0]:
                         channels["telegram_chat_id"] = str(row[0]).strip()
-                if not channels["whatsapp_target"]:
-                    cur.execute(
-                        "SELECT channel_user_id FROM ChannelUsers WHERE provider=? AND user_id=? ORDER BY id DESC LIMIT 1",
-                        ("whatsapp", uid),
-                    )
-                    row = cur.fetchone()
-                    if row and row[0]:
-                        channels["whatsapp_target"] = str(row[0]).strip()
         finally:
             conn.close()
 
@@ -253,14 +235,6 @@ class SchedulerService:
                     )
             except Exception as exc:
                 log_exception("SCHEDULER_TELEGRAM_NOTIFY_ERROR", exc, {"user_id": owner_user_id})
-
-        whatsapp_svc = self.cda.get_runtime("whatsapp_channel_service")
-        whatsapp_target = channels.get("whatsapp_target", "")
-        if whatsapp_svc is not None and whatsapp_target:
-            try:
-                whatsapp_svc.send_text(whatsapp_target, text)
-            except Exception as exc:
-                log_exception("SCHEDULER_WHATSAPP_NOTIFY_ERROR", exc, {"user_id": owner_user_id})
 
     def _execute_single_schedule(self, conn: sqlite3.Connection, row: Dict[str, Any], now: datetime) -> None:
         sid = int(row.get("id") or 0)

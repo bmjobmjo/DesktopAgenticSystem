@@ -845,10 +845,6 @@ class ChatUI(QMainWindow):
 
     def closeEvent(self, event) -> None:  # noqa: N802
         try:
-            wa_service = self.cda.get_runtime('whatsapp_channel_service')
-            if wa_service:
-                wa_service.stop()
-                self.cda.set_runtime('whatsapp_channel_service', None)
             tg_service = self.cda.get_runtime('telegram_channel_service')
             if tg_service:
                 tg_service.stop()

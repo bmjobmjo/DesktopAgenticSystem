@@ -20,7 +20,7 @@ USER_ROLE: {{USER_ROLE}}
 USER_ROLE_ID: {{USER_ROLE_ID}}
 USERNAME: {{USER_NAME}}
 SYSTEM_TIME: {{DATE_TIME}}
-INTERFAC:{{INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM}}
+INTERFAC:{{INTERFACE_TYPE}}
 
 ====================================================
 DATABASE SCHEMA REFERENCE
@@ -80,7 +80,7 @@ When Outputting Messages (`request_user_input` or `complete`), include these fie
 - `"UserMessage"`: The actual response text or HTML string to show the user.
 
 Note:
-- if INTERFACE is WhatsApp or Telegram, send text formatted to display properly on those devices
+- if INTERFACE is Telegram, send text formatted to display properly on those devices
 - if INTERFACE is UI, HTML may be used as needed
 
 Example Single Tool Call:

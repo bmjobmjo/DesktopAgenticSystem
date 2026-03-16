@@ -222,8 +222,6 @@ class Controller:
         raw = str(interface or '').strip().lower()
         if raw in ('ui', 'desktop', 'desktop_ui'):
             return 'UI'
-        if raw in ('whatsapp', 'wa', 'whats_app'):
-            return 'WHATSAPP'
         if raw in ('telegram', 'tg'):
             return 'TELEGRAM'
         if raw in ('scheduler', 'schedule', 'sheduler'):
@@ -402,8 +400,8 @@ class Controller:
         prev_prompt_ctx = self.cda.get_memory('prompt_context_dict', {})
         prev_execution_metadata = self.cda.get_memory('execution_metadata_dict', {})
         self.cda.set_setting('interface', iface)
-        self.cda.set_setting('INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM', iface_type)
-        self.cda.set_memory('INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM', iface_type)
+        self.cda.set_setting('INTERFACE_TYPE', iface_type)
+        self.cda.set_memory('INTERFACE_TYPE', iface_type)
         effective_user_id = str(user_id) if user_id is not None else str(prev_user_id or '')
         resolved_name = ''
         resolved_email = ''

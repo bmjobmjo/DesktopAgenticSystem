@@ -14,7 +14,7 @@ def test_get_or_create_returns_same_instance_for_same_key():
 def test_get_or_create_creates_distinct_sessions_by_interface_and_session_id():
     store = SessionStore()
     s1 = store.get_or_create("1", "UI", "default")
-    s2 = store.get_or_create("1", "WhatsApp", "default")
+    s2 = store.get_or_create("1", "Telegram", "default")
     s3 = store.get_or_create("1", "UI", "thread-2")
     assert s1 is not s2
     assert s1 is not s3
@@ -43,4 +43,3 @@ def test_remove_and_get_lifecycle():
     assert store.remove("u1", "UI", "s1") is True
     assert store.get("u1", "UI", "s1") is None
     assert store.remove("u1", "UI", "s1") is False
-

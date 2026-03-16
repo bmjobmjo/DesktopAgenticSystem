@@ -180,7 +180,7 @@ class Router:
                 'USER_PROMPT': user_prompt + file_context + effective_context,
                 'CHAT_HISTORY': chat_history,
                 'TOOL_OUTPUT': tool_output or '',
-                'INTERFACE_TYPE_UI_OR_WHATSAPP_OR_TELEGRAM': interface_type,
+                'INTERFACE_TYPE': interface_type,
             },
         )
 

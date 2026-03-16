@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import sqlite3
 import re
-import base64
 from typing import List, Tuple, Any, Dict
 from pathlib import Path
 
@@ -17,8 +16,6 @@ from PySide6.QtWidgets import (
     QDialog, QListWidget, QListWidgetItem, QHeaderView, QSpinBox
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
-
 from core.common_data_area import CommonDataArea
 from core.scheduler_agent import validate_schedule_request, compute_next_run
 from settings import config_loader
@@ -268,91 +265,18 @@ class SettingsPanel(QWidget):
 
         self.notebook.addTab(tab, "Telgram")
 
-    def _create_whatsapp_tab(self):
+    def _create_whatsapp_tab(self) -> None:
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        
-        # WhatsApp Channel Group
-        wa_group = QGroupBox("WhatsApp Channel Integration")
-        wa_layout = QVBoxLayout(wa_group)
+        layout.setAlignment(Qt.AlignTop)
 
-        status_row = QHBoxLayout()
-        self.whatsapp_status_label = QLabel("Status: unknown")
-        status_row.addWidget(self.whatsapp_status_label, 1)
-        btn_wa_status = QPushButton("Refresh Status")
-        btn_wa_status.clicked.connect(self._wa_refresh_status)
-        status_row.addWidget(btn_wa_status)
+        info_label = QLabel(
+            "WhatsApp bridge support has been removed from this project.\n"
+            "This settings page is intentionally left empty."
+        )
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
 
-        btn_wa_qr = QPushButton("Show QR")
-        btn_wa_qr.clicked.connect(self._wa_show_qr)
-        status_row.addWidget(btn_wa_qr)
-
-        btn_wa_disconnect = QPushButton("Disconnect")
-        btn_wa_disconnect.clicked.connect(self._wa_disconnect)
-        status_row.addWidget(btn_wa_disconnect)
-        wa_layout.addLayout(status_row)
-
-        self.whatsapp_qr_label = QLabel("QR not loaded")
-        self.whatsapp_qr_label.setAlignment(Qt.AlignCenter)
-        self.whatsapp_qr_label.setFixedSize(240, 240)
-        self.whatsapp_qr_label.setStyleSheet("border: 1px solid #d0d0d0; background-color: #ffffff;")
-        wa_layout.addWidget(self.whatsapp_qr_label, alignment=Qt.AlignLeft)
-
-        self.wa_advanced_toggle = QPushButton("Advanced Settings")
-        self.wa_advanced_toggle.setCheckable(True)
-        self.wa_advanced_toggle.setChecked(False)
-        self.wa_advanced_toggle.toggled.connect(self._wa_toggle_advanced)
-        wa_layout.addWidget(self.wa_advanced_toggle, alignment=Qt.AlignLeft)
-
-        self.wa_advanced_widget = QWidget()
-        adv_layout = QGridLayout(self.wa_advanced_widget)
-        adv_layout.setContentsMargins(0, 4, 0, 0)
-
-        self.whatsapp_enabled_check = QCheckBox("Enable WhatsApp channel integration")
-        self.whatsapp_enabled_check.setChecked(bool(self.settings.get('whatsapp_enabled', False)))
-        adv_layout.addWidget(self.whatsapp_enabled_check, 0, 0, 1, 3)
-
-        self.whatsapp_auto_start_check = QCheckBox("Auto-start local WhatsApp gateway process")
-        self.whatsapp_auto_start_check.setChecked(bool(self.settings.get('whatsapp_auto_start_gateway', False)))
-        adv_layout.addWidget(self.whatsapp_auto_start_check, 1, 0, 1, 3)
-
-        adv_layout.addWidget(QLabel("Gateway URL:"), 2, 0)
-        self.whatsapp_gateway_url_edit = QLineEdit(self.settings.get('whatsapp_gateway_url', 'http://127.0.0.1:5715'))
-        adv_layout.addWidget(self.whatsapp_gateway_url_edit, 2, 1, 1, 2)
-
-        adv_layout.addWidget(QLabel("Gateway Command:"), 3, 0)
-        self.whatsapp_gateway_command_edit = QLineEdit(self.settings.get('whatsapp_gateway_command', 'node whatsapp-gateway/src/server.js'))
-        adv_layout.addWidget(self.whatsapp_gateway_command_edit, 3, 1, 1, 2)
-
-        adv_layout.addWidget(QLabel("Webhook Host:"), 4, 0)
-        self.whatsapp_webhook_host_edit = QLineEdit(self.settings.get('whatsapp_webhook_host', '127.0.0.1'))
-        adv_layout.addWidget(self.whatsapp_webhook_host_edit, 4, 1, 1, 2)
-
-        adv_layout.addWidget(QLabel("Webhook Port:"), 5, 0)
-        self.whatsapp_webhook_port_edit = QLineEdit(str(self.settings.get('whatsapp_webhook_port', 5716)))
-        adv_layout.addWidget(self.whatsapp_webhook_port_edit, 5, 1, 1, 2)
-
-        adv_layout.addWidget(QLabel("Webhook Secret:"), 6, 0)
-        self.whatsapp_webhook_secret_edit = QLineEdit(self.settings.get('whatsapp_webhook_secret', 'change-me'))
-        adv_layout.addWidget(self.whatsapp_webhook_secret_edit, 6, 1, 1, 2)
-
-        adv_layout.addWidget(QLabel("Test To (JID):"), 7, 0)
-        self.whatsapp_test_to_edit = QLineEdit(self.settings.get('whatsapp_test_to', ''))
-        adv_layout.addWidget(self.whatsapp_test_to_edit, 7, 1, 1, 2)
-
-        adv_layout.addWidget(QLabel("Test Message:"), 8, 0)
-        self.whatsapp_test_message_edit = QLineEdit(self.settings.get('whatsapp_test_message', 'Hello from Desktop Agentic System'))
-        adv_layout.addWidget(self.whatsapp_test_message_edit, 8, 1)
-        btn_wa_test_send = QPushButton("Send Test")
-        btn_wa_test_send.clicked.connect(self._wa_send_test)
-        adv_layout.addWidget(btn_wa_test_send, 8, 2)
-
-        self.wa_advanced_widget.setVisible(False)
-        wa_layout.addWidget(self.wa_advanced_widget)
-
-        layout.addWidget(wa_group)
-        
-        # Save Action
         layout.addStretch()
         action_layout = QHBoxLayout()
         action_layout.addStretch()
@@ -363,9 +287,6 @@ class SettingsPanel(QWidget):
         layout.addLayout(action_layout)
         
         self.notebook.addTab(tab, "WhatsApp")
-
-    def _wa_toggle_advanced(self, visible: bool) -> None:
-        self.wa_advanced_widget.setVisible(bool(visible))
 
     def _browse_file(self, edit_widget, title, filters):
         filename, _ = QFileDialog.getOpenFileName(self, title, "", filters)
@@ -386,87 +307,6 @@ class SettingsPanel(QWidget):
         partial_mode = self.activity_level_combo.currentIndex() == 1
         self.partial_keep_steps_label.setVisible(partial_mode)
         self.partial_keep_steps_spin.setVisible(partial_mode)
-
-    def _wa_refresh_status(self) -> None:
-        svc = self.cda.get_runtime('whatsapp_channel_service')
-        if svc is None:
-            self.whatsapp_status_label.setText("Status: service not initialized")
-            return
-        try:
-            st = svc.get_gateway_status()
-            connected = bool(st.get('connected', False))
-            err = str(st.get('error', '') or '')
-            if connected:
-                self.whatsapp_status_label.setText("Status: connected")
-            elif err:
-                self.whatsapp_status_label.setText(f"Status: disconnected ({err})")
-            else:
-                self.whatsapp_status_label.setText("Status: disconnected")
-        except Exception as e:
-            self.whatsapp_status_label.setText(f"Status: error ({e})")
-
-    def _wa_send_test(self) -> None:
-        svc = self.cda.get_runtime('whatsapp_channel_service')
-        if svc is None:
-            QMessageBox.warning(self, "WhatsApp", "WhatsApp service not initialized.")
-            return
-        to = self.whatsapp_test_to_edit.text().strip()
-        text = self.whatsapp_test_message_edit.text().strip()
-        if not to or not text:
-            QMessageBox.warning(self, "WhatsApp", "Provide both Test To and Test Message.")
-            return
-        result = svc.send_text(to, text)
-        if bool(result.get('success', False)):
-            QMessageBox.information(self, "WhatsApp", "Test message sent.")
-        else:
-            QMessageBox.warning(self, "WhatsApp", f"Send failed: {result.get('error', result)}")
-
-    def _wa_show_qr(self) -> None:
-        svc = self.cda.get_runtime('whatsapp_channel_service')
-        if svc is None:
-            QMessageBox.warning(self, "WhatsApp", "WhatsApp service not initialized.")
-            return
-        data = svc.get_gateway_qr()
-        qr_data_url = str(data.get('qr_data_url', '') or '')
-        has_qr = bool(data.get('has_qr', False))
-        if not has_qr or not qr_data_url:
-            self.whatsapp_qr_label.setText("No QR available\n(Already connected or gateway not ready)")
-            return
-
-        if "," not in qr_data_url:
-            self.whatsapp_qr_label.setText("Invalid QR payload")
-            return
-        try:
-            b64 = qr_data_url.split(",", 1)[1]
-            raw = base64.b64decode(b64)
-            pixmap = QPixmap()
-            if not pixmap.loadFromData(raw):
-                self.whatsapp_qr_label.setText("Failed to render QR")
-                return
-            self.whatsapp_qr_label.setPixmap(
-                pixmap.scaled(
-                    self.whatsapp_qr_label.width() - 8,
-                    self.whatsapp_qr_label.height() - 8,
-                    Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation,
-                )
-            )
-        except Exception as e:
-            self.whatsapp_qr_label.setText(f"QR error: {e}")
-
-    def _wa_disconnect(self) -> None:
-        svc = self.cda.get_runtime('whatsapp_channel_service')
-        if svc is None:
-            QMessageBox.warning(self, "WhatsApp", "WhatsApp service not initialized.")
-            return
-        result = svc.disconnect()
-        if bool(result.get('success', False)):
-            self.whatsapp_status_label.setText("Status: disconnected")
-            self.whatsapp_qr_label.setText("Disconnected\nClick Show QR to pair again")
-            self.whatsapp_qr_label.setPixmap(QPixmap())
-            QMessageBox.information(self, "WhatsApp", "Disconnected successfully.")
-        else:
-            QMessageBox.warning(self, "WhatsApp", f"Disconnect failed: {result.get('error', result)}")
 
     def _tg_refresh_status(self) -> None:
         svc = self.cda.get_runtime('telegram_channel_service')
@@ -1322,18 +1162,18 @@ class SettingsPanel(QWidget):
         self.settings['agent_activity_partial_keep_steps'] = int(self.partial_keep_steps_spin.value())
         # Backward-compatibility mode switch retained in executor.
         self.settings['agent_activity_mode'] = 'structured' if activity_level == 'partial' else 'fast'
-        self.settings['whatsapp_enabled'] = self.whatsapp_enabled_check.isChecked()
-        self.settings['whatsapp_auto_start_gateway'] = self.whatsapp_auto_start_check.isChecked()
-        self.settings['whatsapp_gateway_url'] = self.whatsapp_gateway_url_edit.text().strip()
-        self.settings['whatsapp_gateway_command'] = self.whatsapp_gateway_command_edit.text().strip()
-        self.settings['whatsapp_webhook_host'] = self.whatsapp_webhook_host_edit.text().strip()
-        try:
-            self.settings['whatsapp_webhook_port'] = int(self.whatsapp_webhook_port_edit.text().strip())
-        except Exception:
-            self.settings['whatsapp_webhook_port'] = 5716
-        self.settings['whatsapp_webhook_secret'] = self.whatsapp_webhook_secret_edit.text().strip()
-        self.settings['whatsapp_test_to'] = self.whatsapp_test_to_edit.text().strip()
-        self.settings['whatsapp_test_message'] = self.whatsapp_test_message_edit.text().strip()
+        for legacy_key in (
+            'whatsapp_enabled',
+            'whatsapp_auto_start_gateway',
+            'whatsapp_gateway_url',
+            'whatsapp_gateway_command',
+            'whatsapp_webhook_host',
+            'whatsapp_webhook_port',
+            'whatsapp_webhook_secret',
+            'whatsapp_test_to',
+            'whatsapp_test_message',
+        ):
+            self.settings.pop(legacy_key, None)
         self.settings['telegram_enabled'] = self.telegram_enabled_check.isChecked()
         self.settings['telegram_bot_token'] = self.telegram_bot_token_edit.text().strip()
         try:
@@ -1358,14 +1198,6 @@ class SettingsPanel(QWidget):
         for k, v in self.settings.items():
             self.cda.set_setting(k, v)
 
-        # Reinitialize WhatsApp channel service with latest settings.
-        wa_svc = self.cda.get_runtime('whatsapp_channel_service')
-        if wa_svc is not None:
-            try:
-                wa_svc.stop()
-                wa_svc.start()
-            except Exception as e:
-                QMessageBox.warning(self, "WhatsApp Re-init Warning", f"Settings saved, but failed to restart WhatsApp service: {e}")
         tg_svc = self.cda.get_runtime('telegram_channel_service')
         if tg_svc is not None:
             try:
@@ -1906,11 +1738,10 @@ class SettingsPanel(QWidget):
         list_frame = QGroupBox("Directory")
         lf_layout = QVBoxLayout(list_frame)
         self.user_tree = QTreeWidget()
-        self.user_tree.setHeaderLabels(["ID", "Full Name / Email", "Mobile", "WhatsApp", "Assigned Role"])
+        self.user_tree.setHeaderLabels(["ID", "Full Name / Email", "Mobile", "Assigned Role"])
         self.user_tree.header().setSectionResizeMode(1, QHeaderView.Stretch)
         self.user_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.user_tree.header().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.user_tree.header().setSectionResizeMode(4, QHeaderView.ResizeToContents)
         self.user_tree.itemSelectionChanged.connect(self._on_user_select)
         lf_layout.addWidget(self.user_tree)
         layout.addWidget(list_frame)
@@ -1958,15 +1789,14 @@ class SettingsPanel(QWidget):
             name_col = 'full_name' if 'full_name' in cols else ('FirstName' if 'FirstName' in cols else "''")
             email_col = 'email' if 'email' in cols else "''"
             mobile_col = 'mobile_number' if 'mobile_number' in cols else "''"
-            whatsapp_col = 'whatsapp_number' if 'whatsapp_number' in cols else "''"
             role_expr = 'COALESCE(role_id, roleID)' if 'role_id' in cols and 'roleID' in cols else ('role_id' if 'role_id' in cols else ('roleID' if 'roleID' in cols else 'NULL'))
             
-            cur.execute(f'SELECT id, "{name_col}", {role_expr}, {email_col}, {mobile_col}, {whatsapp_col} FROM Users')
+            cur.execute(f'SELECT id, "{name_col}", {role_expr}, {email_col}, {mobile_col} FROM Users')
             for row in cur.fetchall():
-                uid, name, rid, email, mobile, whatsapp = row
+                uid, name, rid, email, mobile = row
                 rname = self.roles_map.get(rid, 'Has No Role')
                 display_name = f"{name} ({email})"
-                item = QTreeWidgetItem([str(uid), display_name, str(mobile or ''), str(whatsapp or ''), rname])
+                item = QTreeWidgetItem([str(uid), display_name, str(mobile or ''), rname])
                 self.user_tree.addTopLevelItem(item)
                 self.all_users.append((uid, display_name))
         except Exception as e:
@@ -1981,7 +1811,7 @@ class SettingsPanel(QWidget):
     def _on_user_select(self):
         items = self.user_tree.selectedItems()
         if items:
-            role_assigned = items[0].text(4)
+            role_assigned = items[0].text(3)
             idx = self.assign_role_combo.findText(role_assigned)
             if idx >= 0:
                 self.assign_role_combo.setCurrentIndex(idx)

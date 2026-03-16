@@ -215,7 +215,6 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             email TEXT,
             mobile_number TEXT,
-            whatsapp_number TEXT,
             telegram_chat_id TEXT,
             password_hash TEXT,
             role_id INTEGER REFERENCES Roles(id),
@@ -234,8 +233,6 @@ def init_db():
             cursor.execute("UPDATE Users SET role_id = roleID WHERE role_id IS NULL")
         if 'mobile_number' not in u_cols:
             cursor.execute("ALTER TABLE Users ADD COLUMN mobile_number TEXT")
-        if 'whatsapp_number' not in u_cols:
-            cursor.execute("ALTER TABLE Users ADD COLUMN whatsapp_number TEXT")
         if 'telegram_chat_id' not in u_cols:
             cursor.execute("ALTER TABLE Users ADD COLUMN telegram_chat_id TEXT")
 
