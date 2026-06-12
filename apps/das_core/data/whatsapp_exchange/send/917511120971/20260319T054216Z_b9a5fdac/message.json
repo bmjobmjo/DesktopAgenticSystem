@@ -1,0 +1,12 @@
+{
+  "protocol": "das.whatsapp.folder/1.0",
+  "direction": "outbound",
+  "message_id": "20260319T054216Z_b9a5fdac",
+  "outbound_id": "das-out-153fd0460e4b",
+  "sender_id": "",
+  "recipient_id": "+917511120971",
+  "recipient_folder": "917511120971",
+  "timestamp_utc": "2026-03-19T05:42:16Z",
+  "text": "Hello from Desktop Agentic System",
+  "attachments": []
+}

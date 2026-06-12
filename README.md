@@ -6,7 +6,7 @@ It combines:
 - A desktop chat interface for human-in-the-loop control
 - A router + executor agentic runtime for task planning and execution
 - A tool ecosystem (filesystem, SQLite, scheduling, integrations)
-- A WebSocket gateway for web/hosted clients
+- An HTTP API for web/hosted clients
 - Extendable prompts and role-based agents for real business workflows
 
 ---
@@ -28,7 +28,7 @@ It helps you:
 ```mermaid
 flowchart TD
     UI["Desktop UI (PySide6)"] --> Controller["Controller (core/controller.py)"]
-    WS["WebSocket Gateway"] --> Controller
+    API["HTTP API"] --> Controller
     Controller --> Router["Router (LLM-based intent routing)"]
     Router --> Executor["Executor (agentic loop)"]
 
@@ -53,7 +53,7 @@ flowchart TD
 
 1. **Interface Layer**
 - Desktop UI for local operations and observability.
-- WebSocket endpoint for browser/hosted clients.
+- HTTP API for browser/hosted clients.
 
 2. **Orchestration Layer (`core/`)**
 - `controller.py`: Coordinates request lifecycle.
@@ -102,7 +102,7 @@ Success criteria:
 
 Planned capabilities:
 - Multi-user, role-aware hosted runtime
-- Authenticated WebSocket/API access for external apps
+- Authenticated API access for external apps
 - Team workspaces with controlled agent/tool permissions
 - Deployable profiles (single-node, container, managed cloud)
 - Centralized logs, health checks, and runtime analytics
@@ -164,13 +164,11 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Start internal gateway:
+Start API gateway:
 
 ```bash
-python websocket_server.py
+python api_start.py
 ```
-
-WebSocket endpoint: `ws://127.0.0.1:8765/ws/chat`
 
 ---
 
@@ -185,4 +183,4 @@ Oasis-DAS aims to become a **local-to-hostable agentic operating layer** for bus
 
 ## Hashtags
 
-#OasisDAS #DesktopAgenticSystem #AgenticAI #AIAutomation #LocalFirstAI #MultiAgentSystems #LLMOrchestration #AIEngineering #WorkflowAutomation #AIOps #DeveloperTools #ProductivityEngineering #WebSocket #PythonAI #SQLite #PySide6 #HostableAI #AutoPages #KnowledgeAutomation #GitHubProjects
+#OasisDAS #DesktopAgenticSystem #AgenticAI #AIAutomation #LocalFirstAI #MultiAgentSystems #LLMOrchestration #AIEngineering #WorkflowAutomation #AIOps #DeveloperTools #ProductivityEngineering #PythonAI #SQLite #PySide6 #HostableAI #AutoPages #KnowledgeAutomation #GitHubProjects

@@ -1,146 +1,17 @@
-﻿"""Application entrypoint."""
+"""Compatibility entrypoint that delegates to apps/das_core/main.py."""
 
 from __future__ import annotations
 
-import atexit
-import sys
+import os
+import runpy
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication
 
-from core.common_data_area import CommonDataArea
-from core.conversation_manager import ConversationManager
-from settings.config_loader import load_settings_into_cda
-from ui.chat_ui import ChatUI
-from ui.branding import BRAND_APP_ID, BRAND_NAME, build_brand_icon, ensure_brand_icon_files
+def _run() -> None:
+    core_root = Path(__file__).resolve().parent / "apps" / "das_core"
+    os.chdir(core_root)
+    runpy.run_path(str(core_root / "main.py"), run_name="__main__")
 
 
-def build_application() -> tuple[CommonDataArea, ConversationManager]:
-    cda = CommonDataArea()
-    load_settings_into_cda(cda)
-
-    from tools.tool_registry import sync_tools_to_db
-    sync_tools_to_db(cda)
-
-    from agents.registry import register_agent
-    custom_agents = cda.get_setting('custom_agents', [])
-    for agent in custom_agents:
-        try:
-            register_agent(agent['name'], agent['description'], agent['prompt_path'])
-            print(f"Registered custom agent: {agent['name']}")
-        except Exception as e:
-            print(f"Failed to register agent {agent.get('name')}: {e}")
-
-    from llm.factory import get_llm_client
-    llm_client = get_llm_client(cda)
-    cda.set_runtime('llm_client', llm_client)
-
-    conversation_manager = ConversationManager(cda)
-    cda.set_runtime('conversation_manager', conversation_manager)
-
-    try:
-        from telagram_gateways.telegram_controller import TelegramController
-        from telagram_gateways.telegram_service import TelegramChannelService
-
-        tg_controller = TelegramController(cda=cda, conversation_manager=conversation_manager)
-        tg_service = TelegramChannelService(cda=cda, telegram_controller=tg_controller)
-        tg_service.start()
-        cda.set_runtime('telegram_controller', tg_controller)
-        cda.set_runtime('telegram_channel_service', tg_service)
-        atexit.register(lambda: tg_service.stop())
-    except Exception as e:
-        print(f"Telegram channel init failed: {e}")
-
-    try:
-        from core.scheduler_service import SchedulerService
-
-        scheduler_service = SchedulerService(cda=cda, conversation_manager=conversation_manager)
-        scheduler_service.start()
-        cda.set_runtime('scheduler_service', scheduler_service)
-        atexit.register(lambda: scheduler_service.stop())
-    except Exception as e:
-        print(f"Scheduler service init failed: {e}")
-
-    return cda, conversation_manager
-
-
-def _configure_windows_identity() -> None:
-    if sys.platform != 'win32':
-        return
-    try:
-        import ctypes
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(BRAND_APP_ID)
-    except Exception:
-        pass
-
-
-def _apply_windows_taskbar_icon(window, icon_path: Path | None) -> None:
-    if sys.platform != 'win32' or icon_path is None or not icon_path.exists():
-        return
-    try:
-        import ctypes
-
-        image_icon = 1
-        lr_loadfromfile = 0x00000010
-        wm_seticon = 0x0080
-        icon_small = 0
-        icon_big = 1
-
-        user32 = ctypes.windll.user32
-        hwnd = int(window.winId())
-        small_handle = user32.LoadImageW(None, str(icon_path), image_icon, 16, 16, lr_loadfromfile)
-        big_handle = user32.LoadImageW(None, str(icon_path), image_icon, 32, 32, lr_loadfromfile)
-        if small_handle:
-            user32.SendMessageW(hwnd, wm_seticon, icon_small, small_handle)
-        if big_handle:
-            user32.SendMessageW(hwnd, wm_seticon, icon_big, big_handle)
-        window._brand_hicon_small = small_handle
-        window._brand_hicon_big = big_handle
-    except Exception:
-        pass
-
-
-def main() -> None:
-    _configure_windows_identity()
-    app = QApplication(sys.argv)
-    app.setApplicationName(BRAND_NAME)
-    app.setApplicationDisplayName(BRAND_NAME)
-    icon_assets = ensure_brand_icon_files(Path.cwd() / 'assets' / 'generated')
-    icon_path = icon_assets.get('ico')
-    app_icon = build_brand_icon()
-    if icon_path and icon_path.exists():
-        app_icon.addFile(str(icon_path))
-    app.setWindowIcon(app_icon)
-    cda, conversation_manager = build_application()
-
-    def _shutdown_services() -> None:
-        try:
-            tg_service = cda.get_runtime('telegram_channel_service')
-            if tg_service:
-                tg_service.stop()
-                cda.set_runtime('telegram_channel_service', None)
-            scheduler_service = cda.get_runtime('scheduler_service')
-            if scheduler_service:
-                scheduler_service.stop()
-                cda.set_runtime('scheduler_service', None)
-            conversation_manager.shutdown()
-        except Exception:
-            pass
-
-    app.aboutToQuit.connect(_shutdown_services)
-    ui = ChatUI(conversation_manager=conversation_manager, cda=cda)
-    ui.setWindowIcon(app_icon)
-    ui.show()
-    _apply_windows_taskbar_icon(ui, icon_path)
-    sys.exit(app.exec())
-
-
-if __name__ == '__main__':
-    import multiprocessing
-    multiprocessing.freeze_support()
-    try:
-        from core.db_schema import init_db
-        init_db()
-    except Exception as e:
-        print(f"Database initialization failed: {e}")
-    main()
+if __name__ == "__main__":
+    _run()

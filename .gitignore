@@ -9,6 +9,7 @@ __pycache__/
 # Test / temp workdirs
 .tmp_pytest/
 .tmp_test/
+.tmp_pyinstaller/
 *.tmp
 *.temp
 
@@ -29,9 +30,23 @@ error.log
 # Runtime auth / sessions / local state
 auth_state/
 
+# Docker local build/deploy/runtime artifacts
+/.dockerignore
+/.tmp_docker_cfg/
+/infra/docker/
+docker-compose.override.yml
+*.tar
+*.tar.gz
+*.tgz
+
 # Local model caches / downloads
 hf_cache_temp/
 EmbedingModel/
+
+# Generated file storage / uploads
+storage/
+/data/telegram_inbound/
+/data/channel_uploads/
 
 # Generated file storage / uploads
 storage/
@@ -42,3 +57,21 @@ storage/
 /check_schema.py
 /check_schema_detailed.py
 /debug_migration.py
+
+# Ignore database and data folders completely
+/database/
+/data/
+/apps/das_core/data/
+
+# WhatsApp headless bridge local state / data / logs
+apps/whatsapp_bridge/headless/auth_session/
+apps/whatsapp_bridge/headless/messenger_previews/
+apps/whatsapp_bridge/headless/das_inbound_log.txt
+apps/whatsapp_bridge/headless/das_settings.json
+
+# Ignore compiled release binaries and packaged directories
+/Releases/**/*.zip
+/Releases/**/*.tar.gz
+/Releases/windows/oasis-release-pack-*/
+/Releases/ubuntu/oasis-release-pack-*/
+/Releases/desktop/windows/oasis-desktop-*/

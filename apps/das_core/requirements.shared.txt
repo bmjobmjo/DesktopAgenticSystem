@@ -1,0 +1,10 @@
+# Core hosted runtime deps (shared)
+pydantic
+PyPDF2
+torch
+transformers
+openpyxl
+python-docx
+reportlab
+fastapi
+uvicorn[standard]

@@ -1,0 +1,11 @@
+pytest
+pydantic
+PyPDF2
+PySide6>=6.5.0
+torch
+transformers
+openpyxl
+python-docx
+reportlab
+fastapi
+uvicorn[standard]
