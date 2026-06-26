@@ -12,10 +12,28 @@ from pathlib import Path
 from typing import Callable, Dict, List, Any
 
 from core.common_data_area import CommonDataArea
+from execution_logger import log_exception, log_execution_step
 from tools.tool_metadata_registry import TOOL_METADATA
 
 # Base Tools Directory
 TOOLS_DIR = Path(__file__).parent
+KNOWN_TOOL_MODULE_NAMES = {
+    'tools.agent_creation_tools',
+    'tools.create_zip',
+    'tools.export_file',
+    'tools.gmail_tools',
+    'tools.render_image',
+    'tools.scheduler_tools',
+    'tools.sqlite_tools',
+    'tools.telegram_tools',
+    'tools.whatsapp_tools',
+    'tools.embeddings.file_ingestion',
+    'tools.filesystem.copy_file',
+    'tools.filesystem.inspect_file',
+    'tools.filesystem.list_directory',
+    'tools.filesystem.move_file',
+    'tools.filesystem.read_file',
+}
 
 ToolFunc = Callable[..., Dict]
 TOOLS: Dict[str, ToolFunc] = {}
@@ -44,39 +62,17 @@ def _load_known_tool_modules(force_reload: bool = False) -> Dict[str, Any]:
     Import tool modules explicitly so frozen desktop builds do not depend on
     walking a real filesystem tree to discover available tools.
     """
-    from tools import (
-        agent_creation_tools,
-        create_zip,
-        export_file,
-        gmail_tools,
-        render_image,
-        scheduler_tools,
-        sqlite_tools,
-        telegram_tools,
-        whatsapp_tools,
-    )
-    from tools.embeddings import file_ingestion
-    from tools.filesystem import copy_file, inspect_file, list_directory, move_file, read_file
-
-    modules = {
-        'tools.agent_creation_tools': agent_creation_tools,
-        'tools.create_zip': create_zip,
-        'tools.export_file': export_file,
-        'tools.gmail_tools': gmail_tools,
-        'tools.render_image': render_image,
-        'tools.scheduler_tools': scheduler_tools,
-        'tools.sqlite_tools': sqlite_tools,
-        'tools.telegram_tools': telegram_tools,
-        'tools.whatsapp_tools': whatsapp_tools,
-        'tools.embeddings.file_ingestion': file_ingestion,
-        'tools.filesystem.copy_file': copy_file,
-        'tools.filesystem.inspect_file': inspect_file,
-        'tools.filesystem.list_directory': list_directory,
-        'tools.filesystem.move_file': move_file,
-        'tools.filesystem.read_file': read_file,
-    }
-    if force_reload:
-        return {name: importlib.reload(module) for name, module in modules.items()}
+    modules: Dict[str, Any] = {}
+    for module_name in sorted(KNOWN_TOOL_MODULE_NAMES):
+        try:
+            if force_reload and module_name in sys.modules:
+                modules[module_name] = importlib.reload(sys.modules[module_name])
+            else:
+                modules[module_name] = importlib.import_module(module_name)
+        except Exception as exc:
+            print(f"Skipping optional tool module {module_name}: {exc}")
+            log_execution_step('TOOL_MODULE_SKIP', f"{module_name}: {exc}")
+            log_exception('TOOL_MODULE_SKIP', exc, {'module_name': module_name})
     return modules
 
 
@@ -89,10 +85,9 @@ def _discover_tools(force_reload: bool = False) -> None:
     if str(TOOLS_DIR) not in sys.path:
         sys.path.append(str(TOOLS_DIR))
 
-    loaded_module_names = set()
+    loaded_module_names = set(KNOWN_TOOL_MODULE_NAMES)
 
     for module_name, module in _load_known_tool_modules(force_reload=force_reload).items():
-        loaded_module_names.add(module_name)
         try:
             _register_module_exports(module, module_name.rsplit('.', 1)[-1])
         except Exception as e:

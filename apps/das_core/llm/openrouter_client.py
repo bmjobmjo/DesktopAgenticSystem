@@ -13,6 +13,7 @@ from core.common_data_area import CommonDataArea
 from llm.base_client import BaseLLMClient
 from execution_logger import log_execution_step, log_exception
 from core.llm_attachments import format_attachments_for_prompt
+from core.ssl_compat import create_ssl_context
 
 
 def _get_db_path() -> str:
@@ -161,7 +162,7 @@ class OpenRouterClient(BaseLLMClient):
         reasoning_tokens = 0
 
         try:
-            with urllib.request.urlopen(request, timeout=120) as response:
+            with urllib.request.urlopen(request, timeout=120, context=create_ssl_context()) as response:
                 for line in response:
                     line = line.decode('utf-8').strip()
                     if not line:

@@ -15,4 +15,4 @@ if [ -z "${DAS_BOOTSTRAP_ADMIN_PASSWORD:-}" ]; then
   export DAS_BOOTSTRAP_ADMIN_PASSWORD="admin123"
 fi
 
-exec ./.venv/bin/python ./api_start.py
+"./.venv/bin/python" ./api_start.py

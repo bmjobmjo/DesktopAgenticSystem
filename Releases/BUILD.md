@@ -39,6 +39,7 @@ Notes:
 
 - The release builder runs the frontend production build before packaging.
 - The target runtime does not require Node.js, but the build machine does.
+- The Windows release pack now bundles a Python runtime so the target Windows machine does not need Python preinstalled.
 
 ## What The Builder Produces
 

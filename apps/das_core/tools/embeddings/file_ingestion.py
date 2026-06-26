@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable
 
 from core.common_data_area import CommonDataArea
+from core.ssl_compat import create_ssl_context
 from core.db_schema import DB_PATH
 from execution_logger import log_execution_step, log_exception
 
@@ -22,29 +23,29 @@ from execution_logger import log_execution_step, log_exception
 # -----------------------------------------------------------------------------
 try:
     import PyPDF2
-except ImportError:
+except Exception:
     PyPDF2 = None
 
 try:
     import docx
-except ImportError:
+except Exception:
     docx = None
 
 try:
     import openpyxl
-except ImportError:
+except Exception:
     openpyxl = None
 
 try:
     import pptx
-except ImportError:
+except Exception:
     pptx = None
 
 try:
     import torch
     import torch.nn.functional as F
     from transformers import AutoModel, AutoTokenizer
-except ImportError:
+except Exception:
     torch = None
     F = None
     AutoModel = None
@@ -66,6 +67,11 @@ _QUERY_INSTRUCTION = (
 )
 
 _IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'}
+
+
+def _can_skip_embeddings(category: Any) -> bool:
+    raw = str(category or "").strip().lower()
+    return raw in {"incoming_file", "expense", "expenses"}
 
 
 
@@ -314,7 +320,7 @@ def _get_embeddings_db_path() -> Path:
 def _post_json(url: str, body: Dict[str, Any], headers: Dict[str, str], timeout: int = 120) -> Dict[str, Any]:
     data = json.dumps(body).encode('utf-8')
     request = urllib.request.Request(url, data=data, headers=headers, method='POST')
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    with urllib.request.urlopen(request, timeout=timeout, context=create_ssl_context()) as response:
         payload = json.loads(response.read().decode('utf-8'))
         return payload if isinstance(payload, dict) else {}
 
@@ -616,40 +622,40 @@ def ingest_file(file_path: str, category: str = None, user_description: str = No
             
         # Phase 2: Embed Document Content first
         model, tokenizer = _load_embedding_model()
-        if not model or not tokenizer:
-            err = "Embedding model (Qwen3-Embedding) could not be loaded."
-            log_execution_step('INGEST_ERROR', err)
-            raise RuntimeError(err)
+        skip_embeddings = not bool(model and tokenizer)
+        if skip_embeddings:
+            log_execution_step('INGEST_EMBEDDINGS_SKIPPED', "Embedding model unavailable; continuing without embeddings.")
+            if not _can_skip_embeddings(category):
+                log_execution_step('INGEST_WARNING', f"Continuing without embeddings for category '{category}'.")
 
-        chunks = _chunk_text_by_tokens(
-            text_content,
-            max_tokens=_FIXED_MAX_TOKENS,
-            overlap_tokens=_FIXED_OVERLAP_TOKENS,
-        )
-        log_execution_step('INGEST', f"Document split into {len(chunks)} chunks. Starting vectorization.")
-        
-        try:
-            for i, chk in enumerate(chunks):
-                if status_callback:
-                    status_callback(f"Embedding chunk {i+1}/{len(chunks)}...")
-                
-                vec = _encode_texts([chk])[0]
-                chunk_char_count = len(chk)
-                chunk_token_count = _text_token_count(chk)
-                cursor.execute(
-                    "INSERT INTO Embeddings (source_type, source_id, chunk_index, type, content, char_count, token_count, embedding_vector, enc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    ('file', file_id, i, 'file_text', chk, chunk_char_count, chunk_token_count, json.dumps(vec), 0)
-                )
-                if i == 0 or i == len(chunks) - 1 or (i+1) % 5 == 0:
-                    log_execution_step('INGEST_DB', f"Saved chunk {i+1}/{len(chunks)} to Embeddings.")
-
-            # Commit content embeddings immediately so they are saved even if LLM fails later
-            conn.commit()
-            log_execution_step('INGEST', "Primary content embeddings committed to database.")
+        if not skip_embeddings:
+            chunks = _chunk_text_by_tokens(
+                text_content,
+                max_tokens=_FIXED_MAX_TOKENS,
+                overlap_tokens=_FIXED_OVERLAP_TOKENS,
+            )
+            log_execution_step('INGEST', f"Document split into {len(chunks)} chunks. Starting vectorization.")
             
-        except Exception as e:
-            log_exception('INGEST_DB_ERROR', e, "Failed to save content embeddings.")
-            raise
+            try:
+                for i, chk in enumerate(chunks):
+                    if status_callback:
+                        status_callback(f"Embedding chunk {i+1}/{len(chunks)}...")
+                    
+                    vec = _encode_texts([chk])[0]
+                    chunk_char_count = len(chk)
+                    chunk_token_count = _text_token_count(chk)
+                    cursor.execute(
+                        "INSERT INTO Embeddings (source_type, source_id, chunk_index, type, content, char_count, token_count, embedding_vector, enc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        ('file', file_id, i, 'file_text', chk, chunk_char_count, chunk_token_count, json.dumps(vec), 0)
+                    )
+                    if i == 0 or i == len(chunks) - 1 or (i+1) % 5 == 0:
+                        log_execution_step('INGEST_DB', f"Saved chunk {i+1}/{len(chunks)} to Embeddings.")
+
+                conn.commit()
+                log_execution_step('INGEST', "Primary content embeddings committed to database.")
+            except Exception as e:
+                log_exception('INGEST_DB_ERROR', e, "Failed to save content embeddings.")
+                raise
 
         # Phase 3: LLM Enrichment (Description & Project Matching)
         if final_path.suffix.lower() not in _IMAGE_EXTENSIONS:
@@ -702,21 +708,24 @@ def ingest_file(file_path: str, category: str = None, user_description: str = No
         else:
             log_execution_step('INGEST', f"Using multimodal image analysis description: {description[:50]}...")
 
+        if (not description or description == "No description generated.") and str(text_content or "").strip():
+            description = str(text_content).strip()[:500]
+
         # Phase 4: Final Updates (Description & Description Embedding)
         try:
             # Update File record
             cursor.execute("UPDATE Files SET description = ?, project_id = ? WHERE id = ?", (description, matched_project_id, file_id))
             log_execution_step('INGEST_DB', f"Updated file {file_id} description and project link.")
 
-            # Create special 'description' embedding for boosted search
-            desc_vec = _encode_texts([description])[0]
-            desc_char_count = len(description or "")
-            desc_token_count = _text_token_count(description or "")
-            cursor.execute(
-                "INSERT INTO Embeddings (source_type, source_id, chunk_index, type, content, char_count, token_count, embedding_vector, enc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                ('file', file_id, -1, 'file_description', description, desc_char_count, desc_token_count, json.dumps(desc_vec), 0)
-            )
-            log_execution_step('INGEST_DB', "Saved search priority description embedding.")
+            if not skip_embeddings:
+                desc_vec = _encode_texts([description])[0]
+                desc_char_count = len(description or "")
+                desc_token_count = _text_token_count(description or "")
+                cursor.execute(
+                    "INSERT INTO Embeddings (source_type, source_id, chunk_index, type, content, char_count, token_count, embedding_vector, enc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    ('file', file_id, -1, 'file_description', description, desc_char_count, desc_token_count, json.dumps(desc_vec), 0)
+                )
+                log_execution_step('INGEST_DB', "Saved search priority description embedding.")
             conn.commit()
             log_execution_step('INGEST_COMPLETE', f"Successfully ingested {final_path.name}")
         except Exception as e:
@@ -727,7 +736,9 @@ def ingest_file(file_path: str, category: str = None, user_description: str = No
         "file_id": file_id,
         "stored_path": str(final_path),
         "description": description,
-        "project_id": matched_project_id
+        "project_id": matched_project_id,
+        "embeddings_indexed": not skip_embeddings,
+        "warning": "" if not skip_embeddings else "Embeddings unavailable; file stored without vector indexing."
     }
 
 def search_files(query: str, top_k: int = 5, threshold: float = 0.35) -> List[Dict[str, Any]]:

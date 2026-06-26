@@ -12,9 +12,25 @@ from typing import Any, Dict, Optional, Callable
 
 from core.common_data_area import CommonDataArea
 
+def _resolve_log_dir() -> Path:
+    try:
+        cda = CommonDataArea()
+        configured = str(cda.get_setting('logs_path', '') or '').strip()
+        if configured:
+            base = Path(configured)
+            if not base.is_absolute():
+                base = (Path.cwd() / base).resolve()
+            base.mkdir(parents=True, exist_ok=True)
+            return base
+    except Exception:
+        pass
+    fallback = Path(__file__).resolve().parent / 'logs'
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
 # Directories
-LOG_DIR = Path(__file__).resolve().parent / 'logs'
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_DIR = _resolve_log_dir()
 
 class ExecutionLogger:
     """
@@ -64,6 +80,8 @@ class ExecutionLogger:
         cls._init_session()
         try:
             # Ensure directory exists in case user deleted it mid-run
+            global LOG_DIR
+            LOG_DIR = _resolve_log_dir()
             LOG_DIR.mkdir(parents=True, exist_ok=True)
             
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -122,6 +140,8 @@ class ExecutionLogger:
     def save_trace_file(cls, prefix: str, content: str) -> str:
         """Saves arbitrary text content to a timestamped file and returns the path."""
         cls._init_session()
+        global LOG_DIR
+        LOG_DIR = _resolve_log_dir()
         LOG_DIR.mkdir(parents=True, exist_ok=True)
         try:
             with cls._trace_lock:

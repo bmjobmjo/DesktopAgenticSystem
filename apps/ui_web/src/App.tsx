@@ -51,6 +51,7 @@ import {
   saveAgent,
   saveRole,
   sendWebChat,
+  getWebChatStatus,
   sendNewPassword,
   startWhatsAppHeadlessDaemon,
   startWhatsAppHeadlessRegister,
@@ -170,7 +171,7 @@ type ScheduleForm = {
 };
 
 const TOKEN_KEY = "das_web_token";
-const APP_VERSION = "v0.1.7-20260612";
+const APP_VERSION = "v0.1.12-20260626";
 
 const MAIN_TABS: Array<{ id: MainTab; label: string }> = [
   { id: "chat", label: "Chat" },
@@ -313,6 +314,16 @@ function composeStatusText(status: string, message: string, hint = ""): string {
   return `[${cleanStatus}] ${text}`;
 }
 
+function titleCaseStatus(value: string): string {
+  const clean = asString(value, "").trim();
+  if (!clean) return "";
+  return clean
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function extractTemporaryPassword(payload: unknown): string {
   if (!payload || typeof payload !== "object") return "";
   const data = payload as Record<string, unknown>;
@@ -425,6 +436,7 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const [chatLines, setChatLines] = useState<ChatLine[]>([]);
   const [chatTraceLines, setChatTraceLines] = useState<ChatTraceLine[]>([]);
+  const activeChatRequestRef = useRef<string>("");
   const [chatWorkspaceTab, setChatWorkspaceTab] = useState<ChatWorkspaceTab>("messages");
   const [chatConnected, setChatConnected] = useState(false);
   const [chatBusy, setChatBusy] = useState(false);
@@ -610,6 +622,36 @@ export default function App() {
       window.clearInterval(timer);
     };
   }, [token, isAdmin, mainTab, settingsTab]);
+
+  useEffect(() => {
+    if (!token || mainTab !== "settings") return;
+    if (!["telegram", "whatsapp", "services", "scheduler"].includes(settingsTab)) return;
+    let disposed = false;
+
+    const tick = async () => {
+      try {
+        await loadIntegrationsStatus();
+        if (!disposed && settingsTab === "services") {
+          await loadServiceStatus();
+        }
+        if (!disposed && settingsTab === "scheduler") {
+          await loadSchedulerStatus();
+        }
+      } catch {
+        // Individual loaders already update UI state.
+      }
+    };
+
+    void tick();
+    const timer = window.setInterval(() => {
+      void tick();
+    }, 3000);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [token, mainTab, settingsTab]);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -1003,6 +1045,7 @@ export default function App() {
 
     setWhatsAppHeadlessBusy("register_start");
     try {
+      setWhatsAppHeadlessMsg("Starting WhatsApp registration service...");
       const payload = await startWhatsAppHeadlessRegister(token, phone, baseFolder);
       const status = asRecord(payload.status);
       setWhatsAppHeadlessStatus(status);
@@ -1052,6 +1095,7 @@ export default function App() {
 
     setWhatsAppHeadlessBusy("daemon_start");
     try {
+      setWhatsAppHeadlessMsg("Starting WhatsApp daemon...");
       const payload = await startWhatsAppHeadlessDaemon(token, baseFolder);
       setWhatsAppHeadlessStatus(asRecord(payload.status));
       if (asBool(payload.ok, false)) {
@@ -1083,6 +1127,7 @@ export default function App() {
   async function doTelegramRestart() {
     if (!token || !isAdmin) return;
     try {
+      setIntegrationsMsg("Restarting Telegram service...");
       const res = await restartTelegram(token);
       await loadIntegrationsStatus();
       setIntegrationsMsg(asBool(res.ok, true) ? "Telegram restart requested." : asString(res.error, "Failed to restart Telegram"));
@@ -1098,6 +1143,7 @@ export default function App() {
   async function doTelegramStop() {
     if (!token || !isAdmin) return;
     try {
+      setIntegrationsMsg("Stopping Telegram service...");
       const res = await stopTelegram(token);
       await loadIntegrationsStatus();
       setIntegrationsMsg(asBool(res.ok, true) ? "Telegram stopped." : asString(res.error, "Failed to stop Telegram"));
@@ -1788,47 +1834,75 @@ export default function App() {
     setChatTraceLines([]);
 
     void sendWebChat(token, { session_id: sessionIdRef.current, message: msg, files: filesPayload })
-      .then((res) => {
-        const uiFeedback = Array.isArray(res.ui_feedback) ? res.ui_feedback : [];
-        const replyText = asString(res.content).trim();
-        const traceItems = Array.isArray(res.trace) ? res.trace : [];
+      .then(async (res) => {
+        const requestId = asString(res.request_id).trim();
+        if (!requestId) {
+          throw new Error("Chat request id missing");
+        }
+        activeChatRequestRef.current = requestId;
+        let seenUi = 0;
+        let seenTrace = 0;
 
-        setChatLines((prev) => {
-          const next = [...prev];
-          for (const item of uiFeedback) {
-            if (!item || typeof item !== "object") continue;
-            const feedback = item as Record<string, unknown>;
-            const message = asString(feedback.message).trim();
-            const hint = asString(feedback.progress_hint).trim();
-            if (!message && !hint) continue;
-            next.push({
-              id: makeId(),
-              role: "status",
-              text: composeStatusText(asString(feedback.status, "working"), message, hint),
+        while (activeChatRequestRef.current === requestId) {
+          const snap = await getWebChatStatus(token, requestId);
+          const uiFeedback = Array.isArray(snap.ui_feedback) ? snap.ui_feedback : [];
+          const traceItems = Array.isArray(snap.trace) ? snap.trace : [];
+
+          if (uiFeedback.length > seenUi) {
+            const nextItems = uiFeedback.slice(seenUi);
+            setChatLines((prev) => {
+              const next = [...prev];
+              for (const item of nextItems) {
+                if (!item || typeof item !== "object") continue;
+                const feedback = item as Record<string, unknown>;
+                const message = asString(feedback.message).trim();
+                const hint = asString(feedback.progress_hint).trim();
+                if (!message && !hint) continue;
+                next.push({
+                  id: makeId(),
+                  role: "status",
+                  text: composeStatusText(asString(feedback.status, "working"), message, hint),
+                });
+              }
+              return next;
             });
+            seenUi = uiFeedback.length;
           }
-          if (replyText) {
-            next.push({ id: makeId(), role: "assistant", text: replyText });
-          }
-          return next;
-        });
 
-        setChatTraceLines(
-          traceItems.map((item) => ({
-            id: makeId(),
-            eventType: asString(asRecord(item).eventType, "trace"),
-            text: pretty(asRecord(item).payload),
-          })),
-        );
+          if (traceItems.length !== seenTrace) {
+            setChatTraceLines(
+              traceItems.map((item) => ({
+                id: makeId(),
+                eventType: asString(asRecord(item).eventType, "trace"),
+                text: pretty(asRecord(item).payload),
+              })),
+            );
+            seenTrace = traceItems.length;
+          }
+
+          if (snap.done) {
+            const replyText = asString(snap.content).trim();
+            if (replyText) {
+              setChatLines((prev) => [...prev, { id: makeId(), role: "assistant", text: replyText }]);
+            }
+            break;
+          }
+
+          await new Promise((resolve) => window.setTimeout(resolve, 700));
+        }
       })
       .catch((err) => {
         setChatLines((prev) => [...prev, { id: makeId(), role: "error", text: err instanceof Error ? err.message : "Chat failed" }]);
       })
-      .finally(() => setChatBusy(false));
+      .finally(() => {
+        activeChatRequestRef.current = "";
+        setChatBusy(false);
+      });
   }
 
   function stopChat() {
     if (!token) return;
+    activeChatRequestRef.current = "";
     void stopWebChat(token, sessionIdRef.current).catch(() => {});
     setChatBusy(false);
   }
@@ -1846,6 +1920,7 @@ export default function App() {
     setChatAttachment(null);
     setChatLines([]);
     setChatTraceLines([]);
+    activeChatRequestRef.current = "";
     setChatLines([{ id: makeId(), role: "status", text: composeStatusText("working", "New session started.") }]);
   }
 
@@ -1892,13 +1967,26 @@ export default function App() {
   const whatsappNodeAvailable = asBool(whatsappNode.available, false);
   const whatsappRegisterExists = asBool(whatsappScripts.register_exists, false);
   const whatsappDaemonExists = asBool(whatsappScripts.daemon_exists, false);
+  const whatsappRegisterExeExists = asBool(whatsappScripts.register_exe_exists, false);
+  const whatsappDaemonExeExists = asBool(whatsappScripts.daemon_exe_exists, false);
+  const whatsappPackagedBridge = asBool(whatsappNode.packaged_windows_bridge, false);
   const whatsappAuthLinked = asBool(whatsappHeadless.auth_session_exists, false);
   const whatsappRegistrationStoppable = whatsappRegisterRunning || whatsappAuthLinked || whatsappRegisterStage === "linked";
   const whatsappLegacyRunning = asBool(whatsappLegacyState.running, false);
-  const whatsappHeadlessReady = whatsappNodeAvailable && whatsappRegisterExists && whatsappDaemonExists;
+  const whatsappHeadlessReady = whatsappNodeAvailable && (whatsappPackagedBridge || (whatsappRegisterExists && whatsappDaemonExists));
   const storageRoot = s("file_storage_path", "storage/files").trim() || "storage/files";
-  const autoBridgeFolder = `${storageRoot.replace(/[\\/]+$/, "")}/whatsapp_bridge_exchange`;
-  const activeBridgeFolder = asString(whatsappBridgeSettings.base_folder, "").trim() || autoBridgeFolder;
+  const configuredBridgeFolder = asString(whatsappBridgeSettings.configured_base_folder, "").trim();
+  const fileBridgeFolder = asString(whatsappBridgeSettings.file_base_folder, "").trim();
+  const activeBridgeFolder = asString(whatsappBridgeSettings.base_folder, "").trim();
+  const telegramState = asRecord(integrations?.telegram);
+  const telegramRunning = asBool(telegramState.running, false);
+  const telegramEnabled = asBool(telegramState.enabled, false);
+  const telegramHasToken = asBool(telegramState.has_token, false);
+  const telegramStage = asString(telegramState.stage, "").trim() || (telegramRunning ? "running" : "stopped");
+  const telegramStatusMessage = asString(telegramState.status_message, "").trim();
+  const telegramLastError = asString(telegramState.last_error, "").trim();
+  const whatsappRegisterError = asString(whatsappRegisterState.last_error, "").trim();
+  const whatsappDaemonError = asString(whatsappDaemonState.last_error, "").trim();
 
   if (booting) return <div className="center-panel">Loading...</div>;
 
@@ -2579,7 +2667,21 @@ export default function App() {
 
             {settingsTab === "telegram" && (
               <div className="tab-content">
-                <div className="info-box">Status: {pretty(integrations?.telegram || {})}</div>
+                <div className="whatsapp-status-card">
+                  <div className="whatsapp-status-head">Telegram Service</div>
+                  <div className="whatsapp-chip-row">
+                    <span className={`status ${telegramEnabled ? "ok" : "bad"}`}>{telegramEnabled ? "Enabled" : "Disabled"}</span>
+                    <span className={`status ${telegramHasToken ? "ok" : "bad"}`}>{telegramHasToken ? "Token Present" : "Token Missing"}</span>
+                    <span className={`status ${telegramRunning ? "ok" : "bad"}`}>{telegramRunning ? "Running" : "Stopped"}</span>
+                  </div>
+                  <div className="whatsapp-status-list">
+                    <div><strong>Stage:</strong> {titleCaseStatus(telegramStage) || "Unknown"}</div>
+                    <div><strong>Message:</strong> {telegramStatusMessage || "No status message yet."}</div>
+                    <div><strong>Poll Timeout:</strong> {asString(telegramState.poll_timeout, "") || "-"} s</div>
+                    <div><strong>Retry Delay:</strong> {asString(telegramState.poll_retry_seconds, "") || "-"} s</div>
+                    <div><strong>Last Error:</strong> {telegramLastError || "None"}</div>
+                  </div>
+                </div>
                 <div className="form-grid two-col">
                   <label className="check-label"><input type="checkbox" checked={b("telegram_enabled", false)} onChange={(e) => setSettingValue("telegram_enabled", e.target.checked)} />Enable Telegram</label>
                   <label>Bot Token<input type="password" value={s("telegram_bot_token", "")} onChange={(e) => setSettingValue("telegram_bot_token", e.target.value)} /></label>
@@ -2591,8 +2693,13 @@ export default function App() {
                 <div className="row">
                   <button onClick={() => void saveTelegramSettings()} disabled={!isAdmin}>Save</button>
                   <button className="ghost" onClick={() => void doTelegramRestart()} disabled={!isAdmin}>Restart</button>
+                  <button className="ghost" onClick={() => void doTelegramStop()} disabled={!isAdmin}>Stop</button>
                   <button className="ghost" onClick={() => void doTelegramTest()} disabled={!isAdmin}>Send Test</button>
                 </div>
+                <details className="whatsapp-details">
+                  <summary>Raw Telegram Status</summary>
+                  <pre className="whatsapp-raw">{pretty(integrations?.telegram || {})}</pre>
+                </details>
               </div>
             )}
 
@@ -2611,12 +2718,17 @@ export default function App() {
                           <span className={`status ${whatsappDaemonRunning ? "ok" : "bad"}`}>Daemon {whatsappDaemonRunning ? "Running" : "Stopped"}</span>
                         </div>
                         <div className="whatsapp-status-list">
+                          <div><strong>Runtime:</strong> {whatsappPackagedBridge ? "Packaged Windows bridge" : whatsappNodeAvailable ? "Node.js bridge" : "Missing"}</div>
                           <div><strong>Node:</strong> {whatsappNodeAvailable ? "Available" : "Missing"} {asString(whatsappNode.path, "")}</div>
                           <div><strong>register.js:</strong> {whatsappRegisterExists ? "Found" : "Missing"}</div>
                           <div><strong>daemon.js:</strong> {whatsappDaemonExists ? "Found" : "Missing"}</div>
+                          <div><strong>register.exe:</strong> {whatsappRegisterExeExists ? "Found" : "Missing"}</div>
+                          <div><strong>daemon.exe:</strong> {whatsappDaemonExeExists ? "Found" : "Missing"}</div>
                           <div><strong>Auth Session:</strong> {whatsappAuthLinked ? "Linked" : "Not linked"}</div>
-                          <div><strong>Register Stage:</strong> {asString(whatsappRegisterState.stage, "idle")}</div>
-                          <div><strong>Daemon Stage:</strong> {asString(whatsappDaemonState.stage, "stopped")}</div>
+                          <div><strong>Register Stage:</strong> {titleCaseStatus(asString(whatsappRegisterState.stage, "idle")) || "Idle"}</div>
+                          <div><strong>Register Error:</strong> {whatsappRegisterError || "None"}</div>
+                          <div><strong>Daemon Stage:</strong> {titleCaseStatus(asString(whatsappDaemonState.stage, "stopped")) || "Stopped"}</div>
+                          <div><strong>Daemon Error:</strong> {whatsappDaemonError || "None"}</div>
                         </div>
                       </div>
 
@@ -2624,8 +2736,9 @@ export default function App() {
                         <div className="whatsapp-status-head">Folder & Runtime</div>
                         <div className="whatsapp-status-list">
                           <div><strong>Storage Root:</strong> {storageRoot}</div>
-                          <div><strong>Bridge Folder (Auto):</strong> {autoBridgeFolder}</div>
-                          <div><strong>Bridge Folder (Active):</strong> {activeBridgeFolder}</div>
+                          <div><strong>Bridge Folder (Configured):</strong> {configuredBridgeFolder || "Not set"}</div>
+                          <div><strong>Bridge Folder (Saved in Bridge):</strong> {fileBridgeFolder || "Not set"}</div>
+                          <div><strong>Bridge Folder (Active):</strong> {activeBridgeFolder || "Not resolved"}</div>
                           <div><strong>Legacy Service:</strong> {whatsappLegacyRunning ? "Running" : "Stopped"}</div>
                         </div>
                       </div>
@@ -2633,7 +2746,7 @@ export default function App() {
 
                     {!whatsappHeadlessReady && (
                       <div className="error-box">
-                        Headless prerequisites are missing. Ensure Node.js is in PATH for the API process and restart the API service.
+                        Headless prerequisites are missing. Use the packaged bridge files or ensure Node.js is in PATH for the API process, then restart the API service.
                       </div>
                     )}
 

@@ -423,6 +423,10 @@ export async function sendWebChat(
   return request("/uiport/chat/send", { method: "POST", body: JSON.stringify(payload) }, token);
 }
 
+export async function getWebChatStatus(token: string, requestId: string): Promise<Record<string, unknown>> {
+  return request(`/uiport/chat/status/${encodeURIComponent(requestId)}`, { method: "GET" }, token);
+}
+
 export async function stopWebChat(token: string, sessionId: string): Promise<Record<string, unknown>> {
   return request("/uiport/chat/stop", { method: "POST", body: JSON.stringify({ session_id: sessionId }) }, token);
 }

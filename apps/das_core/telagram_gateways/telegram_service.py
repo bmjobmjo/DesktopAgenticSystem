@@ -9,12 +9,14 @@ import time
 import uuid
 import re
 import sqlite3
+import ssl
 from pathlib import Path
 from typing import Any, Dict, List
 from urllib import parse as urlparse
 from urllib import request as urlrequest
 
 from core.common_data_area import CommonDataArea
+from core.ssl_compat import create_ssl_context
 from execution_logger import log_exception, log_execution_step
 from telagram_gateways.telegram_controller import TelegramController
 from telagram_gateways.telegram_log import telegram_log
@@ -30,6 +32,8 @@ class TelegramChannelService:
         self._offset: int = 0
         self._last_error: str = ""
         self._running: bool = False
+        self._status_message: str = "Telegram service is idle."
+        self._ssl_context: ssl.SSLContext = create_ssl_context()
         self._session_timeout_seconds: int = int(self.cda.get_setting("channel_session_timeout_seconds", 3600) or 3600)
 
     def _token(self) -> str:
@@ -87,9 +91,13 @@ class TelegramChannelService:
 
     def start(self) -> None:
         if not bool(self.cda.get_setting("telegram_enabled", False)):
+            self._running = False
+            self._status_message = "Telegram is disabled in settings."
             telegram_log("telegram_start", "Telegram disabled by settings; polling not started.")
             return
         if not self._token():
+            self._running = False
+            self._status_message = "Telegram bot token is missing."
             log_execution_step("TELEGRAM_START", "Telegram token missing; polling not started.")
             telegram_log("telegram_start", "Bot token missing; polling not started.")
             return
@@ -98,6 +106,8 @@ class TelegramChannelService:
                 return
             self._stop_event.clear()
             self._running = True
+            self._last_error = ""
+            self._status_message = "Telegram polling is starting."
             self._thread = threading.Thread(target=self._poll_loop, daemon=True)
             self._thread.start()
             log_execution_step("TELEGRAM_START", "Telegram polling started.")
@@ -105,6 +115,7 @@ class TelegramChannelService:
                 "telegram_start",
                 f"Polling started timeout={self._poll_timeout()}s retry={self._poll_retry_seconds()}s",
             )
+            self._status_message = "Telegram polling is running."
 
     def stop(self) -> None:
         with self._lock:
@@ -113,16 +124,18 @@ class TelegramChannelService:
                 self._thread.join(timeout=2.0)
             self._thread = None
             self._running = False
+            self._status_message = "Telegram polling is stopped."
             log_execution_step("TELEGRAM_STOP", "Telegram polling stopped.")
             telegram_log("telegram_stop", "Polling stopped.")
 
     def restart(self) -> None:
+        self._ssl_context = create_ssl_context()
         self.stop()
         self.start()
 
     def _http_get_json(self, url: str, timeout: int) -> Dict[str, Any]:
         req = urlrequest.Request(url, method="GET")
-        with urlrequest.urlopen(req, timeout=timeout) as res:
+        with urlrequest.urlopen(req, timeout=timeout, context=self._ssl_context) as res:
             body = res.read().decode("utf-8")
             data = json.loads(body)
             return data if isinstance(data, dict) else {}
@@ -130,7 +143,7 @@ class TelegramChannelService:
     def _http_post_json(self, url: str, payload: Dict[str, Any], timeout: int = 15) -> Dict[str, Any]:
         body = json.dumps(payload).encode("utf-8")
         req = urlrequest.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
-        with urlrequest.urlopen(req, timeout=timeout) as res:
+        with urlrequest.urlopen(req, timeout=timeout, context=self._ssl_context) as res:
             data = json.loads(res.read().decode("utf-8"))
             return data if isinstance(data, dict) else {}
 
@@ -165,7 +178,7 @@ class TelegramChannelService:
 
         headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
         req = urlrequest.Request(url, data=bytes(body), headers=headers, method="POST")
-        with urlrequest.urlopen(req, timeout=timeout) as res:
+        with urlrequest.urlopen(req, timeout=timeout, context=self._ssl_context) as res:
             data = json.loads(res.read().decode("utf-8"))
             return data if isinstance(data, dict) else {}
 
@@ -220,7 +233,7 @@ class TelegramChannelService:
             raise RuntimeError('Telegram file path missing')
 
         download_url = f"https://api.telegram.org/file/bot{self._token()}/{remote_path}"
-        with urlrequest.urlopen(urlrequest.Request(download_url, method='GET'), timeout=60) as res:
+        with urlrequest.urlopen(urlrequest.Request(download_url, method='GET'), timeout=60, context=self._ssl_context) as res:
             data = res.read()
 
         base_dir = self._inbound_base_dir(chat_id)
@@ -315,8 +328,10 @@ class TelegramChannelService:
                     self._process_inbound_message(chat_id, text, files)
                     self._mark_update_handled(update_id)
                 self._last_error = ''
+                self._status_message = "Telegram polling is running."
             except Exception as exc:
                 self._last_error = str(exc)
+                self._status_message = f"Telegram polling error: {self._last_error}"
                 log_exception('TELEGRAM_POLL_ERROR', exc, {})
                 telegram_log('poll_error', self._last_error)
                 time.sleep(self._poll_retry_seconds())
@@ -405,12 +420,29 @@ class TelegramChannelService:
             return {'ok': False, 'error': str(exc)}
 
     def get_status(self) -> Dict[str, Any]:
+        enabled = bool(self.cda.get_setting('telegram_enabled', False))
+        has_token = bool(self._token())
+        running = bool(self._running and self._thread is not None and self._thread.is_alive())
+        if running:
+            stage = "running"
+        elif not enabled:
+            stage = "disabled"
+        elif not has_token:
+            stage = "missing_token"
+        elif self._last_error:
+            stage = "error"
+        else:
+            stage = "stopped"
         return {
-            'running': bool(self._running and self._thread is not None and self._thread.is_alive()),
+            'running': running,
             'offset': self._offset,
             'last_error': self._last_error,
-            'enabled': bool(self.cda.get_setting('telegram_enabled', False)),
-            'has_token': bool(self._token()),
+            'enabled': enabled,
+            'has_token': has_token,
+            'stage': stage,
+            'status_message': self._status_message,
+            'poll_timeout': self._poll_timeout(),
+            'poll_retry_seconds': self._poll_retry_seconds(),
         }
 
 

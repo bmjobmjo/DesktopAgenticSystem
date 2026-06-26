@@ -9,7 +9,6 @@ This folder contains the Windows-ready non-Docker distribution packs for the OAS
 ## Prerequisites
 
 - Windows machine
-- Python 3.11 or newer installed and available in `PATH`
 - Internet access during first setup for `pip install`
 - PowerShell
 
@@ -21,7 +20,7 @@ This folder contains the Windows-ready non-Docker distribution packs for the OAS
 4. Run:
 
 ```powershell
-.\setup.ps1
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
 ```
 
 5. Open `instance-config.json` and review the defaults.
@@ -41,17 +40,17 @@ Standard ports:
 Start the full system:
 
 ```powershell
-.\start-all.ps1
+powershell -ExecutionPolicy Bypass -File .\start-all.ps1
 ```
 
 Or start separately:
 
 ```powershell
-.\start-api.ps1
+powershell -ExecutionPolicy Bypass -File .\start-api.ps1
 ```
 
 ```powershell
-.\start-ui.ps1
+powershell -ExecutionPolicy Bypass -File .\start-ui.ps1
 ```
 
 ## Start On Custom Ports
@@ -104,7 +103,9 @@ Or separately:
 ## Notes
 
 - No Docker is required.
+- No Python installation is required on the target machine for the Windows release pack.
 - No Node.js is required on the target machine.
+- A bundled Python runtime is included under `python\` and `setup.ps1` uses it to create `.venv`.
 - The startup scripts read `instance-config.json` and sync runtime paths into `apps/das_core/settings/user_config.json`.
 - Environment variables can still override values from `instance-config.json` if needed.
 - For multiple instances on one machine, use a separate extracted folder for each instance and give each one different ports and paths in its own `instance-config.json`.

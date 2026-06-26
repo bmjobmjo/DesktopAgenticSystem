@@ -1,10 +1,12 @@
 # Core hosted runtime deps (shared)
 pydantic
 PyPDF2
+numpy
 torch
 transformers
 openpyxl
 python-docx
+python-pptx
 reportlab
 fastapi
 uvicorn[standard]

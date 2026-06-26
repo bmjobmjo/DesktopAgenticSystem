@@ -106,7 +106,12 @@ if __name__ == '__main__':
     import multiprocessing
     multiprocessing.freeze_support()
     try:
+        from core.common_data_area import CommonDataArea
         from core.db_schema import init_db
+        from settings.config_loader import load_settings_into_cda
+
+        startup_cda = CommonDataArea()
+        load_settings_into_cda(startup_cda)
         init_db()
     except Exception as e:
         print(f"Database initialization failed: {e}")

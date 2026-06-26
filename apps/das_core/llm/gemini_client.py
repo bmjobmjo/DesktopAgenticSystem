@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 from core.common_data_area import CommonDataArea
 from llm.base_client import BaseLLMClient
 from core.llm_attachments import format_attachments_for_prompt
+from core.ssl_compat import create_ssl_context
 
 
 def _get_db_path() -> str:
@@ -88,7 +89,7 @@ class GeminiClient(BaseLLMClient):
         )
 
         try:
-            with urllib.request.urlopen(request, timeout=120) as response:
+            with urllib.request.urlopen(request, timeout=120, context=create_ssl_context()) as response:
                 payload = json.loads(response.read().decode('utf-8'))
         except urllib.error.HTTPError as exc:
             error_body = exc.read().decode('utf-8')

@@ -1,7 +1,9 @@
 param(
     [string]$OutputRoot = "",
-    [string]$AppVersion = "0.1.7",
+    [string]$AppVersion = "0.1.12",
     [string]$ApiBaseUrl = "",
+    [string]$BundledPythonRoot = "",
+    [string]$BundledNodeExe = "",
     [switch]$SkipUiBuild,
     [switch]$NoZip
 )
@@ -12,6 +14,56 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 if (-not $OutputRoot) {
     $OutputRoot = Join-Path $RepoRoot "Releases"
+}
+
+function Get-VenvBasePythonRoot {
+    param([Parameter(Mandatory = $true)][string]$RepoRoot)
+
+    $cfgPath = Join-Path $RepoRoot ".venv\pyvenv.cfg"
+    if (-not (Test-Path $cfgPath)) {
+        return $null
+    }
+
+    $exeMatch = Select-String -Path $cfgPath -Pattern '^executable\s*=\s*(.+)$' | Select-Object -First 1
+    if ($exeMatch) {
+        $exePath = $exeMatch.Matches[0].Groups[1].Value.Trim()
+        if (Test-Path $exePath) {
+            return Split-Path -Parent $exePath
+        }
+    }
+
+    $homeMatch = Select-String -Path $cfgPath -Pattern '^home\s*=\s*(.+)$' | Select-Object -First 1
+    if ($homeMatch) {
+        $homePath = $homeMatch.Matches[0].Groups[1].Value.Trim()
+        if (Test-Path (Join-Path $homePath "python.exe")) {
+            return $homePath
+        }
+    }
+
+    return $null
+}
+
+if (-not $BundledPythonRoot) {
+    $BundledPythonRoot = Get-VenvBasePythonRoot -RepoRoot $RepoRoot
+}
+if (-not $BundledPythonRoot) {
+    throw "Unable to resolve bundled Python root. Pass -BundledPythonRoot explicitly."
+}
+if (-not (Test-Path (Join-Path $BundledPythonRoot "python.exe"))) {
+    throw "Bundled Python runtime not found at $BundledPythonRoot"
+}
+
+if (-not $BundledNodeExe) {
+    $nodeCandidates = @(
+        (Join-Path $RepoRoot "node\node.exe"),
+        "D:\programs\node\node.exe"
+    )
+    foreach ($candidate in $nodeCandidates) {
+        if (Test-Path $candidate) {
+            $BundledNodeExe = $candidate
+            break
+        }
+    }
 }
 
 $Timestamp = Get-Date -Format "yyyyMMdd-HHmm"
@@ -64,6 +116,23 @@ function Remove-IfExists {
     }
 }
 
+$pythonExcludeDirs = @(
+    "__pycache__",
+    "Doc",
+    "include",
+    "share",
+    "Scripts",
+    "Tools",
+    "Lib\site-packages",
+    "Lib\test",
+    "Lib\tkinter",
+    "Lib\idlelib"
+)
+$pythonExcludeDirPaths = @()
+foreach ($dir in $pythonExcludeDirs) {
+    $pythonExcludeDirPaths += (Join-Path $BundledPythonRoot $dir)
+}
+
 Remove-IfExists -Path $StageDir
 Remove-IfExists -Path $ZipPath
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
@@ -95,6 +164,17 @@ if (-not (Test-Path $distDir)) {
 }
 
 New-Item -ItemType Directory -Path $StageDir -Force | Out-Null
+
+Invoke-RobocopyCopy `
+    -Source $BundledPythonRoot `
+    -Destination (Join-Path $StageDir "python") `
+    -ExcludeDirs $pythonExcludeDirPaths
+
+if ($BundledNodeExe -and (Test-Path $BundledNodeExe)) {
+    $nodeStageDir = Join-Path $StageDir "node"
+    New-Item -ItemType Directory -Path $nodeStageDir -Force | Out-Null
+    Copy-Item -LiteralPath $BundledNodeExe -Destination (Join-Path $nodeStageDir "node.exe") -Force
+}
 
 foreach ($file in @("api_start.py", "app_bootstrap.py", "main.py", "service_start.py")) {
     Copy-Item -LiteralPath (Join-Path $RepoRoot $file) -Destination (Join-Path $StageDir $file) -Force

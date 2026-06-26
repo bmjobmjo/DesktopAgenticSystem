@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QObject, Signal, QTimer
 from core.common_data_area import CommonDataArea
+from core.db_schema import init_db
 from core.scheduler_agent import validate_schedule_request, compute_next_run
 from settings import config_loader
 from agents.registry import list_agents, register_agent, get_agent, _get_db_path
@@ -85,6 +86,7 @@ class SettingsPanel(QWidget):
             self.cda.set_setting('current_user_email', self.settings.get('current_user_email'))
 
         self.db_path = _get_db_path()
+        init_db(self.db_path)
         self._scheduler_run_busy = False
         self._scheduler_run_worker: _SchedulerRunWorker | None = None
         self._scheduler_run_thread: threading.Thread | None = None

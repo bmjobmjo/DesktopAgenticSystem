@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 from core.common_data_area import CommonDataArea
+from core.db_schema import resolve_db_path
 
 _ROOT = Path(__file__).parent
 ROUTER_PROMPT_PATH = _ROOT / 'router' / 'router.prompt'
@@ -70,9 +71,7 @@ ROLE_AGENT_POLICY = {
 }
 
 def _get_db_path() -> Path:
-    cda = CommonDataArea()
-    db_path_str = cda.get_setting('sqlite_db_path', 'backend.db')
-    return Path(db_path_str).resolve()
+    return resolve_db_path()
 
 def _ensure_builtins_seeded() -> None:
     """Seed built-in agents into DB if missing."""

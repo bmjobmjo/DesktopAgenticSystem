@@ -30,8 +30,11 @@ class WhatsAppHeadlessBridgeService:
 
         self.root_dir = Path(__file__).resolve().parents[2]
         self.headless_dir = self.root_dir / "apps" / "whatsapp_bridge" / "headless"
+        self.windows_bridge_dir = self.root_dir / "apps" / "whatsapp_bridge" / "windows"
         self.register_script = self.headless_dir / "register.js"
         self.daemon_script = self.headless_dir / "daemon.js"
+        self.register_exe = self.windows_bridge_dir / "cli_register.exe"
+        self.daemon_exe = self.windows_bridge_dir / "cli_daemon.exe"
         self.das_settings_file = self.headless_dir / "das_settings.json"
         self.auth_session_dir = self.headless_dir / "auth_session"
 
@@ -74,8 +77,11 @@ class WhatsAppHeadlessBridgeService:
         candidates = [
             self.root_dir / "node" / "node.exe",
             self.root_dir / "node" / "node",
+            self.root_dir / "node" / "node.exe",
+            self.root_dir / "node" / "node",
             self.root_dir.parent / "node" / "node.exe",
             self.root_dir.parent / "node" / "node",
+            Path(r"D:\programs\node\node.exe"),
         ]
         for candidate in candidates:
             try:
@@ -84,6 +90,34 @@ class WhatsAppHeadlessBridgeService:
             except Exception:
                 continue
         return str(shutil.which("node") or "").strip()
+
+    @staticmethod
+    def _is_windows() -> bool:
+        return subprocess.os.name == "nt"
+
+    def _resolve_register_command(self, mobile: str, base: str) -> tuple[list[str], Path]:
+        node_path = self._which_node()
+        if self._is_windows() and node_path and self.register_script.exists():
+            return [node_path, str(self.register_script), "--phone", mobile, "--dir", base], self.headless_dir
+        if self._is_windows() and self.register_exe.exists():
+            return [str(self.register_exe), "--phone", mobile, "--dir", base], self.windows_bridge_dir
+        if not node_path:
+            raise RuntimeError("Node.js was not found and no packaged Windows WhatsApp bridge executable is available")
+        if not self.register_script.exists():
+            raise RuntimeError(f"register.js not found: {self.register_script}")
+        return [node_path, str(self.register_script), "--phone", mobile, "--dir", base], self.headless_dir
+
+    def _resolve_daemon_command(self) -> tuple[list[str], Path]:
+        node_path = self._which_node()
+        if self._is_windows() and node_path and self.daemon_script.exists():
+            return [node_path, str(self.daemon_script)], self.headless_dir
+        if self._is_windows() and self.daemon_exe.exists():
+            return [str(self.daemon_exe)], self.windows_bridge_dir
+        if not node_path:
+            raise RuntimeError("Node.js was not found and no packaged Windows WhatsApp bridge executable is available")
+        if not self.daemon_script.exists():
+            raise RuntimeError(f"daemon.js not found: {self.daemon_script}")
+        return [node_path, str(self.daemon_script)], self.headless_dir
 
     @staticmethod
     def _is_running(proc: Optional[subprocess.Popen[str]]) -> bool:
@@ -211,11 +245,6 @@ class WhatsAppHeadlessBridgeService:
         with self._lock:
             if self._is_running(self._register_proc):
                 raise RuntimeError("Registration process is already running")
-            node_path = self._which_node()
-            if not node_path:
-                raise RuntimeError("Node.js was not found in PATH")
-            if not self.register_script.exists():
-                raise RuntimeError(f"register.js not found: {self.register_script}")
 
             mobile = self._normalize_phone(phone_number)
             if len(mobile) < 10:
@@ -230,10 +259,10 @@ class WhatsAppHeadlessBridgeService:
             if self.auth_session_dir.exists():
                 shutil.rmtree(self.auth_session_dir, ignore_errors=True)
 
-            cmd = [node_path, str(self.register_script), "--phone", mobile, "--dir", base]
+            cmd, cwd = self._resolve_register_command(mobile, base)
             proc = subprocess.Popen(
                 cmd,
-                cwd=str(self.headless_dir),
+                cwd=str(cwd),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 stdin=subprocess.DEVNULL,
@@ -307,21 +336,16 @@ class WhatsAppHeadlessBridgeService:
         with self._lock:
             if self._is_running(self._daemon_proc):
                 return self.get_status()
-            node_path = self._which_node()
-            if not node_path:
-                raise RuntimeError("Node.js was not found in PATH")
-            if not self.daemon_script.exists():
-                raise RuntimeError(f"daemon.js not found: {self.daemon_script}")
 
             base = self._resolve_base_folder(base_folder)
             if not base:
                 raise ValueError("Base folder is required")
             self._set_base_folder(base)
 
-            cmd = [node_path, str(self.daemon_script)]
+            cmd, cwd = self._resolve_daemon_command()
             proc = subprocess.Popen(
                 cmd,
-                cwd=str(self.headless_dir),
+                cwd=str(cwd),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 stdin=subprocess.DEVNULL,
@@ -423,8 +447,12 @@ class WhatsAppHeadlessBridgeService:
     def get_status(self) -> Dict[str, Any]:
         with self._lock:
             node_path = self._which_node()
+            packaged_register = self.register_exe.exists()
+            packaged_daemon = self.daemon_exe.exists()
             settings = self._load_das_settings()
-            base_folder = str(settings.get("baseFolder", "") or "").strip()
+            configured_base_folder = str(self.cda.get_setting("whatsapp_folder_root", "") or "").strip()
+            file_base_folder = str(settings.get("baseFolder", "") or "").strip()
+            effective_base_folder = self._resolve_base_folder("")
             register_running = self._is_running(self._register_proc)
             daemon_running = self._is_running(self._daemon_proc)
             if not register_running:
@@ -440,14 +468,21 @@ class WhatsAppHeadlessBridgeService:
                     "daemon_js": str(self.daemon_script),
                     "register_exists": self.register_script.exists(),
                     "daemon_exists": self.daemon_script.exists(),
+                    "register_exe": str(self.register_exe),
+                    "daemon_exe": str(self.daemon_exe),
+                    "register_exe_exists": packaged_register,
+                    "daemon_exe_exists": packaged_daemon,
                 },
                 "node": {
-                    "available": bool(node_path),
+                    "available": bool(node_path) or (packaged_register and packaged_daemon),
                     "path": node_path,
+                    "packaged_windows_bridge": packaged_register and packaged_daemon,
                 },
                 "settings": {
                     "enabled": bool(settings.get("enabled", False)),
-                    "base_folder": base_folder,
+                    "base_folder": effective_base_folder,
+                    "configured_base_folder": configured_base_folder,
+                    "file_base_folder": file_base_folder,
                     "polling_interval": int(settings.get("pollingInterval", 2000) or 2000),
                     "watch_numbers": list(settings.get("watchNumbers", []) or []),
                 },

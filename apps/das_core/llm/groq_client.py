@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 
 from core.common_data_area import CommonDataArea
 from core.llm_attachments import format_attachments_for_prompt
+from core.ssl_compat import create_ssl_context
 from execution_logger import log_exception, log_execution_step
 from llm.base_client import BaseLLMClient
 
@@ -81,7 +82,7 @@ class GroqClient(BaseLLMClient):
         )
 
         try:
-            with urllib.request.urlopen(request, timeout=120) as response:
+            with urllib.request.urlopen(request, timeout=120, context=create_ssl_context()) as response:
                 payload = json.loads(response.read().decode('utf-8'))
         except urllib.error.HTTPError as exc:
             error_body = exc.read().decode('utf-8')

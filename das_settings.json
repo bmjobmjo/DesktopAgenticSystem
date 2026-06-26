@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "baseFolder": "C:\\Users\\Bijumon\\AppData\\Local\\Temp\\wa-test",
+  "pollingInterval": 2000,
+  "watchNumbers": []
+}

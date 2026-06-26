@@ -13,6 +13,7 @@ import subprocess
 import sys
 import threading
 import time
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -29,6 +30,111 @@ from tools.gmail_tools import send_gmail_email
 from tools.tool_registry import list_tool_metadata, reload_tool_registry, sync_tools_to_db
 
 router = APIRouter(prefix="/uiport", tags=["uiport"], dependencies=[Depends(auth._require_session)])
+
+
+@dataclass
+class ChatJobState:
+    request_id: str
+    session_id: str
+    user_id: str
+    log_path: str
+    created_at: str
+    status: str = "queued"
+    content: str = ""
+    done: bool = False
+    ui_feedback: List[Dict[str, Any]] = field(default_factory=list)
+    trace: List[Dict[str, Any]] = field(default_factory=list)
+    error: str = ""
+    trace_seq: int = 0
+    ui_seq: int = 0
+
+
+_CHAT_JOBS: Dict[str, ChatJobState] = {}
+_CHAT_JOBS_LOCK = threading.RLock()
+
+
+def _chat_log_root(cda: Any) -> Path:
+    configured = str(getattr(cda, "get_setting", lambda *_: "")("logs_path", "") or "").strip()
+    base = Path(configured) if configured else (Path.cwd() / "runtime" / "logs")
+    if not base.is_absolute():
+        base = (Path.cwd() / base).resolve()
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def _create_chat_job(cda: Any, session_id: str, user_id: str, request_id: str) -> ChatJobState:
+    log_path = _chat_log_root(cda) / f"web_chat_{request_id}.log"
+    job = ChatJobState(
+        request_id=request_id,
+        session_id=session_id,
+        user_id=user_id,
+        log_path=str(log_path),
+        created_at=datetime.utcnow().isoformat() + "Z",
+    )
+    with _CHAT_JOBS_LOCK:
+        _CHAT_JOBS[request_id] = job
+    return job
+
+
+def _append_chat_job_log(job: ChatJobState, event_type: str, payload: Dict[str, Any]) -> None:
+    try:
+        with open(job.log_path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps({
+                "ts": datetime.utcnow().isoformat() + "Z",
+                "eventType": str(event_type or "").strip() or "trace",
+                "payload": payload if isinstance(payload, dict) else {"value": str(payload)},
+            }, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+def _job_trace_callback(job: ChatJobState, event_type: str, data: Dict[str, Any]) -> None:
+    payload = data if isinstance(data, dict) else {"value": str(data)}
+    with _CHAT_JOBS_LOCK:
+        job.trace_seq += 1
+        item = {
+            "idx": job.trace_seq,
+            "eventType": str(event_type or "").strip() or "trace",
+            "payload": payload,
+        }
+        job.trace.append(item)
+    _append_chat_job_log(job, item["eventType"], payload)
+
+
+def _job_status_callback(job: ChatJobState, message: str) -> None:
+    text = str(message or "").strip()
+    if not text:
+        return
+    feedback = {
+        "status": "working",
+        "message": text,
+        "progress_hint": "",
+    }
+    with _CHAT_JOBS_LOCK:
+        job.ui_seq += 1
+        item = {"idx": job.ui_seq, **feedback}
+        job.ui_feedback.append(item)
+    _append_chat_job_log(job, "tool_status", feedback)
+
+
+def _job_ui_callback(job: ChatJobState, feedback: Dict[str, Any]) -> None:
+    if not isinstance(feedback, dict):
+        return
+    message = str(feedback.get("message", "") or "").strip()
+    hint = str(feedback.get("progress_hint", "") or "").strip()
+    status = str(feedback.get("status", "") or "").strip()
+    if not message and not hint and not status:
+        return
+    entry = {
+        "status": status or "working",
+        "message": message,
+        "progress_hint": hint,
+    }
+    with _CHAT_JOBS_LOCK:
+        job.ui_seq += 1
+        item = {"idx": job.ui_seq, **entry}
+        job.ui_feedback.append(item)
+    _append_chat_job_log(job, "ui_feedback", entry)
 
 
 def _get_cda(request: Request):
@@ -825,35 +931,48 @@ def chat_send(payload: WebChatRequest, request: Request) -> Dict[str, Any]:
     if files_error:
         raise HTTPException(status_code=400, detail=files_error)
 
-    trace_events: List[Dict[str, Any]] = []
+    job = _create_chat_job(cda, session_id, user_id, request_id)
+    _append_chat_job_log(
+        job,
+        "user_input",
+        {"message": message, "files": files, "interface": "WEB", "interface_type": "WEB"},
+    )
 
-    def _trace_callback(event_type: str, data: Dict[str, Any]) -> None:
-        trace_events.append(
-            {
-                "eventType": str(event_type or "").strip() or "trace",
-                "payload": data if isinstance(data, dict) else {"value": str(data)},
-            }
-        )
+    def _complete_callback(response: Any) -> None:
+        status = str(getattr(response, "status", "") or "")
+        content = str(getattr(response, "content", "") or "")
+        ui_feedback = getattr(response, "ui_feedback", [])
+        with _CHAT_JOBS_LOCK:
+            job.status = status or ("error" if not content else "complete")
+            job.content = content
+            job.done = True
+            if isinstance(ui_feedback, list):
+                for feedback in ui_feedback:
+                    _job_ui_callback(job, feedback)
+        _append_chat_job_log(job, "completion", {"status": job.status, "content": content})
 
-    response = mgr.execute_sync(
+    mgr.submit(
         InboundRequest(
             conversation_id=session_id,
             interface="WEB",
             user_id=user_id,
             message=message,
             files=files,
-            execution_metadata={"execution_source": "http", "user_id": user_id},
-            trace_callback=_trace_callback,
-        ),
-        timeout=600,
+            execution_metadata={"execution_source": "http", "user_id": user_id, "request_id": request_id},
+            ui_callback=lambda feedback: _job_ui_callback(job, feedback),
+            status_callback=lambda text: _job_status_callback(job, text),
+            trace_callback=lambda event_type, data: _job_trace_callback(job, event_type, data),
+            completion_callback=_complete_callback,
+        )
     )
     return {
         "ok": True,
-        "status": str(getattr(response, "status", "") or ""),
-        "content": str(getattr(response, "content", "") or ""),
-        "ui_feedback": getattr(response, "ui_feedback", []) if isinstance(getattr(response, "ui_feedback", []), list) else [],
-        "trace": trace_events,
+        "accepted": True,
+        "request_id": request_id,
         "session_id": session_id,
+        "log_path": job.log_path,
+        "status": job.status,
+        "done": job.done,
     }
 
 
@@ -864,6 +983,30 @@ def chat_stop(payload: WebChatStopRequest, request: Request) -> Dict[str, Any]:
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id is required")
     return {"ok": True, "cancelled": bool(mgr.cancel(session_id))}
+
+
+@router.get("/chat/status/{request_id}")
+def chat_status(request_id: str, request: Request) -> Dict[str, Any]:
+    user_id = _request_user_id(request)
+    with _CHAT_JOBS_LOCK:
+        job = _CHAT_JOBS.get(str(request_id or "").strip())
+        if job is None:
+            raise HTTPException(status_code=404, detail="Chat request not found")
+        if str(job.user_id) != str(user_id):
+            raise HTTPException(status_code=403, detail="Chat request access denied")
+        return {
+            "ok": True,
+            "request_id": job.request_id,
+            "session_id": job.session_id,
+            "status": job.status,
+            "content": job.content,
+            "done": job.done,
+            "error": job.error,
+            "ui_feedback": list(job.ui_feedback),
+            "trace": list(job.trace),
+            "log_path": job.log_path,
+            "created_at": job.created_at,
+        }
 
 
 

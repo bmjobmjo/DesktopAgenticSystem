@@ -14,7 +14,7 @@ DB_PATH = Path("data") / "office_automation.db"
 LEGACY_USER_COLUMNS = {'roleID', 'chat_id'}
 
 
-def _resolve_db_path() -> Path:
+def resolve_db_path() -> Path:
     try:
         from core.common_data_area import CommonDataArea
 
@@ -71,10 +71,13 @@ def _repair_holiday_list_fk_if_needed(cursor: sqlite3.Cursor) -> None:
     """)
     cursor.execute("DROP TABLE HolidayList_Old")
 
-def init_db():
-    db_path = _resolve_db_path()
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path, timeout=20)
+def init_db(db_path: str | Path | None = None):
+    if db_path is None:
+        resolved_db_path = resolve_db_path()
+    else:
+        resolved_db_path = Path(db_path).resolve()
+    resolved_db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(resolved_db_path, timeout=20)
     cursor = conn.cursor()
 
     print("Checking Database Schema...")
