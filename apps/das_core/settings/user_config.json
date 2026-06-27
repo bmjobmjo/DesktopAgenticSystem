@@ -42,7 +42,7 @@
   "telegram_test_chat_id": "",
   "telegram_test_message": "Hello from Desktop Agentic System",
   "whatsapp_enabled": true,
-  "whatsapp_folder_root": "D:\\DAS_Exchange",
+  "whatsapp_folder_root": "storage\\whatsapp_bridge_exchange",
   "whatsapp_poll_seconds": 1.0,
   "whatsapp_sender_id": "",
   "whatsapp_test_message": "Hello from Desktop Agentic System",
