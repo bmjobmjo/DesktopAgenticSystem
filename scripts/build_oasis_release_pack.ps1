@@ -4,6 +4,9 @@ param(
     [string]$ApiBaseUrl = "",
     [string]$BundledPythonRoot = "",
     [string]$BundledNodeExe = "",
+    [string]$SeedDbPath = "",
+    [string]$PackNamePrefix = "oasis-release-pack",
+    [string]$TimestampFormat = "yyyyMMdd-HHmm",
     [switch]$SkipUiBuild,
     [switch]$NoZip
 )
@@ -66,8 +69,17 @@ if (-not $BundledNodeExe) {
     }
 }
 
-$Timestamp = Get-Date -Format "yyyyMMdd-HHmm"
-$PackName = "oasis-release-pack-$AppVersion-$Timestamp"
+if (-not $SeedDbPath) {
+    $SeedDbPath = Join-Path $RepoRoot "data\OfficeAutomationTest\office_automation.db"
+} elseif (-not [System.IO.Path]::IsPathRooted($SeedDbPath)) {
+    $SeedDbPath = Join-Path $RepoRoot $SeedDbPath
+}
+if (-not (Test-Path $SeedDbPath)) {
+    throw "Seed database not found at $SeedDbPath"
+}
+
+$Timestamp = Get-Date -Format $TimestampFormat
+$PackName = "$PackNamePrefix-$AppVersion-$Timestamp"
 $StageDir = Join-Path $OutputRoot $PackName
 $ZipPath = "$StageDir.zip"
 
@@ -81,17 +93,17 @@ function Invoke-RobocopyCopy {
 
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 
-    $args = @($Source, $Destination, "/E", "/R:1", "/W:1", "/NFL", "/NDL", "/NJH", "/NJS", "/NP")
+    $copyArgs = @($Source, $Destination, "/E", "/R:1", "/W:1", "/NFL", "/NDL", "/NJH", "/NJS", "/NP")
     if ($ExcludeDirs.Count -gt 0) {
-        $args += "/XD"
-        $args += $ExcludeDirs
+        $copyArgs += "/XD"
+        $copyArgs += $ExcludeDirs
     }
     if ($ExcludeFiles.Count -gt 0) {
-        $args += "/XF"
-        $args += $ExcludeFiles
+        $copyArgs += "/XF"
+        $copyArgs += $ExcludeFiles
     }
 
-    & robocopy @args | Out-Null
+    & robocopy @copyArgs | Out-Null
     if ($LASTEXITCODE -ge 8) {
         throw "robocopy failed for $Source -> $Destination with exit code $LASTEXITCODE"
     }
@@ -283,9 +295,8 @@ foreach ($dir in @(
     New-Item -ItemType Directory -Path (Join-Path $StageDir $dir) -Force | Out-Null
 }
 
-$sourceDb = Join-Path $RepoRoot "data\OfficeAutomationTest\office_automation.db"
 $destDb = Join-Path $StageDir "data\office_automation.db"
-Copy-Item -LiteralPath $sourceDb -Destination $destDb -Force
+Copy-Item -LiteralPath $SeedDbPath -Destination $destDb -Force
 
 if (-not $NoZip) {
     Compress-Archive -Path (Join-Path $StageDir "*") -DestinationPath $ZipPath -Force

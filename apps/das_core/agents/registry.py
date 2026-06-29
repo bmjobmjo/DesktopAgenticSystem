@@ -16,18 +16,21 @@ ROUTER_PROMPT_PATH = _ROOT / 'router' / 'router.prompt'
 
 _BUILTIN_DESCRIPTIONS = {
     'agent_creation': 'Helps admins design and create new AI agents by checking tools, planning DB schemas, and writing prompts.',
-    'attendance_manager': 'Manage attendance, breaks, and leaves. Records check-ins and check-outs with timestamps and location.',
+    'attendance_manager': 'Manage the acting user\'s attendance check-in, check-out, open-session status, and recent attendance history. Not leave or break management.',
     'database_manager': 'Manage SQLite database records and schema using controlled SQL operations.',
-    'employee_manager': 'Manage employee records, assignments, and profile data.',
-    'expense_manager': 'Track, summarize, and manage expense records and supporting documents.',
-    'file_manager': 'Handle file listing, inspection, reading, copying, and moving.',
-    'holiday_manager': 'Manage company-wide holiday list: create, list, update, and delete holidays.',
-    'leave_manager': 'Manage leave requests, approvals, balances, and calendars.',
-    'organization_management_agent': 'Manage organization structure, departments, and admin-level master data.',
-    'project_manager': 'Manage projects, milestones, deliverables, and project status data.',
-    'rag_gen': 'RAG Knowledge Assistant: retrieval-augmented answers over ingested files and stored knowledge.',
+    'dailytask_manager': 'Manage a user\'s personal daily working list, including today, yesterday, last-week views, restricted deletion, and optional project linkage. Not formal task ownership.',
+    'employee_manager': 'Manage employee profile records, emergency contacts, employee documents, and flexible employee details. Not users, roles, departments, or project membership.',
+    'expense_manager': 'Manage expense entries, receipts, project and user linking, and expense reports. No approval workflow.',
+    'file_manager': 'Handle filesystem listing, inspection, reading, copy/move operations, and file ingestion. Not semantic document question answering.',
+    'holiday_manager': 'Manage the company-wide holiday calendar only: create, list, update, and delete holidays.',
+    'leave_manager': 'Manage leave requests, manager or admin approvals, leave balances, discrepancy corrections, and approved-leave staff notifications.',
+    'organization_management_agent': 'Manage users, roles, role-agent access, departments, project master records, and explicit project team membership only.',
+    'project_manager': 'Manage project-specific documents, notes, meeting minutes, project memory, project knowledge facts, reports, and project-specific knowledge retrieval.',
+    'purchase_request_manager': 'Manage purchase requests that require manager approval, escalation forwarding, and supporting documents.',
+    'rag_gen': 'RAG Knowledge Assistant for general non-project documents, policies, manuals, SOPs, and file knowledge.',
     'schedule_manager': 'Validate natural-language schedule requests and create or manage recurring schedules.',
-    'task_manager': 'Manage operational tasks, ownership, status updates, and task follow-ups.',
+    'task_manager': 'Manage formal general and project-linked tasks and issues, including backlog, assignment, notes, reopen, inactivation, and status updates. Not daily-task planning.',
+    'work_diary_manager': 'Manage a user\'s work diary entries, recent diary views, limited updates, and optional project linkage. Not task assignment or backlog management.',
 }
 
 
@@ -67,8 +70,28 @@ AGENTS: Dict[str, Dict[str, Any]] = {
 
 ROLE_AGENT_POLICY = {
     'Admin': set(BUILTIN_AGENTS.keys()),
-    'User': {'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'rag_gen', 'schedule_manager', 'task_manager'},
+    'User': {'dailytask_manager', 'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
+    'Manager': {'dailytask_manager', 'expense_manager', 'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
+    'Employee': {'dailytask_manager', 'expense_manager', 'file_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
 }
+
+
+def _ensure_agent_has_tool_mappings(cursor: sqlite3.Cursor, agent_id: int) -> None:
+    cursor.execute("SELECT COUNT(*) FROM AgentTools WHERE agent_id=?", (int(agent_id),))
+    if int(cursor.fetchone()[0] or 0) > 0:
+        return
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ToolList'")
+    if not cursor.fetchone():
+        return
+
+    cursor.execute("SELECT name FROM ToolList ORDER BY name")
+    tool_names = [str(row[0] or '').strip() for row in cursor.fetchall() if str(row[0] or '').strip()]
+    for tool_name in tool_names:
+        cursor.execute(
+            "INSERT OR IGNORE INTO AgentTools (agent_id, tool_name) VALUES (?, ?)",
+            (int(agent_id), tool_name),
+        )
 
 def _get_db_path() -> Path:
     return resolve_db_path()
@@ -107,6 +130,9 @@ def _ensure_builtins_seeded() -> None:
                 agent_id = int(cursor.lastrowid or 0)
             else:
                 agent_id = int(existing[0] or 0)
+
+            if agent_id > 0:
+                _ensure_agent_has_tool_mappings(cursor, agent_id)
 
             # Ensure role mappings for this built-in are present without removing user customizations.
             if agent_id > 0:

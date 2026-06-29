@@ -432,6 +432,267 @@ def init_db(db_path: str | Path | None = None):
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS PurchaseRequests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        requester_user_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'INR',
+        justification TEXT NOT NULL,
+        project_scope TEXT NOT NULL DEFAULT 'general',
+        project_id INTEGER,
+        file_id INTEGER,
+        status TEXT NOT NULL DEFAULT 'pending_manager_approval',
+        manager_user_id INTEGER,
+        current_approver_user_id INTEGER,
+        decision_note TEXT,
+        request_channel TEXT,
+        approved_at DATETIME,
+        rejected_at DATETIME,
+        cancelled_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(requester_user_id) REFERENCES Users(id) ON DELETE CASCADE,
+        FOREIGN KEY(project_id) REFERENCES Projects(id) ON DELETE SET NULL,
+        FOREIGN KEY(file_id) REFERENCES Files(id) ON DELETE SET NULL,
+        FOREIGN KEY(manager_user_id) REFERENCES Users(id) ON DELETE SET NULL,
+        FOREIGN KEY(current_approver_user_id) REFERENCES Users(id) ON DELETE SET NULL
+    )
+    """)
+    cursor.execute("PRAGMA table_info(PurchaseRequests)")
+    pr_cols = {row[1] for row in cursor.fetchall()}
+    if 'requester_user_id' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN requester_user_id INTEGER")
+    if 'title' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN title TEXT NOT NULL DEFAULT ''")
+    if 'description' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+    if 'amount' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN amount REAL NOT NULL DEFAULT 0")
+    if 'currency' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN currency TEXT NOT NULL DEFAULT 'INR'")
+    if 'justification' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN justification TEXT NOT NULL DEFAULT ''")
+    if 'project_scope' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN project_scope TEXT NOT NULL DEFAULT 'general'")
+    if 'project_id' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN project_id INTEGER")
+    if 'file_id' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN file_id INTEGER")
+    if 'status' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN status TEXT NOT NULL DEFAULT 'pending_manager_approval'")
+    if 'manager_user_id' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN manager_user_id INTEGER")
+    if 'current_approver_user_id' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN current_approver_user_id INTEGER")
+    if 'decision_note' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN decision_note TEXT")
+    if 'request_channel' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN request_channel TEXT")
+    if 'approved_at' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN approved_at DATETIME")
+    if 'rejected_at' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN rejected_at DATETIME")
+    if 'cancelled_at' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN cancelled_at DATETIME")
+    if 'created_at' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    if 'updated_at' not in pr_cols:
+        cursor.execute("ALTER TABLE PurchaseRequests ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_purchase_requests_status ON PurchaseRequests(status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_purchase_requests_requester ON PurchaseRequests(requester_user_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_purchase_requests_manager ON PurchaseRequests(manager_user_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_purchase_requests_project ON PurchaseRequests(project_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_purchase_requests_scope ON PurchaseRequests(project_scope)")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS PurchaseApprovalActions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        purchase_request_id INTEGER NOT NULL,
+        actor_user_id INTEGER,
+        action_type TEXT NOT NULL,
+        action_channel TEXT,
+        action_note TEXT,
+        forwarded_to_user_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(purchase_request_id) REFERENCES PurchaseRequests(id) ON DELETE CASCADE,
+        FOREIGN KEY(actor_user_id) REFERENCES Users(id) ON DELETE SET NULL,
+        FOREIGN KEY(forwarded_to_user_id) REFERENCES Users(id) ON DELETE SET NULL
+    )
+    """)
+    cursor.execute("PRAGMA table_info(PurchaseApprovalActions)")
+    paa_cols = {row[1] for row in cursor.fetchall()}
+    if 'purchase_request_id' not in paa_cols:
+        cursor.execute("ALTER TABLE PurchaseApprovalActions ADD COLUMN purchase_request_id INTEGER NOT NULL DEFAULT 0")
+    if 'actor_user_id' not in paa_cols:
+        cursor.execute("ALTER TABLE PurchaseApprovalActions ADD COLUMN actor_user_id INTEGER")
+    if 'action_type' not in paa_cols:
+        cursor.execute("ALTER TABLE PurchaseApprovalActions ADD COLUMN action_type TEXT NOT NULL DEFAULT ''")
+    if 'action_channel' not in paa_cols:
+        cursor.execute("ALTER TABLE PurchaseApprovalActions ADD COLUMN action_channel TEXT")
+    if 'action_note' not in paa_cols:
+        cursor.execute("ALTER TABLE PurchaseApprovalActions ADD COLUMN action_note TEXT")
+    if 'forwarded_to_user_id' not in paa_cols:
+        cursor.execute("ALTER TABLE PurchaseApprovalActions ADD COLUMN forwarded_to_user_id INTEGER")
+    if 'created_at' not in paa_cols:
+        cursor.execute("ALTER TABLE PurchaseApprovalActions ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_purchase_approval_actions_request ON PurchaseApprovalActions(purchase_request_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_purchase_approval_actions_actor ON PurchaseApprovalActions(actor_user_id)")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS DailyTasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        task TEXT NOT NULL,
+        description TEXT,
+        hours_spend REAL DEFAULT 0.0,
+        status TEXT DEFAULT 'pending',
+        date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+        marked_for_today DATE,
+        closed_date DATETIME,
+        linked_task_id INTEGER,
+        project_id INTEGER,
+        FOREIGN KEY(user_id) REFERENCES Users(id),
+        FOREIGN KEY(linked_task_id) REFERENCES Tasks(id),
+        FOREIGN KEY(project_id) REFERENCES Projects(id) ON DELETE SET NULL
+    )
+    """)
+    cursor.execute("PRAGMA table_info(DailyTasks)")
+    dt_cols = {row[1] for row in cursor.fetchall()}
+    if 'user_id' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN user_id TEXT NOT NULL DEFAULT ''")
+    if 'task' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN task TEXT NOT NULL DEFAULT ''")
+    if 'description' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN description TEXT")
+    if 'hours_spend' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN hours_spend REAL DEFAULT 0.0")
+    if 'status' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN status TEXT DEFAULT 'pending'")
+    if 'date_created' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN date_created DATETIME DEFAULT CURRENT_TIMESTAMP")
+    if 'marked_for_today' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN marked_for_today DATE")
+    if 'closed_date' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN closed_date DATETIME")
+    if 'linked_task_id' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN linked_task_id INTEGER")
+    if 'project_id' not in dt_cols:
+        cursor.execute("ALTER TABLE DailyTasks ADD COLUMN project_id INTEGER")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_dailytasks_user_day ON DailyTasks(user_id, marked_for_today)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_dailytasks_user_status ON DailyTasks(user_id, status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_dailytasks_project ON DailyTasks(project_id)")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS WorkDiaryEntries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        entry_date DATE NOT NULL,
+        note_text TEXT NOT NULL,
+        project_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES Users(id),
+        FOREIGN KEY(project_id) REFERENCES Projects(id) ON DELETE SET NULL
+    )
+    """)
+    cursor.execute("PRAGMA table_info(WorkDiaryEntries)")
+    wd_cols = {row[1] for row in cursor.fetchall()}
+    if 'user_id' not in wd_cols:
+        cursor.execute("ALTER TABLE WorkDiaryEntries ADD COLUMN user_id TEXT NOT NULL DEFAULT ''")
+    if 'entry_date' not in wd_cols:
+        cursor.execute("ALTER TABLE WorkDiaryEntries ADD COLUMN entry_date DATE NOT NULL DEFAULT CURRENT_DATE")
+    if 'note_text' not in wd_cols:
+        cursor.execute("ALTER TABLE WorkDiaryEntries ADD COLUMN note_text TEXT NOT NULL DEFAULT ''")
+    if 'project_id' not in wd_cols:
+        cursor.execute("ALTER TABLE WorkDiaryEntries ADD COLUMN project_id INTEGER")
+    if 'created_at' not in wd_cols:
+        cursor.execute("ALTER TABLE WorkDiaryEntries ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    if 'updated_at' not in wd_cols:
+        cursor.execute("ALTER TABLE WorkDiaryEntries ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_workdiary_user_date ON WorkDiaryEntries(user_id, entry_date)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_workdiary_project ON WorkDiaryEntries(project_id)")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ProjectMemory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        memory_date DATE NOT NULL,
+        memory_type TEXT NOT NULL DEFAULT 'weekly_summary',
+        content TEXT NOT NULL,
+        source_summary TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(project_id) REFERENCES Projects(id) ON DELETE CASCADE
+    )
+    """)
+    cursor.execute("PRAGMA table_info(ProjectMemory)")
+    pm_cols = {row[1] for row in cursor.fetchall()}
+    if 'project_id' not in pm_cols:
+        cursor.execute("ALTER TABLE ProjectMemory ADD COLUMN project_id INTEGER NOT NULL DEFAULT 0")
+    if 'memory_date' not in pm_cols:
+        cursor.execute("ALTER TABLE ProjectMemory ADD COLUMN memory_date DATE NOT NULL DEFAULT CURRENT_DATE")
+    if 'memory_type' not in pm_cols:
+        cursor.execute("ALTER TABLE ProjectMemory ADD COLUMN memory_type TEXT NOT NULL DEFAULT 'weekly_summary'")
+    if 'content' not in pm_cols:
+        cursor.execute("ALTER TABLE ProjectMemory ADD COLUMN content TEXT NOT NULL DEFAULT ''")
+    if 'source_summary' not in pm_cols:
+        cursor.execute("ALTER TABLE ProjectMemory ADD COLUMN source_summary TEXT")
+    if 'created_at' not in pm_cols:
+        cursor.execute("ALTER TABLE ProjectMemory ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    if 'updated_at' not in pm_cols:
+        cursor.execute("ALTER TABLE ProjectMemory ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_project_memory_project_date ON ProjectMemory(project_id, memory_date)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_project_memory_type ON ProjectMemory(memory_type)")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ProjectKnowledgeFacts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        fact_date DATE,
+        fact_type TEXT NOT NULL DEFAULT 'general',
+        subject TEXT NOT NULL,
+        answer_text TEXT NOT NULL,
+        person_name TEXT,
+        source_type TEXT NOT NULL DEFAULT 'project_note',
+        source_id INTEGER,
+        evidence_summary TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(project_id) REFERENCES Projects(id) ON DELETE CASCADE
+    )
+    """)
+    cursor.execute("PRAGMA table_info(ProjectKnowledgeFacts)")
+    pkf_cols = {row[1] for row in cursor.fetchall()}
+    if 'project_id' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN project_id INTEGER NOT NULL DEFAULT 0")
+    if 'fact_date' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN fact_date DATE")
+    if 'fact_type' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN fact_type TEXT NOT NULL DEFAULT 'general'")
+    if 'subject' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN subject TEXT NOT NULL DEFAULT ''")
+    if 'answer_text' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN answer_text TEXT NOT NULL DEFAULT ''")
+    if 'person_name' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN person_name TEXT")
+    if 'source_type' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN source_type TEXT NOT NULL DEFAULT 'project_note'")
+    if 'source_id' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN source_id INTEGER")
+    if 'evidence_summary' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN evidence_summary TEXT")
+    if 'created_at' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    if 'updated_at' not in pkf_cols:
+        cursor.execute("ALTER TABLE ProjectKnowledgeFacts ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_project_facts_project_type ON ProjectKnowledgeFacts(project_id, fact_type)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_project_facts_project_date ON ProjectKnowledgeFacts(project_id, fact_date)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_project_facts_subject ON ProjectKnowledgeFacts(subject)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_project_facts_person ON ProjectKnowledgeFacts(person_name)")
+
     # 8. Tool Registry Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ToolList (

@@ -73,5 +73,6 @@ apps/whatsapp_bridge/headless/das_settings.json
 /Releases/**/*.zip
 /Releases/**/*.tar.gz
 /Releases/windows/oasis-release-pack-*/
+/Releases/windows/oasis-release-windows_web_officeauto_blank_pack-*/
 /Releases/ubuntu/oasis-release-pack-*/
 /Releases/desktop/windows/oasis-desktop-*/
