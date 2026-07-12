@@ -6,6 +6,27 @@ This folder contains the Ubuntu-ready non-Docker distribution packs for the OASI
 
 - Use the latest Ubuntu release zip in this folder, for example `oasis-release-ubuntu*.zip`.
 
+## Recommended Folder Layout
+
+Keep the actual install package separate from demo assets and operational helpers.
+
+Recommended layout:
+
+```text
+Releases/ubuntu/
+  README.md
+  oasis-release-ubuntu-<version>.zip
+  companion/
+    fictional-db/
+    scripts/
+```
+
+Use `companion/fictional-db/` for fictional or demo SQLite files.
+
+Use `companion/scripts/` for helper scripts such as seeding, migration, or environment-prep steps.
+
+Do not place those files into the extracted OASIS application folder unless that Ubuntu instance is intentionally being set up as a demo environment.
+
 ## Prerequisites
 
 - Ubuntu machine
@@ -23,22 +44,23 @@ sudo apt install -y python3 python3-venv python3-pip
 
 ## Install Steps
 
-1. Copy the zip to the target Ubuntu machine.
-2. Extract the zip to a folder of your choice.
-3. Open a terminal in the extracted folder.
-4. Make the scripts executable:
+1. Copy only the main Ubuntu release zip to the target Ubuntu machine.
+2. Keep any fictional DB files and helper scripts outside the install folder at first.
+3. Extract the zip to a dedicated application folder such as `/opt/oasis` or `~/oasis`.
+4. Open a terminal in the extracted folder.
+5. Make the scripts executable:
 
 ```bash
 chmod +x setup.sh start-api.sh start-ui.sh start-all.sh
 ```
 
-5. Run setup:
+6. Run setup:
 
 ```bash
 ./setup.sh
 ```
 
-6. Open `instance-config.json` and review the defaults.
+7. Open `instance-config.json` and review the defaults.
 
 Recommended first change:
 
@@ -47,6 +69,12 @@ Recommended first change:
 ```
 
 If another OASIS deployment is already using `8080` or `8787`, change both ports before first start.
+
+8. Start the system and confirm the base install works before copying in any fictional database or extra scripts.
+
+9. If you need a demo environment, copy the required fictional DB or helper scripts from the separate `companion` folder only after the clean install has been verified.
+
+This order matters because it keeps the installation reproducible and avoids mixing demo content with the default runtime unexpectedly.
 
 ## Start On Standard Ports
 
@@ -133,3 +161,5 @@ If the UI is public and the browser is calling the API directly by IP/port, the 
 - The startup scripts read `instance-config.json` and sync runtime paths into `apps/das_core/settings/user_config.json`.
 - Environment variables can still override values from `instance-config.json` if needed.
 - For multiple instances on one machine, use a separate extracted folder for each instance and give each one different ports and paths in its own `instance-config.json`.
+- Treat fictional/demo databases as optional overlays, not as part of the base Ubuntu installation.
+- Treat helper scripts as companion operational assets, not as files that should live permanently in the application root.

@@ -80,6 +80,26 @@ Result:
 
 - a new zip in [Releases/ubuntu](D:/Works/GenericAgent/DesktopAgenticSystem/Releases/ubuntu)
 
+## Ubuntu Delivery Layout
+
+For Ubuntu handoff, keep the installation package separate from demo or migration materials.
+
+Recommended structure inside [Releases/ubuntu](D:/Works/GenericAgent/DesktopAgenticSystem/Releases/ubuntu):
+
+- `oasis-release-ubuntu-...zip`
+- `README.md`
+- `companion/fictional-db/`
+- `companion/scripts/`
+
+Use that companion area for:
+
+- fictional or demo SQLite databases
+- one-off seed scripts
+- migration helpers
+- customer-specific setup notes
+
+Do not mix those files into the extracted application folder unless the target instance explicitly needs them.
+
 ## Build Both
 
 Run both commands one after the other:
@@ -130,6 +150,8 @@ For normal release handling:
 
 - keep only the latest zip in each platform folder
 - keep the platform `README.md`
+- keep fictional/demo databases outside the main install zip
+- keep helper scripts in a separate companion folder rather than the application root
 - remove older zips when they are no longer needed
 
 ## Troubleshooting
