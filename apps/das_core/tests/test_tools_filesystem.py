@@ -1,5 +1,7 @@
-﻿import os
+import os
 import tempfile
+
+import openpyxl
 
 from core.common_data_area import CommonDataArea
 from tools.tool_registry import call_tool, get_tool
@@ -52,3 +54,27 @@ def test_read_inspect_copy_move_within_bounds():
 
 def test_no_delete_tool_exists():
     assert get_tool('delete') is None
+
+
+def test_read_file_extracts_xlsx_rows():
+    cda = CommonDataArea()
+    cda.reset()
+
+    with tempfile.TemporaryDirectory() as allowed:
+        cda.set_setting('accessible_directories', [allowed])
+
+        file_path = os.path.join(allowed, 'employees.xlsx')
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        worksheet.title = 'Employees'
+        worksheet.append(['Name', 'Email', 'Phone'])
+        worksheet.append(['Jishnu Haridas', 'jishnu@example.com', '919847760326'])
+        workbook.save(file_path)
+
+        read = call_tool('read_file', {'file_path': file_path})
+
+        assert read['success'] is True
+        assert read['data']['type'] == 'xlsx'
+        assert 'Sheet: Employees' in read['data']['content']
+        assert 'Name | Email | Phone' in read['data']['content']
+        assert 'Jishnu Haridas | jishnu@example.com | 919847760326' in read['data']['content']

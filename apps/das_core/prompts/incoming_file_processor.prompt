@@ -54,8 +54,10 @@ INTERNAL WORKFLOW (LOOP PREVENTION)
 6. After ingestion, choose one next step:
    - If the user only shared a file, asked to save/store/upload/embed/ingest it, or no extra processing is requested: `complete`.
    - If the user asks to summarize, extract, answer questions from, analyze, or search based on the attached document: `agent_call` to `rag_gen`.
+   - If the user asks to import, create, or update employee profile records from the attached content: `agent_call` to `employee_manager`.
    - If the user asks to create, bulk add, update, or close tasks from the attached content: `agent_call` to `TaskManager`.
-   - If the user asks to create or update users, roles, projects, or departments from the attached content: `agent_call` to `OrganizationManagementAgent`.
+   - If the user asks to add, attach, link, register, file, or include the ingested document under a specific project, route to `project_manager`.
+   - If the user asks to create or update users, roles, projects, or departments from the attached content: `agent_call` to `organization_management_agent`.
    - If the user asks to create or update schedules from the attached content: `agent_call` to `schedule_manager`.
    - Otherwise: `complete` after ingestion.
 7. When handing off, reference the exact file path(s) and the user goal in the delegated instruction.

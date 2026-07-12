@@ -109,12 +109,14 @@ export type ToolItem = {
 export type SchedulerItem = {
   id: number;
   title: string;
+  nl_request?: string;
   task_prompt: string;
   schedule_type: string;
   interval_minutes: number;
   run_hour: number;
   run_minute: number;
   run_day_of_week: number;
+  days_of_week?: string;
   run_day_of_month: number;
   timezone: string;
   is_enabled: number;
@@ -493,6 +495,10 @@ export async function listSchedules(token: string): Promise<{ count: number; ite
 
 export async function validateSchedule(token: string, text: string): Promise<Record<string, unknown>> {
   return request("/uiport/scheduler/validate", { method: "POST", body: JSON.stringify({ request: text }) }, token);
+}
+
+export async function createScheduleFromRequest(token: string, text: string): Promise<Record<string, unknown>> {
+  return request("/uiport/scheduler/agent-create", { method: "POST", body: JSON.stringify({ request: text }) }, token);
 }
 
 export async function createSchedule(token: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {

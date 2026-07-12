@@ -69,10 +69,19 @@ apps/whatsapp_bridge/headless/messenger_previews/
 apps/whatsapp_bridge/headless/das_inbound_log.txt
 apps/whatsapp_bridge/headless/das_settings.json
 
-# Ignore compiled release binaries and packaged directories
+# Ignore generated release artifacts, but keep release docs tracked
+/Releases/*
+!/Releases/BUILD.md
+!/Releases/desktop/
+/Releases/desktop/*
+!/Releases/desktop/windows/
+/Releases/desktop/windows/*
+!/Releases/desktop/windows/README.md
+!/Releases/ubuntu/
+/Releases/ubuntu/*
+!/Releases/ubuntu/README.md
+!/Releases/windows/
+/Releases/windows/*
+!/Releases/windows/README.md
 /Releases/**/*.zip
 /Releases/**/*.tar.gz
-/Releases/windows/oasis-release-pack-*/
-/Releases/windows/oasis-release-windows_web_officeauto_blank_pack-*/
-/Releases/ubuntu/oasis-release-pack-*/
-/Releases/desktop/windows/oasis-desktop-*/

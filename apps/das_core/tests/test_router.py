@@ -1,4 +1,4 @@
-﻿from core.common_data_area import CommonDataArea
+from core.common_data_area import CommonDataArea
 from core.router import Router
 from llm.mock_client import MockLLMClient
 

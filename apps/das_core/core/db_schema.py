@@ -805,6 +805,7 @@ def init_db(db_path: str | Path | None = None):
             run_hour INTEGER NOT NULL DEFAULT 9,
             run_minute INTEGER NOT NULL DEFAULT 0,
             run_day_of_week INTEGER NOT NULL DEFAULT 0,
+            days_of_week TEXT,
             run_day_of_month INTEGER NOT NULL DEFAULT 1,
             timezone TEXT DEFAULT 'Asia/Calcutta',
             is_enabled INTEGER NOT NULL DEFAULT 1,
@@ -836,6 +837,8 @@ def init_db(db_path: str | Path | None = None):
         cursor.execute("ALTER TABLE Schedules ADD COLUMN run_minute INTEGER NOT NULL DEFAULT 0")
     if 'run_day_of_week' not in sch_cols:
         cursor.execute("ALTER TABLE Schedules ADD COLUMN run_day_of_week INTEGER NOT NULL DEFAULT 0")
+    if 'days_of_week' not in sch_cols:
+        cursor.execute("ALTER TABLE Schedules ADD COLUMN days_of_week TEXT")
     if 'run_day_of_month' not in sch_cols:
         cursor.execute("ALTER TABLE Schedules ADD COLUMN run_day_of_month INTEGER NOT NULL DEFAULT 1")
     if 'timezone' not in sch_cols:

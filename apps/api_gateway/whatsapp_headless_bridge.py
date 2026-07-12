@@ -31,10 +31,13 @@ class WhatsAppHeadlessBridgeService:
         self.root_dir = Path(__file__).resolve().parents[2]
         self.headless_dir = self.root_dir / "apps" / "whatsapp_bridge" / "headless"
         self.windows_bridge_dir = self.root_dir / "apps" / "whatsapp_bridge" / "windows"
+        self.ubuntu_bridge_dir = self.root_dir / "apps" / "whatsapp_bridge" / "ubuntu"
         self.register_script = self.headless_dir / "register.js"
         self.daemon_script = self.headless_dir / "daemon.js"
         self.register_exe = self.windows_bridge_dir / "cli_register.exe"
         self.daemon_exe = self.windows_bridge_dir / "cli_daemon.exe"
+        self.register_linux = self.ubuntu_bridge_dir / "cli_register"
+        self.daemon_linux = self.ubuntu_bridge_dir / "cli_daemon"
         self.das_settings_file = self.headless_dir / "das_settings.json"
         self.auth_session_dir = self.headless_dir / "auth_session"
 
@@ -74,15 +77,17 @@ class WhatsAppHeadlessBridgeService:
         return re.sub(r"\D+", "", str(value or ""))
 
     def _which_node(self) -> str:
-        candidates = [
-            self.root_dir / "node" / "node.exe",
-            self.root_dir / "node" / "node",
-            self.root_dir / "node" / "node.exe",
-            self.root_dir / "node" / "node",
-            self.root_dir.parent / "node" / "node.exe",
-            self.root_dir.parent / "node" / "node",
-            Path(r"D:\programs\node\node.exe"),
-        ]
+        if self._is_windows():
+            candidates = [
+                self.root_dir / "node" / "node.exe",
+                self.root_dir.parent / "node" / "node.exe",
+                Path(r"D:\programs\node\node.exe"),
+            ]
+        else:
+            candidates = [
+                self.root_dir / "node" / "node",
+                self.root_dir.parent / "node" / "node",
+            ]
         for candidate in candidates:
             try:
                 if candidate.exists() and candidate.is_file():
@@ -101,8 +106,10 @@ class WhatsAppHeadlessBridgeService:
             return [node_path, str(self.register_script), "--phone", mobile, "--dir", base], self.headless_dir
         if self._is_windows() and self.register_exe.exists():
             return [str(self.register_exe), "--phone", mobile, "--dir", base], self.windows_bridge_dir
+        if not self._is_windows() and self.register_linux.exists():
+            return [str(self.register_linux), "--phone", mobile, "--dir", base], self.ubuntu_bridge_dir
         if not node_path:
-            raise RuntimeError("Node.js was not found and no packaged Windows WhatsApp bridge executable is available")
+            raise RuntimeError("Node.js was not found and no packaged Linux WhatsApp bridge executable is available")
         if not self.register_script.exists():
             raise RuntimeError(f"register.js not found: {self.register_script}")
         return [node_path, str(self.register_script), "--phone", mobile, "--dir", base], self.headless_dir
@@ -113,8 +120,10 @@ class WhatsAppHeadlessBridgeService:
             return [node_path, str(self.daemon_script)], self.headless_dir
         if self._is_windows() and self.daemon_exe.exists():
             return [str(self.daemon_exe)], self.windows_bridge_dir
+        if not self._is_windows() and self.daemon_linux.exists():
+            return [str(self.daemon_linux)], self.ubuntu_bridge_dir
         if not node_path:
-            raise RuntimeError("Node.js was not found and no packaged Windows WhatsApp bridge executable is available")
+            raise RuntimeError("Node.js was not found and no packaged Linux WhatsApp bridge executable is available")
         if not self.daemon_script.exists():
             raise RuntimeError(f"daemon.js not found: {self.daemon_script}")
         return [node_path, str(self.daemon_script)], self.headless_dir
@@ -447,8 +456,14 @@ class WhatsAppHeadlessBridgeService:
     def get_status(self) -> Dict[str, Any]:
         with self._lock:
             node_path = self._which_node()
-            packaged_register = self.register_exe.exists()
-            packaged_daemon = self.daemon_exe.exists()
+            packaged_windows_register = self.register_exe.exists()
+            packaged_windows_daemon = self.daemon_exe.exists()
+            packaged_linux_register = self.register_linux.exists()
+            packaged_linux_daemon = self.daemon_linux.exists()
+            packaged_bridge_available = (
+                (packaged_windows_register and packaged_windows_daemon)
+                or (packaged_linux_register and packaged_linux_daemon)
+            )
             settings = self._load_das_settings()
             configured_base_folder = str(self.cda.get_setting("whatsapp_folder_root", "") or "").strip()
             file_base_folder = str(settings.get("baseFolder", "") or "").strip()
@@ -470,13 +485,18 @@ class WhatsAppHeadlessBridgeService:
                     "daemon_exists": self.daemon_script.exists(),
                     "register_exe": str(self.register_exe),
                     "daemon_exe": str(self.daemon_exe),
-                    "register_exe_exists": packaged_register,
-                    "daemon_exe_exists": packaged_daemon,
+                    "register_exe_exists": packaged_windows_register,
+                    "daemon_exe_exists": packaged_windows_daemon,
+                    "register_linux": str(self.register_linux),
+                    "daemon_linux": str(self.daemon_linux),
+                    "register_linux_exists": packaged_linux_register,
+                    "daemon_linux_exists": packaged_linux_daemon,
                 },
                 "node": {
-                    "available": bool(node_path) or (packaged_register and packaged_daemon),
+                    "available": bool(node_path) or packaged_bridge_available,
                     "path": node_path,
-                    "packaged_windows_bridge": packaged_register and packaged_daemon,
+                    "packaged_windows_bridge": packaged_windows_register and packaged_windows_daemon,
+                    "packaged_linux_bridge": packaged_linux_register and packaged_linux_daemon,
                 },
                 "settings": {
                     "enabled": bool(settings.get("enabled", False)),

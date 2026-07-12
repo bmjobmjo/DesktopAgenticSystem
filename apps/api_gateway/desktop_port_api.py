@@ -526,17 +526,46 @@ class SchedulerValidateRequest(BaseModel):
     request: str = Field(min_length=1)
 
 
+class SchedulerAgentCreateRequest(BaseModel):
+    request: str = Field(min_length=1)
+
+
 class SchedulerSaveRequest(BaseModel):
     title: str = Field(min_length=1, max_length=240)
+    nl_request: str = ""
     task_prompt: str = Field(min_length=1)
     schedule_type: str = Field(default="other")
     interval_minutes: int = 0
     run_hour: int = 9
     run_minute: int = 0
     run_day_of_week: int = 0
+    days_of_week: str = ""
     run_day_of_month: int = 1
     timezone: str = "Asia/Calcutta"
     is_enabled: bool = True
+
+
+def _run_schedule_manager_request(
+    request: Request,
+    user_id: str,
+    interface: str,
+    user_message: str,
+) -> Any:
+    mgr = _get_conversation_manager(request)
+    conv_id = f"{str(interface or 'WEB').lower()}:scheduler:nl:{user_id}:{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+    return mgr.execute_sync(
+        InboundRequest(
+            conversation_id=conv_id,
+            interface=interface,
+            user_id=str(user_id or "").strip() or "unknown",
+            message=user_message,
+            execution_metadata={
+                "execution_source": "scheduler_ui_nl",
+                "scheduler_nl_request": True,
+            },
+        ),
+        timeout=180,
+    )
 
 
 class UserUpdateRequest(BaseModel):
@@ -1347,6 +1376,28 @@ def scheduler_validate(payload: SchedulerValidateRequest, request: Request) -> D
     return parsed
 
 
+@router.post("/scheduler/agent-create")
+def scheduler_agent_create(payload: SchedulerAgentCreateRequest, request: Request) -> Dict[str, Any]:
+    user_id = _request_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User session missing")
+
+    user_message = (
+        "Create a saved recurring schedule from this request. "
+        "Analyze the timing and actual work, derive the executable task prompt, "
+        "and create the schedule entry now. "
+        "If the request is missing the actual task or the timing is ambiguous, ask for clarification instead of creating anything.\n\n"
+        f"Schedule request: {str(payload.request or '').strip()}"
+    )
+    response = _run_schedule_manager_request(request, str(user_id), "WEB", user_message)
+    return {
+        "ok": True,
+        "status": str(getattr(response, "status", "") or ""),
+        "content": str(getattr(response, "content", "") or ""),
+        "ui_feedback": list(getattr(response, "ui_feedback", []) or []),
+    }
+
+
 def _schedule_next_run_text(record: Dict[str, Any]) -> str:
     next_dt = compute_next_run(record, now=datetime.now())
     return next_dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -1372,19 +1423,20 @@ def scheduler_create(payload: SchedulerSaveRequest, request: Request, session: D
             """
             INSERT INTO Schedules (
                 title, nl_request, task_prompt, schedule_type,
-                interval_minutes, run_hour, run_minute, run_day_of_week, run_day_of_month,
+                interval_minutes, run_hour, run_minute, run_day_of_week, days_of_week, run_day_of_month,
                 timezone, is_enabled, status, next_run_at, owner, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
             """,
             (
                 payload.title.strip(),
-                payload.task_prompt.strip(),
+                str(payload.nl_request or "").strip(),
                 payload.task_prompt.strip(),
                 payload.schedule_type.strip().lower(),
                 int(payload.interval_minutes),
                 int(payload.run_hour),
                 int(payload.run_minute),
                 int(payload.run_day_of_week),
+                str(payload.days_of_week or "").strip(),
                 int(payload.run_day_of_month),
                 payload.timezone.strip(),
                 1 if payload.is_enabled else 0,
@@ -1419,19 +1471,20 @@ def scheduler_update(schedule_id: int, payload: SchedulerSaveRequest, request: R
             """
             UPDATE Schedules
             SET title=?, nl_request=?, task_prompt=?, schedule_type=?,
-                interval_minutes=?, run_hour=?, run_minute=?, run_day_of_week=?, run_day_of_month=?,
+                interval_minutes=?, run_hour=?, run_minute=?, run_day_of_week=?, days_of_week=?, run_day_of_month=?,
                 timezone=?, is_enabled=?, next_run_at=?, owner=?, updated_at=CURRENT_TIMESTAMP
             WHERE id=?
             """,
             (
                 payload.title.strip(),
-                payload.task_prompt.strip(),
+                str(payload.nl_request or "").strip(),
                 payload.task_prompt.strip(),
                 payload.schedule_type.strip().lower(),
                 int(payload.interval_minutes),
                 int(payload.run_hour),
                 int(payload.run_minute),
                 int(payload.run_day_of_week),
+                str(payload.days_of_week or "").strip(),
                 int(payload.run_day_of_month),
                 payload.timezone.strip(),
                 1 if payload.is_enabled else 0,

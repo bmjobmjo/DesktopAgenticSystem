@@ -383,6 +383,90 @@ def test_controller_stops_when_same_agent_repeats_too_many_times():
     assert executor.calls == 1
 
 
+def test_controller_hydrates_linked_employee_context(tmp_path):
+    db_path = tmp_path / "employee_identity.db"
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute(
+            """
+            CREATE TABLE Employees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_code TEXT,
+                full_name TEXT,
+                designation TEXT,
+                linked_user_id INTEGER,
+                employment_status TEXT,
+                created_at DATETIME,
+                updated_at DATETIME
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE EmployeeDetails (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER,
+                detail_key TEXT,
+                detail_label TEXT,
+                detail_value_text TEXT,
+                file_id INTEGER,
+                category TEXT,
+                is_current INTEGER,
+                effective_date TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO Employees (employee_code, full_name, designation, linked_user_id, employment_status, created_at, updated_at)
+            VALUES ('EMP-6', 'Bijumon Janardhanan O', 'CTO', 6, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """
+        )
+        employee_id = conn.execute("SELECT id FROM Employees WHERE linked_user_id=6").fetchone()[0]
+        conn.execute(
+            """
+            INSERT INTO EmployeeDetails (employee_id, detail_key, detail_label, detail_value_text, category, is_current, effective_date)
+            VALUES (?, 'skill', 'Skill', 'Python', 'skills', 1, '2026-07-03')
+            """,
+            (employee_id,),
+        )
+        conn.execute(
+            """
+            INSERT INTO EmployeeDetails (employee_id, detail_key, detail_label, detail_value_text, category, is_current, effective_date)
+            VALUES (?, 'location', 'Location', 'Trivandrum', 'general', 1, '2026-07-03')
+            """,
+            (employee_id,),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    cda = CommonDataArea()
+    cda.reset()
+    cda.set_setting('sqlite_db_path', str(db_path))
+    controller = Controller(cda, GreetingRouter(cda), MagicMock(spec=Executor))
+
+    employee_ctx = controller._resolve_linked_employee_context('6')
+    assert employee_ctx["CURRENT_EMPLOYEE_ID"] == str(employee_id)
+    assert employee_ctx["CURRENT_EMPLOYEE_CODE"] == "EMP-6"
+    assert employee_ctx["CURRENT_EMPLOYEE_NAME"] == "Bijumon Janardhanan O"
+    assert employee_ctx["CURRENT_EMPLOYEE_DESIGNATION"] == "CTO"
+    assert employee_ctx["CURRENT_EMPLOYEE_LINKED_USER_ID"] == "6"
+    assert employee_ctx["CURRENT_EMPLOYEE_DETAILS_COUNT"] == "2"
+    assert "Python" in employee_ctx["CURRENT_EMPLOYEE_DETAILS_SUMMARY"]
+    assert "Trivandrum" in employee_ctx["CURRENT_EMPLOYEE_DETAILS_SUMMARY"]
+
+    controller._set_prompt_identity_context('6', 'bmjo', 'bmjo@example.com')
+    prompt_ctx = cda.get_memory('prompt_context_dict', {})
+    assert prompt_ctx["CURRENT_EMPLOYEE_ID"] == str(employee_id)
+    assert prompt_ctx["CURRENT_EMPLOYEE_NAME"] == "Bijumon Janardhanan O"
+    assert prompt_ctx["CURRENT_EMPLOYEE_LINKED_USER_ID"] == "6"
+
+    reset_ctx = controller._reset_prompt_context(prompt_ctx)
+    assert reset_ctx["CURRENT_EMPLOYEE_ID"] == str(employee_id)
+    assert reset_ctx["CURRENT_EMPLOYEE_NAME"] == "Bijumon Janardhanan O"
+
+
 def test_controller_stops_when_reroute_feedback_loops(monkeypatch):
     def _fake_call_tool(tool_name, parameters, status_callback=None):
         return {'success': True, 'data': {'echo': parameters}}

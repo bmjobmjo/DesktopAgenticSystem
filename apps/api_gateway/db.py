@@ -278,8 +278,13 @@ def resolve_session(cda: Any, raw_token: str) -> Optional[Dict[str, Any]]:
         if created_dt is not None and password_updated_dt is not None and created_dt < password_updated_dt:
             return None
 
-        cur.execute("UPDATE ApiSessions SET last_seen_at=CURRENT_TIMESTAMP WHERE id=?", (data["session_id"],))
-        conn.commit()
+        try:
+            cur.execute("UPDATE ApiSessions SET last_seen_at=CURRENT_TIMESTAMP WHERE id=?", (data["session_id"],))
+            conn.commit()
+        except sqlite3.OperationalError as exc:
+            # Session reads should not fail the whole API request if SQLite is briefly busy.
+            if "database is locked" not in str(exc).lower():
+                raise
         return data
     finally:
         conn.close()

@@ -56,7 +56,7 @@ TOOL_METADATA = {
         'example_call': '{"tool_name": "list_directory", "parameters": {"directory_path": "C:/Users/Bijumon/Downloads"}}',
     },
     'read_file': {
-        'description': 'Read text content from a plain-text file or extract text from a PDF file.',
+        'description': 'Read text content from plain-text files or extract text from PDF, DOCX, XLSX, and PPTX files.',
         'parameters': [
             {'name': 'file_path', 'type': 'str', 'required': True, 'description': 'Absolute file path inside accessible directories.'},
         ],
@@ -132,6 +132,7 @@ TOOL_METADATA = {
             {'name': 'run_hour', 'type': 'int', 'required': False, 'description': 'Hour of day for scheduled runs.'},
             {'name': 'run_minute', 'type': 'int', 'required': False, 'description': 'Minute of hour for scheduled runs.'},
             {'name': 'run_day_of_week', 'type': 'int', 'required': False, 'description': 'Day of week for weekly schedules, 0-6.'},
+            {'name': 'days_of_week', 'type': 'str', 'required': False, 'description': 'Comma-separated weekdays for multi-day schedules, e.g. 0,1,2,3,4.'},
             {'name': 'run_day_of_month', 'type': 'int', 'required': False, 'description': 'Day of month for monthly schedules, 1-31.'},
             {'name': 'is_enabled', 'type': 'bool', 'required': False, 'description': 'Whether the schedule starts enabled.'},
             {'name': 'owner', 'type': 'str', 'required': False, 'description': 'Owner user id or label.'},
@@ -154,18 +155,28 @@ TOOL_METADATA = {
         'parameters': [
             {'name': 'schedule_id', 'type': 'int', 'required': True, 'description': 'Schedule id to update.'},
             {'name': 'title', 'type': 'str', 'required': False, 'description': 'Updated title.'},
+            {'name': 'nl_request', 'type': 'str', 'required': False, 'description': 'Updated original natural-language request.'},
             {'name': 'task_prompt', 'type': 'str', 'required': False, 'description': 'Updated task prompt.'},
             {'name': 'schedule_type', 'type': 'str', 'required': False, 'description': 'Updated schedule type.'},
             {'name': 'interval_minutes', 'type': 'int', 'required': False, 'description': 'Updated interval in minutes.'},
             {'name': 'run_hour', 'type': 'int', 'required': False, 'description': 'Updated run hour.'},
             {'name': 'run_minute', 'type': 'int', 'required': False, 'description': 'Updated run minute.'},
             {'name': 'run_day_of_week', 'type': 'int', 'required': False, 'description': 'Updated weekly day.'},
+            {'name': 'days_of_week', 'type': 'str', 'required': False, 'description': 'Updated comma-separated weekdays for multi-day schedules.'},
             {'name': 'run_day_of_month', 'type': 'int', 'required': False, 'description': 'Updated monthly day.'},
             {'name': 'is_enabled', 'type': 'bool | None', 'required': False, 'description': 'Optional enabled flag.'},
             {'name': 'owner', 'type': 'str', 'required': False, 'description': 'Updated owner.'},
         ],
         'output_schema': 'Dict with success flag and updated schedule id.',
         'example_call': '{"tool_name": "update_schedule", "parameters": {"schedule_id": 3, "run_hour": 10, "run_minute": 30}}',
+    },
+    'run_schedule_now': {
+        'description': 'Execute a saved schedule immediately for testing and update its last-run metadata.',
+        'parameters': [
+            {'name': 'schedule_id', 'type': 'int', 'required': True, 'description': 'Schedule id to run immediately.'},
+        ],
+        'output_schema': 'Dict with success flag, schedule id, and execution result.',
+        'example_call': '{"tool_name": "run_schedule_now", "parameters": {"schedule_id": 3}}',
     },
     'delete_schedule': {
         'description': 'Delete a schedule by id.',

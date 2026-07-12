@@ -147,6 +147,25 @@ class CaptureExecutor:
         return ExecutorResult(status='complete', content='ok', ui_feedback=[])
 
 
+class ResumeThenCompleteExecutor:
+    def __init__(self):
+        self.calls = 0
+
+    def execute(self, *args, **kwargs):
+        self.calls += 1
+        if self.calls == 1:
+            return ExecutorResult(
+                status='request_user_input',
+                content='Please confirm deletion.',
+                ui_feedback=[],
+            )
+        return ExecutorResult(
+            status='complete',
+            content='Employee deleted successfully.',
+            ui_feedback=[],
+        )
+
+
 def test_router_handoff_preserves_original_user_input_and_whatsapp_interface():
     cda = CommonDataArea()
     cda.reset()
@@ -164,3 +183,20 @@ def test_router_handoff_preserves_original_user_input_and_whatsapp_interface():
     assert executor.calls[0]['user_prompt'] == 'List pending tasks from yesterday'
     assert '[ROUTER_PARAMETERS]' not in executor.calls[0]['user_prompt']
     assert executor.calls[0]['interface_type'] == 'WHATSAPP'
+
+
+def test_controller_preserves_completion_message_after_resumed_agent_input():
+    cda = CommonDataArea()
+    cda.reset()
+
+    router = PassthroughRouter()
+    executor = ResumeThenCompleteExecutor()
+    controller = Controller(cda, router=router, executor=executor)
+
+    first = controller.handle_user_message('delete employee 2')
+    assert first.status == 'request_user_input'
+    assert first.content == 'Please confirm deletion.'
+
+    second = controller.handle_user_message('yes please')
+    assert second.status == 'complete'
+    assert second.content == 'Employee deleted successfully.'

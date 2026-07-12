@@ -19,18 +19,22 @@ _BUILTIN_DESCRIPTIONS = {
     'attendance_manager': 'Manage the acting user\'s attendance check-in, check-out, open-session status, and recent attendance history. Not leave or break management.',
     'database_manager': 'Manage SQLite database records and schema using controlled SQL operations.',
     'dailytask_manager': 'Manage a user\'s personal daily working list, including today, yesterday, last-week views, restricted deletion, and optional project linkage. Not formal task ownership.',
-    'employee_manager': 'Manage employee profile records, emergency contacts, employee documents, and flexible employee details. Not users, roles, departments, or project membership.',
+    'employee_manager': 'Manage employee self-profile and employee master/profile records, including requests like my profile, my personal details, my employment details, my name, my email, my phone number, emergency contacts, employee documents, and flexible employee details. Not users, roles, departments, or project membership.',
     'expense_manager': 'Manage expense entries, receipts, project and user linking, and expense reports. No approval workflow.',
     'file_manager': 'Handle filesystem listing, inspection, reading, copy/move operations, and file ingestion. Not semantic document question answering.',
     'holiday_manager': 'Manage the company-wide holiday calendar only: create, list, update, and delete holidays.',
     'leave_manager': 'Manage leave requests, manager or admin approvals, leave balances, discrepancy corrections, and approved-leave staff notifications.',
-    'organization_management_agent': 'Manage users, roles, role-agent access, departments, project master records, and explicit project team membership only.',
+    'organization_management_agent': 'Manage users, roles, role-agent access, departments, project master records, and explicit project team membership only. Not employee self-profile or employee detail requests such as my profile, my personal details, my employment details, my name, my email, or my phone number.',
     'project_manager': 'Manage project-specific documents, notes, meeting minutes, project memory, project knowledge facts, reports, and project-specific knowledge retrieval.',
     'purchase_request_manager': 'Manage purchase requests that require manager approval, escalation forwarding, and supporting documents.',
     'rag_gen': 'RAG Knowledge Assistant for general non-project documents, policies, manuals, SOPs, and file knowledge.',
     'schedule_manager': 'Validate natural-language schedule requests and create or manage recurring schedules.',
     'task_manager': 'Manage formal general and project-linked tasks and issues, including backlog, assignment, notes, reopen, inactivation, and status updates. Not daily-task planning.',
     'work_diary_manager': 'Manage a user\'s work diary entries, recent diary views, limited updates, and optional project linkage. Not task assignment or backlog management.',
+}
+
+_LEGACY_AGENT_ALIASES = {
+    'organization_management_agent': ['OrganizationManagementAgent'],
 }
 
 
@@ -70,9 +74,9 @@ AGENTS: Dict[str, Dict[str, Any]] = {
 
 ROLE_AGENT_POLICY = {
     'Admin': set(BUILTIN_AGENTS.keys()),
-    'User': {'dailytask_manager', 'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
-    'Manager': {'dailytask_manager', 'expense_manager', 'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
-    'Employee': {'dailytask_manager', 'expense_manager', 'file_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
+    'User': {'dailytask_manager', 'employee_manager', 'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
+    'Manager': {'dailytask_manager', 'employee_manager', 'expense_manager', 'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
+    'Employee': {'dailytask_manager', 'employee_manager', 'expense_manager', 'file_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
 }
 
 
@@ -96,6 +100,85 @@ def _ensure_agent_has_tool_mappings(cursor: sqlite3.Cursor, agent_id: int) -> No
 def _get_db_path() -> Path:
     return resolve_db_path()
 
+
+def _merge_agent_rows(cursor: sqlite3.Cursor, keep_id: int, drop_id: int, keep_name: str) -> None:
+    if int(keep_id) == int(drop_id):
+        return
+
+    cursor.execute("SELECT tool_name FROM AgentTools WHERE agent_id=?", (int(drop_id),))
+    for row in cursor.fetchall():
+        tool_name = str(row[0] or '').strip()
+        if tool_name:
+            cursor.execute(
+                "INSERT OR IGNORE INTO AgentTools (agent_id, tool_name) VALUES (?, ?)",
+                (int(keep_id), tool_name),
+            )
+
+    cursor.execute("SELECT role_id FROM RoleAgents WHERE agent_id=?", (int(drop_id),))
+    for row in cursor.fetchall():
+        role_id = int(row[0] or 0)
+        if role_id > 0:
+            cursor.execute(
+                "INSERT OR IGNORE INTO RoleAgents (role_id, agent_id) VALUES (?, ?)",
+                (role_id, int(keep_id)),
+            )
+
+    cursor.execute(
+        "UPDATE AgentPromptVersion SET agent_id=?, agent_name=? WHERE agent_id=?",
+        (int(keep_id), keep_name, int(drop_id)),
+    )
+    cursor.execute("DELETE FROM AgentTools WHERE agent_id=?", (int(drop_id),))
+    cursor.execute("DELETE FROM RoleAgents WHERE agent_id=?", (int(drop_id),))
+    cursor.execute("DELETE FROM Agents WHERE id=?", (int(drop_id),))
+
+
+def _resolve_or_migrate_builtin_agent(
+    cursor: sqlite3.Cursor,
+    *,
+    name: str,
+    description: str,
+    prompt_content: str,
+) -> int:
+    cursor.execute("SELECT id FROM Agents WHERE name = ? LIMIT 1", (name,))
+    canonical = cursor.fetchone()
+    canonical_id = int(canonical[0] or 0) if canonical else 0
+
+    alias_rows: List[tuple[int, str]] = []
+    for legacy_name in _LEGACY_AGENT_ALIASES.get(name, []):
+        cursor.execute("SELECT id, name FROM Agents WHERE name = ? LIMIT 1", (legacy_name,))
+        row = cursor.fetchone()
+        if row:
+            alias_rows.append((int(row[0] or 0), str(row[1] or legacy_name)))
+
+    if canonical_id <= 0 and alias_rows:
+        alias_id, _ = alias_rows[0]
+        cursor.execute(
+            "UPDATE Agents SET name=?, description=?, prompt_content=?, is_active=1 WHERE id=?",
+            (name, description, prompt_content, int(alias_id)),
+        )
+        canonical_id = int(alias_id)
+        alias_rows = alias_rows[1:]
+        print(f"Migrated legacy agent alias to canonical name: {name}")
+    elif canonical_id <= 0:
+        cursor.execute(
+            "INSERT INTO Agents (name, description, prompt_content, is_active) VALUES (?, ?, ?, 1)",
+            (name, description, prompt_content),
+        )
+        canonical_id = int(cursor.lastrowid or 0)
+        print(f"Seeded built-in agent: {name}")
+    else:
+        cursor.execute(
+            "UPDATE Agents SET description=?, prompt_content=? WHERE id=?",
+            (description, prompt_content, canonical_id),
+        )
+
+    for alias_id, _alias_name in alias_rows:
+        if alias_id > 0:
+            _merge_agent_rows(cursor, canonical_id, alias_id, name)
+            print(f"Merged legacy duplicate agent into canonical name: {name}")
+
+    return canonical_id
+
 def _ensure_builtins_seeded() -> None:
     """Seed built-in agents into DB if missing."""
     db_path = _get_db_path()
@@ -113,23 +196,17 @@ def _ensure_builtins_seeded() -> None:
             return
 
         for name, meta in BUILTIN_AGENTS.items():
-            cursor.execute("SELECT id FROM Agents WHERE name = ?", (name,))
-            existing = cursor.fetchone()
-            if not existing:
-                # Read content
-                p_path = meta['prompt_file']
-                content = ""
-                if p_path.exists():
-                    content = p_path.read_text(encoding='utf-8')
-                
-                cursor.execute(
-                    "INSERT INTO Agents (name, description, prompt_content, is_active) VALUES (?, ?, ?, 1)",
-                    (name, meta['description'], content)
-                )
-                print(f"Seeded built-in agent: {name}")
-                agent_id = int(cursor.lastrowid or 0)
-            else:
-                agent_id = int(existing[0] or 0)
+            p_path = meta['prompt_file']
+            content = ""
+            if p_path.exists():
+                content = p_path.read_text(encoding='utf-8')
+
+            agent_id = _resolve_or_migrate_builtin_agent(
+                cursor,
+                name=name,
+                description=meta['description'],
+                prompt_content=content,
+            )
 
             if agent_id > 0:
                 _ensure_agent_has_tool_mappings(cursor, agent_id)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__tool_exports__ = ['validate_schedule', 'create_schedule', 'list_schedules', 'update_schedule', 'delete_schedule']
+__tool_exports__ = ['validate_schedule', 'create_schedule', 'list_schedules', 'update_schedule', 'delete_schedule', 'run_schedule_now']
 
 import sqlite3
 from datetime import datetime
@@ -62,6 +62,7 @@ def create_schedule(
     run_hour: int = 9,
     run_minute: int = 0,
     run_day_of_week: int = 0,
+    days_of_week: str = "",
     run_day_of_month: int = 1,
     is_enabled: bool = True,
     owner: str = "",
@@ -73,29 +74,35 @@ def create_schedule(
     cda = CommonDataArea()
     parsed: Optional[Dict[str, Any]] = None
     nl_text = str(nl_request or "").strip()
+    explicit_title = str(title or "").strip()
+    explicit_prompt = str(task_prompt or "").strip()
+    explicit_days_of_week = str(days_of_week or "").strip()
     if nl_text:
         parsed = validate_schedule_request(nl_text, cda=cda)
         if not bool(parsed.get("is_valid", False)):
             return {"success": False, "error": str(parsed.get("reason", "Invalid schedule request")), "parsed": parsed}
 
+    prefer_explicit = bool(explicit_title or explicit_prompt or explicit_days_of_week)
+
     base = _normalize_schedule(
-        schedule_type=(parsed or {}).get("schedule_type", schedule_type),
-        interval_minutes=int((parsed or {}).get("interval_minutes", interval_minutes) or 0),
-        run_hour=int((parsed or {}).get("run_hour", run_hour) or 0),
-        run_minute=int((parsed or {}).get("run_minute", run_minute) or 0),
-        run_day_of_week=int((parsed or {}).get("run_day_of_week", run_day_of_week) or 0),
-        run_day_of_month=int((parsed or {}).get("run_day_of_month", run_day_of_month) or 1),
+        schedule_type=(schedule_type if prefer_explicit else (parsed or {}).get("schedule_type", schedule_type)),
+        interval_minutes=int((interval_minutes if prefer_explicit else (parsed or {}).get("interval_minutes", interval_minutes)) or 0),
+        run_hour=int((run_hour if prefer_explicit else (parsed or {}).get("run_hour", run_hour)) or 0),
+        run_minute=int((run_minute if prefer_explicit else (parsed or {}).get("run_minute", run_minute)) or 0),
+        run_day_of_week=int((run_day_of_week if prefer_explicit else (parsed or {}).get("run_day_of_week", run_day_of_week)) or 0),
+        run_day_of_month=int((run_day_of_month if prefer_explicit else (parsed or {}).get("run_day_of_month", run_day_of_month)) or 1),
     )
 
-    effective_prompt = str((parsed or {}).get("task_prompt", "") or task_prompt or nl_text).strip()
+    effective_prompt = str(explicit_prompt or (parsed or {}).get("task_prompt", "") or nl_text).strip()
     if not effective_prompt:
         return {"success": False, "error": "task_prompt is required"}
 
-    effective_title = str((parsed or {}).get("title", "") or title or effective_prompt[:80] or "Scheduled Task").strip()
+    effective_title = str(explicit_title or (parsed or {}).get("title", "") or effective_prompt[:80] or "Scheduled Task").strip()
     created_uid = str(created_by or cda.get_setting("current_user_id", "") or "").strip()
     owner_uid = str(owner or created_uid).strip()
 
     payload = dict(base)
+    payload["days_of_week"] = str(explicit_days_of_week or (parsed or {}).get("days_of_week", "") or "").strip()
     next_run_at = _record_next_run(payload)
 
     db_path = _db_path(cda)
@@ -107,10 +114,10 @@ def create_schedule(
             """
             INSERT INTO Schedules (
                 title, nl_request, task_prompt, schedule_type, interval_minutes,
-                run_hour, run_minute, run_day_of_week, run_day_of_month,
+                run_hour, run_minute, run_day_of_week, days_of_week, run_day_of_month,
                 is_enabled, status, next_run_at, validation_reason, owner, created_by
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
             """,
             (
                 effective_title,
@@ -121,6 +128,7 @@ def create_schedule(
                 payload["run_hour"],
                 payload["run_minute"],
                 payload["run_day_of_week"],
+                payload["days_of_week"],
                 payload["run_day_of_month"],
                 1 if bool(is_enabled) else 0,
                 next_run_at,
@@ -161,12 +169,14 @@ def list_schedules(include_disabled: bool = True, limit: int = 200) -> Dict[str,
 def update_schedule(
     schedule_id: int,
     title: str = "",
+    nl_request: str = "",
     task_prompt: str = "",
     schedule_type: str = "",
     interval_minutes: int = 0,
     run_hour: int = 9,
     run_minute: int = 0,
     run_day_of_week: int = 0,
+    days_of_week: str = "",
     run_day_of_month: int = 1,
     is_enabled: Optional[bool] = None,
     owner: str = "",
@@ -200,26 +210,32 @@ def update_schedule(
             run_day_of_week=run_day_of_week if str(run_day_of_week) != "" else int(current.get("run_day_of_week", 0) or 0),
             run_day_of_month=run_day_of_month if str(run_day_of_month) != "" else int(current.get("run_day_of_month", 1) or 1),
         )
+        eff_nl_request = str(nl_request or current.get("nl_request", "") or "").strip()
+        eff_days_of_week = str(days_of_week or current.get("days_of_week", "") or "").strip()
         enabled = int(current.get("is_enabled", 1) or 0) if is_enabled is None else (1 if bool(is_enabled) else 0)
         eff_owner = str(owner or current.get("owner", "") or current.get("created_by", "") or "").strip()
-        next_run_at = _record_next_run(base)
+        payload = dict(base)
+        payload["days_of_week"] = eff_days_of_week
+        next_run_at = _record_next_run(payload)
 
         cur.execute(
             """
             UPDATE Schedules
-            SET title=?, task_prompt=?, schedule_type=?, interval_minutes=?,
-                run_hour=?, run_minute=?, run_day_of_week=?, run_day_of_month=?,
+            SET title=?, nl_request=?, task_prompt=?, schedule_type=?, interval_minutes=?,
+                run_hour=?, run_minute=?, run_day_of_week=?, days_of_week=?, run_day_of_month=?,
                 is_enabled=?, next_run_at=?, owner=?, updated_at=CURRENT_TIMESTAMP
             WHERE id=?
             """,
             (
                 eff_title,
+                eff_nl_request,
                 eff_prompt,
                 base["schedule_type"],
                 base["interval_minutes"],
                 base["run_hour"],
                 base["run_minute"],
                 base["run_day_of_week"],
+                eff_days_of_week,
                 base["run_day_of_month"],
                 enabled,
                 next_run_at,
@@ -253,5 +269,22 @@ def delete_schedule(schedule_id: int) -> Dict[str, Any]:
     finally:
         conn.close()
     return {"success": bool(deleted > 0), "deleted": deleted, "schedule_id": sid}
+
+
+def run_schedule_now(schedule_id: int) -> Dict[str, Any]:
+    """Run a schedule immediately using the configured scheduler service."""
+    sid = int(schedule_id or 0)
+    if sid <= 0:
+        return {"success": False, "error": "schedule_id must be > 0"}
+
+    cda = CommonDataArea()
+    svc = cda.get_runtime("scheduler_service")
+    if svc is None:
+        return {"success": False, "error": "Scheduler service not initialized"}
+    try:
+        result = svc.run_schedule_now(sid)
+    except Exception as exc:
+        return {"success": False, "error": str(exc), "schedule_id": sid}
+    return {"success": True, "schedule_id": sid, "result": result}
 
 

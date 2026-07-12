@@ -1,6 +1,6 @@
 param(
     [string]$OutputRoot = "",
-    [string]$AppVersion = "0.1.12",
+    [string]$AppVersion = "0.1.13",
     [string]$ApiBaseUrl = "",
     [string]$BundledPythonRoot = "",
     [string]$BundledNodeExe = "",
@@ -121,6 +121,19 @@ function Write-JsonFile {
     [System.IO.File]::WriteAllText($Path, ($Object | ConvertTo-Json -Depth 20), $utf8NoBom)
 }
 
+function Convert-TextFileToLf {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path $Path)) {
+        return
+    }
+
+    $content = [System.IO.File]::ReadAllText($Path)
+    $content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $content, $utf8NoBom)
+}
+
 function Remove-IfExists {
     param([Parameter(Mandatory = $true)][string]$Path)
     if (Test-Path $Path) {
@@ -230,6 +243,10 @@ Copy-Item -LiteralPath (Join-Path $RepoRoot "scripts\prepare_release_instance.py
 Invoke-RobocopyCopy `
     -Source (Join-Path $RepoRoot "infra\release_pack") `
     -Destination $StageDir
+
+foreach ($scriptName in @("setup.sh", "start-all.sh", "start-api.sh", "start-ui.sh")) {
+    Convert-TextFileToLf -Path (Join-Path $StageDir $scriptName)
+}
 
 $defaultsPath = Join-Path $RepoRoot "apps\das_core\settings\defaults.json"
 $defaults = Get-Content $defaultsPath -Raw | ConvertFrom-Json

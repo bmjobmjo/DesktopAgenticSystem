@@ -40,6 +40,20 @@ class Controller:
         "run again",
         "same again",
     }
+    _IDENTITY_PROMPT_KEYS = (
+        "UID",
+        "USER_NAME",
+        "USER_EMAIL",
+        "USER_ROLE",
+        "USER_ROLE_ID",
+        "CURRENT_EMPLOYEE_ID",
+        "CURRENT_EMPLOYEE_CODE",
+        "CURRENT_EMPLOYEE_NAME",
+        "CURRENT_EMPLOYEE_DESIGNATION",
+        "CURRENT_EMPLOYEE_LINKED_USER_ID",
+        "CURRENT_EMPLOYEE_DETAILS_SUMMARY",
+        "CURRENT_EMPLOYEE_DETAILS_COUNT",
+    )
 
     def __init__(
         self,
@@ -57,6 +71,25 @@ class Controller:
         self.task_queue: List[Dict] = []
         self.current_task: Optional[Dict] = None
         self.awaiting_user_input: bool = False
+
+    @staticmethod
+    def _merge_followup_response(
+        initial_result: Any,
+        followup_response: ControllerResponse,
+    ) -> ControllerResponse:
+        initial_content = str(getattr(initial_result, 'content', '') or '').strip()
+        if initial_content:
+            followup_content = str(followup_response.content or '').strip()
+            followup_response.content = (
+                f"{initial_content}\n\n{followup_content}"
+                if followup_content
+                else initial_content
+            )
+
+        initial_feedback = getattr(initial_result, 'ui_feedback', None)
+        if isinstance(initial_feedback, list) and initial_feedback:
+            followup_response.ui_feedback = list(initial_feedback) + list(followup_response.ui_feedback or [])
+        return followup_response
 
     @staticmethod
     def _session_last_message(session: ChatSession) -> str:
@@ -269,6 +302,148 @@ class Controller:
         finally:
             conn.close()
 
+    @staticmethod
+    def _summarize_employee_details(rows: List[Dict[str, Any]], max_items: int = 20, max_chars: int = 2000) -> str:
+        if not rows:
+            return ""
+        parts: List[str] = []
+        extra_count = 0
+        for idx, row in enumerate(rows):
+            if idx >= max_items:
+                extra_count = len(rows) - max_items
+                break
+            label = str(row.get("detail_label") or row.get("detail_key") or "detail").strip()
+            value = str(row.get("detail_value_text") or "").strip()
+            if not value:
+                file_id = str(row.get("file_id") or "").strip()
+                if file_id:
+                    value = f"file_id={file_id}"
+            if not value:
+                effective_date = str(row.get("effective_date") or "").strip()
+                if effective_date:
+                    value = effective_date
+            category = str(row.get("category") or "").strip()
+            text = f"{label}: {value}" if value else label
+            if category:
+                text = f"[{category}] {text}"
+            parts.append(text)
+        summary = " | ".join(p for p in parts if p)
+        if extra_count > 0:
+            summary = f"{summary} | (+{extra_count} more)" if summary else f"(+{extra_count} more)"
+        if len(summary) > max_chars:
+            summary = summary[: max_chars - 3].rstrip() + "..."
+        return summary
+
+    def _resolve_linked_employee_context(self, user_id: str) -> Dict[str, Any]:
+        defaults: Dict[str, Any] = {
+            "CURRENT_EMPLOYEE_ID": "",
+            "CURRENT_EMPLOYEE_CODE": "",
+            "CURRENT_EMPLOYEE_NAME": "",
+            "CURRENT_EMPLOYEE_DESIGNATION": "",
+            "CURRENT_EMPLOYEE_LINKED_USER_ID": "",
+            "CURRENT_EMPLOYEE_DETAILS_SUMMARY": "",
+            "CURRENT_EMPLOYEE_DETAILS_COUNT": "0",
+        }
+        uid = str(user_id or "").strip()
+        if not uid:
+            return defaults
+        db_path = Path(str(self.cda.get_setting('sqlite_db_path', 'backend.db') or 'backend.db')).resolve()
+        if not db_path.exists():
+            return defaults
+
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Employees'")
+            if not cur.fetchone():
+                return defaults
+
+            cur.execute("PRAGMA table_info(Employees)")
+            employee_cols = {str(r[1]) for r in cur.fetchall()}
+            if "id" not in employee_cols or "linked_user_id" not in employee_cols:
+                return defaults
+
+            select_cols = [
+                col for col in (
+                    "id",
+                    "employee_code",
+                    "full_name",
+                    "designation",
+                    "linked_user_id",
+                    "employment_status",
+                    "updated_at",
+                    "created_at",
+                )
+                if col in employee_cols
+            ]
+            order_parts: List[str] = []
+            if "employment_status" in employee_cols:
+                order_parts.append("CASE WHEN lower(coalesce(employment_status, ''))='active' THEN 0 ELSE 1 END ASC")
+            if "updated_at" in employee_cols:
+                order_parts.append("CASE WHEN updated_at IS NULL OR updated_at='' THEN 1 ELSE 0 END ASC")
+                order_parts.append("updated_at DESC")
+            elif "created_at" in employee_cols:
+                order_parts.append("CASE WHEN created_at IS NULL OR created_at='' THEN 1 ELSE 0 END ASC")
+                order_parts.append("created_at DESC")
+            order_parts.append("id DESC")
+            cur.execute(
+                f"SELECT {', '.join(select_cols)} FROM Employees WHERE linked_user_id=? "
+                f"ORDER BY {', '.join(order_parts)} LIMIT 1",
+                (uid,),
+            )
+            employee_row = cur.fetchone()
+            if not employee_row:
+                return defaults
+
+            employee = dict(employee_row)
+            employee_id = str(employee.get("id") or "").strip()
+            defaults["CURRENT_EMPLOYEE_ID"] = employee_id
+            defaults["CURRENT_EMPLOYEE_CODE"] = str(employee.get("employee_code") or "").strip()
+            defaults["CURRENT_EMPLOYEE_NAME"] = str(employee.get("full_name") or "").strip()
+            defaults["CURRENT_EMPLOYEE_DESIGNATION"] = str(employee.get("designation") or "").strip()
+            defaults["CURRENT_EMPLOYEE_LINKED_USER_ID"] = str(employee.get("linked_user_id") or "").strip()
+
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='EmployeeDetails'")
+            if not cur.fetchone() or not employee_id:
+                return defaults
+
+            cur.execute("PRAGMA table_info(EmployeeDetails)")
+            detail_cols = {str(r[1]) for r in cur.fetchall()}
+            if "employee_id" not in detail_cols:
+                return defaults
+            detail_select_cols = [
+                col for col in (
+                    "id",
+                    "detail_key",
+                    "detail_label",
+                    "detail_type",
+                    "detail_value_text",
+                    "file_id",
+                    "category",
+                    "effective_date",
+                    "is_current",
+                )
+                if col in detail_cols
+            ]
+            where_sql = "employee_id=?"
+            if "is_current" in detail_cols:
+                where_sql += " AND coalesce(is_current, 1)=1"
+            order_sql = ", ".join(col for col in ("category", "detail_key", "id") if col in detail_cols) or "rowid"
+            cur.execute(
+                f"SELECT {', '.join(detail_select_cols)} FROM EmployeeDetails "
+                f"WHERE {where_sql} ORDER BY {order_sql}",
+                (employee_id,),
+            )
+            details = [dict(r) for r in cur.fetchall()]
+            defaults["CURRENT_EMPLOYEE_DETAILS_COUNT"] = str(len(details))
+            defaults["CURRENT_EMPLOYEE_DETAILS_SUMMARY"] = self._summarize_employee_details(details)
+            return defaults
+        except Exception:
+            return defaults
+        finally:
+            conn.close()
+
     def _set_prompt_identity_context(self, user_id: str, username: str, user_email: str = "") -> None:
         """Update placeholder context so identity placeholders are session-correct."""
         uid = str(user_id or "").strip()
@@ -297,6 +472,9 @@ class Controller:
             self.cda.set_setting('current_user_email', uemail)
         self.cda.set_setting('current_user_role_id', role_id or '')
         self.cda.set_setting('current_user_role_name', role_name or '')
+        employee_ctx = self._resolve_linked_employee_context(uid)
+        for key, value in employee_ctx.items():
+            self.cda.set_setting(key.lower(), value)
 
         # CDA/session prompt placeholders used by executor replacement.
         base_ctx = self.cda.get_memory('prompt_context_dict', {})
@@ -311,6 +489,8 @@ class Controller:
             ctx['USER_EMAIL'] = uemail
         ctx['USER_ROLE_ID'] = role_id or ''
         ctx['USER_ROLE'] = role_name or ''
+        for key, value in employee_ctx.items():
+            ctx[key] = value
         self.cda.set_memory('prompt_context_dict', ctx)
 
         if self._active_session is not None:
@@ -785,7 +965,7 @@ class Controller:
     def _reset_prompt_context(prompt_ctx: Any) -> Dict[str, Any]:
         preserved: Dict[str, Any] = {}
         if isinstance(prompt_ctx, dict):
-            for key in ("UID", "USER_NAME", "USER_ROLE", "USER_ROLE_ID"):
+            for key in Controller._IDENTITY_PROMPT_KEYS:
                 if key in prompt_ctx:
                     preserved[key] = prompt_ctx[key]
         preserved.update(
@@ -902,6 +1082,10 @@ class Controller:
             resolved_name, resolved_email = self._resolve_user_identity(effective_user_id)
         if user_id is not None:
             self.cda.set_setting('current_user_id', str(user_id))
+            if not resolved_name:
+                self.cda.set_setting('current_username', '')
+            if not resolved_email:
+                self.cda.set_setting('current_user_email', '')
         if resolved_name:
             self.cda.set_setting('current_username', resolved_name)
         if resolved_name and self._active_session is not None:
@@ -1064,9 +1248,10 @@ class Controller:
 
                 # If task complete, check if we have more in queue
                 if result.status == 'complete':
-                     # Append this result to history is done in _execute_current_task
-                     # Now continue queue
-                     return self._process_queue(message, ui_callback, interface_type=interface_type)
+                     # Append this result to history is done in _execute_current_task.
+                     # Preserve the completed user-facing message while continuing any queued work.
+                     followup = self._process_queue(message, ui_callback, interface_type=interface_type)
+                     return self._merge_followup_response(result, followup)
             else:
                 log_execution_step('CONTROLLER_REROUTE_AFTER_INPUT', f"Pending task type '{task_type}' is not resumable; routing fresh user input.")
                 self.awaiting_user_input = False

@@ -20,6 +20,30 @@ _DAY_INDEX = {
     "sunday": 6,
 }
 
+_ACTION_HINTS = (
+    "send",
+    "post",
+    "run",
+    "generate",
+    "create",
+    "export",
+    "notify",
+    "remind",
+    "mark",
+    "update",
+    "submit",
+    "sync",
+    "backup",
+    "email",
+    "whatsapp",
+    "telegram",
+    "report",
+    "share",
+    "upload",
+    "download",
+    "refresh",
+)
+
 
 def _extract_json_object(text: str) -> Dict[str, Any]:
     match = re.search(r"\{.*\}", str(text or ""), re.DOTALL)
@@ -32,51 +56,109 @@ def _extract_json_object(text: str) -> Dict[str, Any]:
         return {}
 
 
-def _parse_time_phrase(value: str) -> tuple[int, int]:
+def _parse_time_phrase(value: str) -> tuple[int, int] | None:
     raw = str(value or "").strip().lower()
     if not raw:
-        return 9, 0
+        return None
 
-    m_12 = re.search(r"\b(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)\b", raw)
+    m_12 = re.search(r"\b(\d{1,2})(?:[:.](\d{1,2}))?\s*(am|pm)\b", raw)
     if m_12:
         hour = int(m_12.group(1))
         minute = int(m_12.group(2) or 0)
         suffix = m_12.group(3)
+        if hour < 1 or hour > 12 or minute > 59:
+            return None
         hour = hour % 12
         if suffix == "pm":
             hour += 12
-        return max(0, min(hour, 23)), max(0, min(minute, 59))
-
-    m_24 = re.search(r"\b(\d{1,2}):(\d{1,2})\b", raw)
-    if m_24:
-        hour = max(0, min(int(m_24.group(1)), 23))
-        minute = max(0, min(int(m_24.group(2)), 59))
         return hour, minute
 
-    m_h = re.search(r"\b(\d{1,2})\b", raw)
+    m_24 = re.search(r"\b(\d{1,2})[:.](\d{1,2})\b", raw)
+    if m_24:
+        hour = int(m_24.group(1))
+        minute = int(m_24.group(2))
+        if hour > 23 or minute > 59:
+            return None
+        return hour, minute
+
+    m_h = re.search(r"\b(?:at|by)\s+(\d{1,2})\b", raw)
     if m_h:
-        hour = max(0, min(int(m_h.group(1)), 23))
+        hour = int(m_h.group(1))
+        if hour > 23:
+            return None
         return hour, 0
 
-    return 9, 0
+    return None
+
+
+def _has_action_hint(value: str) -> bool:
+    text = f" {str(value or '').strip().lower()} "
+    return any(f" {hint} " in text for hint in _ACTION_HINTS)
+
+
+def _infer_days_of_week(value: str) -> str:
+    lower = str(value or "").strip().lower()
+    if not lower:
+        return ""
+    if "monday to friday" in lower or "monday through friday" in lower or "weekdays" in lower:
+        return "0,1,2,3,4"
+    if "saturday to sunday" in lower or "saturday through sunday" in lower or "weekends" in lower:
+        return "5,6"
+
+    days: list[int] = []
+    for day, idx in _DAY_INDEX.items():
+        if re.search(rf"\b{day}\b", lower) and idx not in days:
+            days.append(idx)
+    days.sort()
+    if len(days) <= 1:
+        return ""
+    return ",".join(str(idx) for idx in days)
 
 
 def _extract_task_prompt(nl_request: str) -> str:
     text = str(nl_request or "").strip()
     if not text:
         return ""
-    for sep in (":", " - ", " then ", " to "):
+
+    for sep in (":", " - ", " then "):
         if sep in text:
             right = text.split(sep, 1)[1].strip()
-            if len(right) >= 6:
+            if len(right) >= 3 and _has_action_hint(right):
                 return right
-    return text
+
+    lead_task = re.match(
+        r"^(?P<task>.+?)\s+\b(?:at|by)\s+\d{1,2}(?:[:.]\d{1,2})?\s*(?:am|pm)\b.*$",
+        text,
+        re.IGNORECASE,
+    )
+    if lead_task:
+        candidate = str(lead_task.group("task") or "").strip(" ,.-")
+        if _has_action_hint(candidate):
+            return candidate
+
+    trailing_task = re.match(
+        r"^(?:(?:every\s+)?(?:weekday|weekdays|day|daily|week|weekly|month|monthly|hourly)|"
+        r"(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+(?:to|through)\s+"
+        r"(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))?)\b.*?(?P<task>[A-Za-z].+)$",
+        text,
+        re.IGNORECASE,
+    )
+    if trailing_task:
+        candidate = str(trailing_task.group("task") or "").strip(" ,.-")
+        if _has_action_hint(candidate):
+            return candidate
+
+    if _has_action_hint(text):
+        return text
+    return ""
 
 
 def _fallback_parse(nl_request: str) -> Dict[str, Any]:
     text = str(nl_request or "").strip()
     lower = text.lower()
     task_prompt = _extract_task_prompt(text)
+    parsed_time = _parse_time_phrase(lower)
+    days_of_week = _infer_days_of_week(lower)
     parsed: Dict[str, Any] = {
         "is_valid": False,
         "reason": "Could not detect schedule pattern.",
@@ -84,10 +166,11 @@ def _fallback_parse(nl_request: str) -> Dict[str, Any]:
         "task_prompt": task_prompt,
         "schedule_type": "other",
         "interval_minutes": 0,
-        "run_hour": 9,
-        "run_minute": 0,
+        "run_hour": 9 if parsed_time is None else parsed_time[0],
+        "run_minute": 0 if parsed_time is None else parsed_time[1],
         "run_day_of_week": 0,
         "run_day_of_month": 1,
+        "days_of_week": days_of_week,
     }
 
     m_every_min = re.search(r"every\s+(\d+)\s*minute", lower)
@@ -127,7 +210,7 @@ def _fallback_parse(nl_request: str) -> Dict[str, Any]:
         return parsed
 
     if "daily" in lower or "every day" in lower:
-        hour, minute = _parse_time_phrase(lower)
+        hour, minute = parsed_time if parsed_time is not None else (9, 0)
         parsed.update(
             {
                 "is_valid": True,
@@ -139,8 +222,22 @@ def _fallback_parse(nl_request: str) -> Dict[str, Any]:
         )
         return parsed
 
+    if days_of_week:
+        hour, minute = parsed_time if parsed_time is not None else (9, 0)
+        parsed.update(
+            {
+                "is_valid": True,
+                "reason": "Parsed as selected weekdays cadence.",
+                "schedule_type": "daily",
+                "run_hour": hour,
+                "run_minute": minute,
+                "days_of_week": days_of_week,
+            }
+        )
+        return parsed
+
     if "weekly" in lower or "every week" in lower or any(day in lower for day in _DAY_INDEX):
-        hour, minute = _parse_time_phrase(lower)
+        hour, minute = parsed_time if parsed_time is not None else (9, 0)
         dow = 0
         for day, idx in _DAY_INDEX.items():
             if day in lower:
@@ -159,7 +256,7 @@ def _fallback_parse(nl_request: str) -> Dict[str, Any]:
         return parsed
 
     if "monthly" in lower or "every month" in lower:
-        hour, minute = _parse_time_phrase(lower)
+        hour, minute = parsed_time if parsed_time is not None else (9, 0)
         m_day = re.search(r"\b(?:on\s+)?(\d{1,2})(?:st|nd|rd|th)?\b", lower)
         dom = int(m_day.group(1)) if m_day else 1
         dom = max(1, min(dom, 31))
@@ -197,7 +294,7 @@ Rules:
 - If unclear, set is_valid=false with reason.
 
 Return JSON only with keys:
-is_valid, reason, title, task_prompt, schedule_type, interval_minutes, run_hour, run_minute, run_day_of_week, run_day_of_month
+is_valid, reason, title, task_prompt, schedule_type, interval_minutes, run_hour, run_minute, run_day_of_week, run_day_of_month, days_of_week
 
 User request:
 {nl_request}
@@ -219,6 +316,8 @@ User request:
 
 def _normalize_schedule_payload(payload: Dict[str, Any], source_text: str = "") -> Dict[str, Any]:
     task_prompt = str(payload.get("task_prompt", "") or "").strip() or _extract_task_prompt(source_text)
+    inferred_time = _parse_time_phrase(source_text)
+    inferred_days = _infer_days_of_week(source_text)
     schedule_type = str(payload.get("schedule_type", "other") or "other").strip().lower()
     if schedule_type not in {"hourly", "daily", "weekly", "monthly", "other"}:
         schedule_type = "other"
@@ -230,10 +329,11 @@ def _normalize_schedule_payload(payload: Dict[str, Any], source_text: str = "") 
         "task_prompt": task_prompt,
         "schedule_type": schedule_type,
         "interval_minutes": int(payload.get("interval_minutes", 0) or 0),
-        "run_hour": int(payload.get("run_hour", 9) or 9),
-        "run_minute": int(payload.get("run_minute", 0) or 0),
+        "run_hour": int(payload.get("run_hour", inferred_time[0] if inferred_time else 9) or (inferred_time[0] if inferred_time else 9)),
+        "run_minute": int(payload.get("run_minute", inferred_time[1] if inferred_time else 0) or (inferred_time[1] if inferred_time else 0)),
         "run_day_of_week": int(payload.get("run_day_of_week", 0) or 0),
         "run_day_of_month": int(payload.get("run_day_of_month", 1) or 1),
+        "days_of_week": str(payload.get("days_of_week", "") or inferred_days or "").strip(),
     }
 
     out["run_hour"] = max(0, min(out["run_hour"], 23))
@@ -243,9 +343,12 @@ def _normalize_schedule_payload(payload: Dict[str, Any], source_text: str = "") 
     if out["interval_minutes"] < 0:
         out["interval_minutes"] = 0
 
+    if out["days_of_week"] and out["schedule_type"] in {"daily", "weekly"}:
+        out["schedule_type"] = "daily"
+
     if not out["task_prompt"]:
         out["is_valid"] = False
-        out["reason"] = out["reason"] or "Missing task prompt to execute."
+        out["reason"] = "Missing task prompt to execute."
 
     if out["schedule_type"] in {"hourly", "other"} and out["interval_minutes"] <= 0:
         out["is_valid"] = False
@@ -262,10 +365,23 @@ def compute_next_run(record: Dict[str, Any], now: Optional[datetime] = None) -> 
     run_minute = int(record.get("run_minute", 0) or 0)
     run_dow = int(record.get("run_day_of_week", 0) or 0)
     run_dom = int(record.get("run_day_of_month", 1) or 1)
+    raw_days = str(record.get("days_of_week", "") or "").strip()
+    allowed_days = [int(part) for part in raw_days.split(",") if part.strip().isdigit()]
+    allowed_days = [day for day in allowed_days if 0 <= day <= 6]
+    if allowed_days:
+        allowed_days = sorted(set(allowed_days))
 
     if schedule_type in {"hourly", "other"}:
         delta = max(1, interval_minutes)
         return (now + timedelta(minutes=delta)).replace(second=0, microsecond=0)
+
+    if allowed_days:
+        base = now.replace(hour=run_hour, minute=run_minute, second=0, microsecond=0)
+        for offset in range(0, 8):
+            candidate = base + timedelta(days=offset)
+            if candidate.weekday() in allowed_days and candidate > now:
+                return candidate
+        return base + timedelta(days=1)
 
     if schedule_type == "daily":
         candidate = now.replace(hour=run_hour, minute=run_minute, second=0, microsecond=0)

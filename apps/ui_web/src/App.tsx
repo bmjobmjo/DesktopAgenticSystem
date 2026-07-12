@@ -14,6 +14,7 @@ import {
   ToolItem,
   changePassword,
   createSchedule,
+  createScheduleFromRequest,
   createUser,
   deleteRole,
   deleteSchedule,
@@ -157,12 +158,14 @@ type UserEditForm = {
 type ScheduleForm = {
   id: number | null;
   title: string;
+  nl_request: string;
   task_prompt: string;
   schedule_type: string;
   interval_minutes: number;
   run_hour: number;
   run_minute: number;
   run_day_of_week: number;
+  days_of_week: string;
   run_day_of_month: number;
   timezone: string;
   is_enabled: boolean;
@@ -171,7 +174,7 @@ type ScheduleForm = {
 };
 
 const TOKEN_KEY = "das_web_token";
-const APP_VERSION = "v0.1.12-20260626";
+const APP_VERSION = "v0.1.13-20260711";
 
 const MAIN_TABS: Array<{ id: MainTab; label: string }> = [
   { id: "chat", label: "Chat" },
@@ -376,12 +379,14 @@ function defaultSchedule(): ScheduleForm {
   return {
     id: null,
     title: "",
+    nl_request: "",
     task_prompt: "",
     schedule_type: "other",
     interval_minutes: 60,
     run_hour: 9,
     run_minute: 0,
     run_day_of_week: 0,
+    days_of_week: "",
     run_day_of_month: 1,
     timezone: "Asia/Calcutta",
     is_enabled: true,
@@ -793,6 +798,7 @@ export default function App() {
     const payload: Record<string, unknown> = {
       llm_provider: provider,
       embedding_model_name: "jinaai/jina-embeddings-v3",
+      interaction_max_tokens: n("interaction_max_tokens", 120000),
     };
 
     if (provider === "gemini") {
@@ -1654,12 +1660,14 @@ export default function App() {
     setScheduleForm({
       id: asNumber(raw.id, 0),
       title: asString(raw.title),
+      nl_request: asString(raw.nl_request),
       task_prompt: asString(raw.task_prompt),
       schedule_type: asString(raw.schedule_type, "other"),
       interval_minutes: asNumber(raw.interval_minutes, 0),
       run_hour: asNumber(raw.run_hour, 9),
       run_minute: asNumber(raw.run_minute, 0),
       run_day_of_week: asNumber(raw.run_day_of_week, 0),
+      days_of_week: asString(raw.days_of_week),
       run_day_of_month: asNumber(raw.run_day_of_month, 1),
       timezone: asString(raw.timezone, "Asia/Calcutta"),
       is_enabled: asBool(raw.is_enabled, true),
@@ -1676,29 +1684,54 @@ export default function App() {
     setSchedulerView("create");
   }
 
-  async function handleValidateSchedule() {
-    if (!token || !scheduleNlRequest.trim()) return;
+  async function handleValidateSchedule(): Promise<boolean> {
+    if (!token || !scheduleNlRequest.trim()) return false;
     try {
       const parsed = await validateSchedule(token, scheduleNlRequest.trim());
       if (!asBool(parsed.is_valid, false)) {
         setSchedulerMsg(`Invalid schedule: ${asString(parsed.reason, "Unknown")}`);
-        return;
+        return false;
       }
       setScheduleForm((prev) => ({
         ...prev,
         title: asString(parsed.title, prev.title || "Scheduled Task"),
+        nl_request: scheduleNlRequest.trim(),
         task_prompt: asString(parsed.task_prompt, prev.task_prompt),
         schedule_type: asString(parsed.schedule_type, prev.schedule_type),
         interval_minutes: asNumber(parsed.interval_minutes, prev.interval_minutes),
         run_hour: asNumber(parsed.run_hour, prev.run_hour),
         run_minute: asNumber(parsed.run_minute, prev.run_minute),
         run_day_of_week: asNumber(parsed.run_day_of_week, prev.run_day_of_week),
+        days_of_week: asString(parsed.days_of_week, prev.days_of_week),
         run_day_of_month: asNumber(parsed.run_day_of_month, prev.run_day_of_month),
       }));
       setSchedulerMsg("Schedule request validated.");
       setSchedulerView("editor");
+      return true;
     } catch (err) {
       setSchedulerMsg(err instanceof Error ? err.message : "Failed to validate schedule");
+      return false;
+    }
+  }
+
+  async function handleCreateScheduleFromAgent() {
+    if (!token || !isAdmin) return;
+    const req = scheduleNlRequest.trim();
+    if (!req) {
+      setSchedulerMsg("Enter a schedule request.");
+      return;
+    }
+    try {
+      const res = await createScheduleFromRequest(token, req);
+      const status = asString(res.status).trim().toLowerCase();
+      const content = asString(res.content).trim();
+      setSchedulerMsg(content || "Schedule request processed.");
+      await loadSchedulesList();
+      if (status === "complete") {
+        setSchedulerView("list");
+      }
+    } catch (err) {
+      setSchedulerMsg(err instanceof Error ? err.message : "Failed to create schedule");
     }
   }
 
@@ -1706,12 +1739,14 @@ export default function App() {
     if (!token || !isAdmin) return;
     const payload = {
       title: scheduleForm.title.trim() || "Scheduled Task",
+      nl_request: scheduleForm.nl_request.trim(),
       task_prompt: scheduleForm.task_prompt.trim(),
       schedule_type: scheduleForm.schedule_type.trim().toLowerCase() || "other",
       interval_minutes: scheduleForm.interval_minutes,
       run_hour: scheduleForm.run_hour,
       run_minute: scheduleForm.run_minute,
       run_day_of_week: scheduleForm.run_day_of_week,
+      days_of_week: scheduleForm.days_of_week.trim(),
       run_day_of_month: scheduleForm.run_day_of_month,
       timezone: scheduleForm.timezone.trim() || "Asia/Calcutta",
       is_enabled: scheduleForm.is_enabled,
@@ -1970,10 +2005,11 @@ export default function App() {
   const whatsappRegisterExeExists = asBool(whatsappScripts.register_exe_exists, false);
   const whatsappDaemonExeExists = asBool(whatsappScripts.daemon_exe_exists, false);
   const whatsappPackagedBridge = asBool(whatsappNode.packaged_windows_bridge, false);
+  const whatsappPackagedLinuxBridge = asBool(whatsappNode.packaged_linux_bridge, false);
   const whatsappAuthLinked = asBool(whatsappHeadless.auth_session_exists, false);
   const whatsappRegistrationStoppable = whatsappRegisterRunning || whatsappAuthLinked || whatsappRegisterStage === "linked";
   const whatsappLegacyRunning = asBool(whatsappLegacyState.running, false);
-  const whatsappHeadlessReady = whatsappNodeAvailable && (whatsappPackagedBridge || (whatsappRegisterExists && whatsappDaemonExists));
+  const whatsappHeadlessReady = whatsappNodeAvailable && ((whatsappPackagedBridge || whatsappPackagedLinuxBridge) || (whatsappRegisterExists && whatsappDaemonExists));
   const storageRoot = s("file_storage_path", "storage/files").trim() || "storage/files";
   const configuredBridgeFolder = asString(whatsappBridgeSettings.configured_base_folder, "").trim();
   const fileBridgeFolder = asString(whatsappBridgeSettings.file_base_folder, "").trim();
@@ -2383,6 +2419,24 @@ export default function App() {
                     </details>
                   </div>
                 )}
+
+                <div className="ai-provider-card">
+                  <h4>Interaction Limits</h4>
+                  <div className="form-grid two-col">
+                    <label>Max Tokens Per Interaction
+                      <input
+                        type="number"
+                        min={1}
+                        step={1000}
+                        value={n("interaction_max_tokens", 120000)}
+                        onChange={(e) => setSettingValue("interaction_max_tokens", asNumber(e.target.value, 120000))}
+                      />
+                      <span className="muted small">
+                        Total token budget for one interaction across routing, agent calls, and continuation blocks.
+                      </span>
+                    </label>
+                  </div>
+                </div>
 
                 {aiRestartRequired && <div className="error-box">AI model/provider changed. Restart running services from the Services tab to make changes active.</div>}
                 <button onClick={() => void saveAiSettings()} disabled={!isAdmin}>Save AI Settings</button>
@@ -2901,7 +2955,7 @@ export default function App() {
                   {schedulerView === "create" && (
                     <>
                       <h5>Create From Natural Language</h5>
-                      <p className="muted">Describe the schedule in plain language. Validate fills the editor; Validate + Create saves it immediately.</p>
+                      <p className="muted">Describe both the timing and the actual task. Validate fills the editor; Create With Agent asks `schedule_manager` to analyze and save the schedule directly.</p>
                       <label>
                         <textarea className="json-editor" placeholder="Example: every weekday at 9am send daily sales summary to management" value={scheduleNlRequest} onChange={(e) => setScheduleNlRequest(e.target.value)} />
                       </label>
@@ -2909,15 +2963,7 @@ export default function App() {
                         <button className="ghost" onClick={() => setSchedulerView("list")}>Back To List</button>
                         <div className="spacer" />
                         <button className="ghost" onClick={() => void handleValidateSchedule()}>Validate</button>
-                        <button
-                          onClick={async () => {
-                            await handleValidateSchedule();
-                            await handleSaveSchedule();
-                          }}
-                          disabled={!isAdmin}
-                        >
-                          Validate + Create
-                        </button>
+                        <button onClick={() => void handleCreateScheduleFromAgent()} disabled={!isAdmin}>Create With Agent</button>
                       </div>
                     </>
                   )}
@@ -2934,9 +2980,11 @@ export default function App() {
                         <label>Hour<input type="number" min={0} max={23} value={scheduleForm.run_hour} onChange={(e) => setScheduleForm((p) => ({ ...p, run_hour: asNumber(e.target.value, 9) }))} /></label>
                         <label>Minute<input type="number" min={0} max={59} value={scheduleForm.run_minute} onChange={(e) => setScheduleForm((p) => ({ ...p, run_minute: asNumber(e.target.value, 0) }))} /></label>
                         <label>Weekday<input type="number" min={0} max={6} value={scheduleForm.run_day_of_week} onChange={(e) => setScheduleForm((p) => ({ ...p, run_day_of_week: asNumber(e.target.value, 0) }))} /></label>
+                        <label>Days Of Week<input value={scheduleForm.days_of_week} placeholder="0,1,2,3,4" onChange={(e) => setScheduleForm((p) => ({ ...p, days_of_week: e.target.value }))} /></label>
                         <label>Day Of Month<input type="number" min={1} max={31} value={scheduleForm.run_day_of_month} onChange={(e) => setScheduleForm((p) => ({ ...p, run_day_of_month: asNumber(e.target.value, 1) }))} /></label>
                         <label className="check-label"><input type="checkbox" checked={scheduleForm.is_enabled} onChange={(e) => setScheduleForm((p) => ({ ...p, is_enabled: e.target.checked }))} />Enabled</label>
                       </div>
+                      <label>Original Request<textarea className="json-editor short" value={scheduleForm.nl_request} onChange={(e) => setScheduleForm((p) => ({ ...p, nl_request: e.target.value }))} /></label>
                       <label>Task Prompt<textarea className="json-editor short" value={scheduleForm.task_prompt} onChange={(e) => setScheduleForm((p) => ({ ...p, task_prompt: e.target.value }))} /></label>
                       <div className="row">
                         <button onClick={() => void handleSaveSchedule()} disabled={!isAdmin}>Save Schedule</button>

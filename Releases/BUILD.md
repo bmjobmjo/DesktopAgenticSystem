@@ -109,6 +109,7 @@ The builder automatically:
 
 - rebuilds the frontend unless `-SkipUiBuild` is used
 - copies release-pack startup templates
+- normalizes packaged `.sh` startup scripts to LF line endings for Linux
 - generates `instance-config.json`
 - generates `instance-config.example.json`
 - generates sanitized `apps/das_core/settings/user_config.json`

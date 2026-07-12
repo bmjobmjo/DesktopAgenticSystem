@@ -6,6 +6,7 @@ import json
 import sqlite3
 import re
 import threading
+from datetime import datetime
 from typing import List, Tuple, Any, Dict
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QObject, Signal, QTimer
 from core.common_data_area import CommonDataArea
 from core.db_schema import init_db
+from core.inbound_request import InboundRequest
 from core.scheduler_agent import validate_schedule_request, compute_next_run
 from settings import config_loader
 from agents.registry import list_agents, register_agent, get_agent, _get_db_path
@@ -926,7 +928,7 @@ class SettingsPanel(QWidget):
 
         create_group = QGroupBox("Create From Natural Language")
         create_layout = QVBoxLayout(create_group)
-        create_hint = QLabel("Describe the schedule in plain language. Validate fills the editor; Validate + Create saves it immediately.")
+        create_hint = QLabel("Describe both the timing and the actual task. Validate fills the editor; Create With Agent asks schedule_manager to analyze and save the schedule directly.")
         create_hint.setWordWrap(True)
         create_layout.addWidget(create_hint)
         self.scheduler_nl_edit = QTextEdit()
@@ -947,7 +949,7 @@ class SettingsPanel(QWidget):
         btn_validate = QPushButton("Validate")
         btn_validate.clicked.connect(self._scheduler_validate_nl)
         create_actions.addWidget(btn_validate)
-        btn_create_nl = QPushButton("Validate + Create")
+        btn_create_nl = QPushButton("Create With Agent")
         btn_create_nl.clicked.connect(self._scheduler_create_from_nl)
         create_actions.addWidget(btn_create_nl)
         create_layout.addLayout(create_actions)
@@ -1019,39 +1021,50 @@ class SettingsPanel(QWidget):
         self.scheduler_dow_spin.setValue(0)
         editor_layout.addWidget(self.scheduler_dow_spin, 5, 1)
 
-        editor_layout.addWidget(QLabel("Day of month:"), 5, 2)
+        editor_layout.addWidget(QLabel("Days of week:"), 5, 2)
+        self.scheduler_days_edit = QLineEdit()
+        self.scheduler_days_edit.setPlaceholderText("0,1,2,3,4")
+        editor_layout.addWidget(self.scheduler_days_edit, 5, 3)
+
+        editor_layout.addWidget(QLabel("Day of month:"), 6, 0)
         self.scheduler_dom_spin = QSpinBox()
         self.scheduler_dom_spin.setRange(1, 31)
         self.scheduler_dom_spin.setValue(1)
-        editor_layout.addWidget(self.scheduler_dom_spin, 5, 3)
+        editor_layout.addWidget(self.scheduler_dom_spin, 6, 1)
 
         self.scheduler_row_enabled_check = QCheckBox("Enabled")
         self.scheduler_row_enabled_check.setChecked(True)
-        editor_layout.addWidget(self.scheduler_row_enabled_check, 6, 0, 1, 1)
+        editor_layout.addWidget(self.scheduler_row_enabled_check, 6, 2, 1, 1)
+
+        editor_layout.addWidget(QLabel("Original Request:"), 7, 0)
+        self.scheduler_original_request_edit = QTextEdit()
+        self.scheduler_original_request_edit.setMinimumHeight(80)
+        self.scheduler_original_request_edit.setMaximumHeight(120)
+        editor_layout.addWidget(self.scheduler_original_request_edit, 7, 1, 1, 3)
 
         btn_run_now = QPushButton("Run Now")
         btn_run_now.clicked.connect(self._scheduler_run_now)
         self.scheduler_run_now_button = btn_run_now
-        editor_layout.addWidget(btn_run_now, 6, 1)
+        editor_layout.addWidget(btn_run_now, 8, 1)
 
         btn_save = QPushButton("Save Schedule")
         btn_save.setObjectName("primaryAction")
         btn_save.clicked.connect(self._scheduler_save_schedule)
         self.scheduler_save_button = btn_save
-        editor_layout.addWidget(btn_save, 6, 2, 1, 2)
+        editor_layout.addWidget(btn_save, 8, 2, 1, 2)
 
-        editor_layout.addWidget(QLabel("Last Run:"), 7, 0)
+        editor_layout.addWidget(QLabel("Last Run:"), 9, 0)
         self.scheduler_last_run_label = QLabel("Never")
         self.scheduler_last_run_label.setWordWrap(True)
-        editor_layout.addWidget(self.scheduler_last_run_label, 7, 1, 1, 3)
+        editor_layout.addWidget(self.scheduler_last_run_label, 9, 1, 1, 3)
 
-        editor_layout.addWidget(QLabel("Last Result:"), 8, 0)
+        editor_layout.addWidget(QLabel("Last Result:"), 10, 0)
         self.scheduler_last_result_edit = QTextEdit()
         self.scheduler_last_result_edit.setReadOnly(True)
         self.scheduler_last_result_edit.setMinimumHeight(120)
         self.scheduler_last_result_edit.setMaximumHeight(220)
         self.scheduler_last_result_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
-        editor_layout.addWidget(self.scheduler_last_result_edit, 8, 1, 1, 3)
+        editor_layout.addWidget(self.scheduler_last_result_edit, 10, 1, 1, 3)
 
         editor_actions = QHBoxLayout()
         btn_back_list = QPushButton("Back To List")
@@ -1153,24 +1166,19 @@ class SettingsPanel(QWidget):
         if not req:
             QMessageBox.warning(self, "Scheduler", "Enter a schedule request.")
             return
-        parsed = validate_schedule_request(req, cda=self.cda)
-        if not bool(parsed.get("is_valid", False)):
-            QMessageBox.warning(self, "Scheduler Validation", f"Invalid schedule: {parsed.get('reason', 'Unknown reason')}")
+        try:
+            response = self._scheduler_create_with_agent(req)
+        except Exception as exc:
+            QMessageBox.warning(self, "Scheduler", f"Create failed: {exc}")
             return
-        self._scheduler_fill_from_parsed(parsed)
-        confirm = QMessageBox.question(
-            self,
-            "Create Schedule",
-            f"Create schedule '{parsed.get('title', 'Scheduled Task')}'?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.Yes,
-        )
-        if confirm != QMessageBox.Yes:
-            return
-        self._scheduler_insert_row(nl_request=req)
+        status = str(getattr(response, "status", "") or "").strip().lower()
+        content = str(getattr(response, "content", "") or "").strip() or "Schedule request processed."
         self._scheduler_refresh_list()
-        self.scheduler_workspace_tabs.setCurrentIndex(self.scheduler_list_tab_index)
-        QMessageBox.information(self, "Scheduler", "Schedule created.")
+        if status == "complete":
+            self.scheduler_workspace_tabs.setCurrentIndex(self.scheduler_list_tab_index)
+            QMessageBox.information(self, "Scheduler", content)
+            return
+        QMessageBox.information(self, "Scheduler", content)
 
     def _scheduler_fill_from_parsed(self, parsed: Dict[str, Any]) -> None:
         self.scheduler_title_edit.setText(str(parsed.get("title", "") or "Scheduled Task"))
@@ -1182,8 +1190,38 @@ class SettingsPanel(QWidget):
         self.scheduler_hour_spin.setValue(int(parsed.get("run_hour", 9) or 9))
         self.scheduler_minute_spin.setValue(int(parsed.get("run_minute", 0) or 0))
         self.scheduler_dow_spin.setValue(int(parsed.get("run_day_of_week", 0) or 0))
+        self.scheduler_days_edit.setText(str(parsed.get("days_of_week", "") or ""))
         self.scheduler_dom_spin.setValue(int(parsed.get("run_day_of_month", 1) or 1))
+        self.scheduler_original_request_edit.setPlainText(self.scheduler_nl_edit.toPlainText().strip())
         self.scheduler_row_enabled_check.setChecked(True)
+
+    def _scheduler_create_with_agent(self, nl_request: str):
+        manager = self.cda.get_runtime("conversation_manager")
+        if manager is None:
+            raise RuntimeError("Conversation manager not initialized.")
+
+        user_id = str(self.settings.get("current_user_id", "") or "unknown")
+        conv_id = f"ui:scheduler:nl:{user_id}:{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+        message = (
+            "Create a saved recurring schedule from this request. "
+            "Analyze the timing and actual work, derive the executable task prompt, "
+            "and create the schedule entry now. "
+            "If the request is missing the actual task or the timing is ambiguous, ask for clarification instead of creating anything.\n\n"
+            f"Schedule request: {str(nl_request or '').strip()}"
+        )
+        return manager.execute_sync(
+            InboundRequest(
+                conversation_id=conv_id,
+                interface="UI",
+                user_id=user_id,
+                message=message,
+                execution_metadata={
+                    "execution_source": "scheduler_ui_nl",
+                    "scheduler_nl_request": True,
+                },
+            ),
+            timeout=180,
+        )
 
     def _scheduler_insert_row(self, nl_request: str = "") -> None:
         title = self.scheduler_title_edit.text().strip() or "Scheduled Task"
@@ -1197,6 +1235,7 @@ class SettingsPanel(QWidget):
             "run_hour": int(self.scheduler_hour_spin.value()),
             "run_minute": int(self.scheduler_minute_spin.value()),
             "run_day_of_week": int(self.scheduler_dow_spin.value()),
+            "days_of_week": self.scheduler_days_edit.text().strip(),
             "run_day_of_month": int(self.scheduler_dom_spin.value()),
         }
         next_run = compute_next_run(payload, now=None).strftime("%Y-%m-%d %H:%M:%S")
@@ -1207,20 +1246,21 @@ class SettingsPanel(QWidget):
                 """
                 INSERT INTO Schedules (
                     title, nl_request, task_prompt, schedule_type, interval_minutes,
-                    run_hour, run_minute, run_day_of_week, run_day_of_month,
+                    run_hour, run_minute, run_day_of_week, days_of_week, run_day_of_month,
                     is_enabled, status, next_run_at, owner, created_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
                 """,
                 (
                     title,
-                    str(nl_request or "").strip(),
+                    str((self.scheduler_original_request_edit.toPlainText().strip() or nl_request or "")).strip(),
                     task_prompt,
                     payload["schedule_type"],
                     payload["interval_minutes"],
                     payload["run_hour"],
                     payload["run_minute"],
                     payload["run_day_of_week"],
+                    payload["days_of_week"],
                     payload["run_day_of_month"],
                     1 if self.scheduler_row_enabled_check.isChecked() else 0,
                     next_run,
@@ -1244,6 +1284,7 @@ class SettingsPanel(QWidget):
             "run_hour": int(self.scheduler_hour_spin.value()),
             "run_minute": int(self.scheduler_minute_spin.value()),
             "run_day_of_week": int(self.scheduler_dow_spin.value()),
+            "days_of_week": self.scheduler_days_edit.text().strip(),
             "run_day_of_month": int(self.scheduler_dom_spin.value()),
         }
         next_run = compute_next_run(payload, now=None).strftime("%Y-%m-%d %H:%M:%S")
@@ -1253,18 +1294,20 @@ class SettingsPanel(QWidget):
             cur.execute(
                 """
                 UPDATE Schedules
-                SET title=?, task_prompt=?, schedule_type=?, interval_minutes=?, run_hour=?, run_minute=?,
-                    run_day_of_week=?, run_day_of_month=?, is_enabled=?, next_run_at=?, updated_at=CURRENT_TIMESTAMP
+                SET title=?, nl_request=?, task_prompt=?, schedule_type=?, interval_minutes=?, run_hour=?, run_minute=?,
+                    run_day_of_week=?, days_of_week=?, run_day_of_month=?, is_enabled=?, next_run_at=?, updated_at=CURRENT_TIMESTAMP
                 WHERE id=?
                 """,
                 (
                     title,
+                    self.scheduler_original_request_edit.toPlainText().strip(),
                     task_prompt,
                     payload["schedule_type"],
                     payload["interval_minutes"],
                     payload["run_hour"],
                     payload["run_minute"],
                     payload["run_day_of_week"],
+                    payload["days_of_week"],
                     payload["run_day_of_month"],
                     1 if self.scheduler_row_enabled_check.isChecked() else 0,
                     next_run,
@@ -1285,7 +1328,7 @@ class SettingsPanel(QWidget):
             cur.execute(
                 """
                 SELECT id, title, schedule_type, next_run_at, is_enabled, task_prompt, nl_request,
-                       interval_minutes, run_hour, run_minute, run_day_of_week, run_day_of_month,
+                       interval_minutes, run_hour, run_minute, run_day_of_week, days_of_week, run_day_of_month,
                        last_run_at, last_result
                 FROM Schedules
                 ORDER BY id DESC
@@ -1341,9 +1384,11 @@ class SettingsPanel(QWidget):
         self.scheduler_hour_spin.setValue(int(row[8] or 0))
         self.scheduler_minute_spin.setValue(int(row[9] or 0))
         self.scheduler_dow_spin.setValue(int(row[10] or 0))
-        self.scheduler_dom_spin.setValue(int(row[11] or 1))
-        self.scheduler_last_run_label.setText(str(row[12] or "Never"))
-        self.scheduler_last_result_edit.setPlainText(str(row[13] or "No runs yet."))
+        self.scheduler_days_edit.setText(str(row[11] or ""))
+        self.scheduler_dom_spin.setValue(int(row[12] or 1))
+        self.scheduler_original_request_edit.setPlainText(str(row[6] or ""))
+        self.scheduler_last_run_label.setText(str(row[13] or "Never"))
+        self.scheduler_last_result_edit.setPlainText(str(row[14] or "No runs yet."))
 
     def _scheduler_open_item(self, item: QTreeWidgetItem | None, column: int = 0) -> None:
         _ = column
@@ -1383,11 +1428,13 @@ class SettingsPanel(QWidget):
         self.scheduler_task_edit.clear()
         if clear_nl:
             self.scheduler_nl_edit.clear()
+        self.scheduler_original_request_edit.clear()
         self.scheduler_type_combo.setCurrentText("other")
         self.scheduler_interval_spin.setValue(60)
         self.scheduler_hour_spin.setValue(9)
         self.scheduler_minute_spin.setValue(0)
         self.scheduler_dow_spin.setValue(0)
+        self.scheduler_days_edit.clear()
         self.scheduler_dom_spin.setValue(1)
         self.scheduler_row_enabled_check.setChecked(True)
         self.scheduler_last_run_label.setText("Never")
@@ -1420,7 +1467,9 @@ class SettingsPanel(QWidget):
         self.scheduler_hour_spin.setEnabled(not running)
         self.scheduler_minute_spin.setEnabled(not running)
         self.scheduler_dow_spin.setEnabled(not running)
+        self.scheduler_days_edit.setEnabled(not running)
         self.scheduler_dom_spin.setEnabled(not running)
+        self.scheduler_original_request_edit.setEnabled(not running)
         self.scheduler_row_enabled_check.setEnabled(not running)
 
     def _scheduler_run_item(self, item: QTreeWidgetItem | None) -> None:
