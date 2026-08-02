@@ -125,3 +125,20 @@ def test_scheduler_service_sends_result_to_owner_channels(tmp_path: Path):
 
     assert result["last_result"] == "[ok] owner-result"
     assert tg_service.sent_messages == [("tg-chat-1", "[ok] owner-result")]
+
+
+def test_one_time_schedule_creates_audited_run_and_completes(tmp_path: Path):
+    cda = CommonDataArea(); cda.reset()
+    db_path = tmp_path / "one_time.db"; cda.set_setting("sqlite_db_path", str(db_path)); init_db()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute("""INSERT INTO Schedules (title,task_prompt,schedule_type,interval_minutes,status,is_enabled,next_run_at,schedule_mode,owner)
+                        VALUES ('Once','do work','other',1,'active',1,'2000-01-01 00:00:00','once','owner-1')""")
+        conn.commit()
+    finally: conn.close()
+    SchedulerService(cda=cda, controller=FakeController()).run_schedule_now(1)
+    conn = sqlite3.connect(str(db_path))
+    try:
+        assert conn.execute("SELECT status FROM Schedules WHERE id=1").fetchone()[0] == "completed"
+        assert conn.execute("SELECT status,prompt_snapshot FROM ScheduleRuns WHERE schedule_id=1").fetchone() == ("succeeded", "do work")
+    finally: conn.close()

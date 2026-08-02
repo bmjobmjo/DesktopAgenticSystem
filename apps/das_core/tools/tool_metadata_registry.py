@@ -141,6 +141,12 @@ TOOL_METADATA = {
         'output_schema': 'Dict with success flag, schedule id, and next run time.',
         'example_call': '{"tool_name": "create_schedule", "parameters": {"nl_request": "Every weekday at 9 AM send the daily report"}}',
     },
+    'preview_schedule': {
+        'description': 'Create a reviewable schedule proposal without saving or sending anything.',
+        'parameters': [{'name': 'nl_request', 'type': 'str', 'required': True, 'description': 'Natural-language schedule request.'}],
+        'output_schema': 'Dict with success flag and safe schedule proposal.',
+        'example_call': '{"tool_name": "preview_schedule", "parameters": {"nl_request": "Every Monday at 9 AM prepare the status report"}}',
+    },
     'list_schedules': {
         'description': 'List schedules stored in the database.',
         'parameters': [
@@ -177,6 +183,18 @@ TOOL_METADATA = {
         ],
         'output_schema': 'Dict with success flag, schedule id, and execution result.',
         'example_call': '{"tool_name": "run_schedule_now", "parameters": {"schedule_id": 3}}',
+    },
+    'list_schedule_runs': {
+        'description': 'List newest-first audited scheduler execution records.',
+        'parameters': [{'name': 'schedule_id', 'type': 'int', 'required': False, 'description': 'Optional schedule id.'}, {'name': 'status', 'type': 'str', 'required': False, 'description': 'Optional run status.'}],
+        'output_schema': 'Dict containing audited run records.',
+        'example_call': '{"tool_name": "list_schedule_runs", "parameters": {"schedule_id": 3}}',
+    },
+    'retry_schedule_run': {
+        'description': 'Retry a failed schedule run as a new audited execution.',
+        'parameters': [{'name': 'run_id', 'type': 'int', 'required': True, 'description': 'Failed run id.'}],
+        'output_schema': 'Dict with new run result.',
+        'example_call': '{"tool_name": "retry_schedule_run", "parameters": {"run_id": 12}}',
     },
     'delete_schedule': {
         'description': 'Delete a schedule by id.',
@@ -336,5 +354,17 @@ TOOL_METADATA = {
         ],
         'output_schema': 'Dict with success flag, created zip file path, bytes written, bundled file count, compression mode, and archived file metadata.',
         'example_call': '{"tool_name": "create_zip", "parameters": {"output_filename": "project_bundle", "subfolder": "archives", "file_paths": ["D:/IVA/generated/report.pdf", "D:/IVA/generated/summary.xlsx"], "archive_paths": ["report.pdf", "summary.xlsx"], "compression": "deflated"}}',
+    },
+    'prepare_project_files_for_delivery': {
+        'description': 'Stage documents registered to one project into managed storage for delivery; multiple files are automatically bundled as a ZIP.',
+        'parameters': [
+            {'name': 'project_id', 'type': 'int', 'required': True, 'description': 'Resolved Projects.id that owns every selected file.'},
+            {'name': 'file_ids', 'type': 'list[int] | None', 'required': False, 'description': 'Selected Files.id values.'},
+            {'name': 'filenames', 'type': 'list[str] | None', 'required': False, 'description': 'Selected exact registered filenames.'},
+            {'name': 'output_filename', 'type': 'str', 'required': False, 'description': 'Optional managed output filename.'},
+            {'name': 'bundle_as_zip', 'type': 'bool', 'required': False, 'description': 'Force a ZIP even when exactly one file is selected.'},
+        ],
+        'output_schema': 'Dict with success flag, managed delivery file_path, ZIP status, and selected file details.',
+        'example_call': '{"tool_name": "prepare_project_files_for_delivery", "parameters": {"project_id": 14, "file_ids": [52, 53], "output_filename": "VSM_design_documents.zip"}}',
     },
 }

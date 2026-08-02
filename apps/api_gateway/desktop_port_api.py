@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 import auth
@@ -62,6 +63,44 @@ def _chat_log_root(cda: Any) -> Path:
     return base
 
 
+def _path_within(root: Path, candidate: Path) -> bool:
+    try:
+        candidate.resolve().relative_to(root.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+def _trace_filepaths(trace: List[Dict[str, Any]]) -> set[str]:
+    """Extract paths emitted by the runtime without accepting arbitrary paths."""
+    paths: set[str] = set()
+
+    def _visit(value: Any, key: str = "") -> None:
+        if isinstance(value, dict):
+            for child_key, child_value in value.items():
+                _visit(child_value, str(child_key))
+        elif isinstance(value, list):
+            for child_value in value:
+                _visit(child_value, key)
+        elif key.endswith("file") or key.endswith("filepath"):
+            text = str(value or "").strip()
+            if text:
+                paths.add(str(Path(text).resolve()))
+
+    for item in trace:
+        _visit(item.get("payload", {}) if isinstance(item, dict) else {})
+    return paths
+
+
+def _trace_file_response(cda: Any, known_paths: set[str], requested_path: str) -> FileResponse:
+    candidate = Path(str(requested_path or "").strip()).resolve()
+    if str(candidate) not in known_paths or not _path_within(_chat_log_root(cda), candidate):
+        raise HTTPException(status_code=404, detail="Trace file not found")
+    if not candidate.is_file():
+        raise HTTPException(status_code=404, detail="Trace file no longer exists")
+    return FileResponse(str(candidate), filename=candidate.name, media_type="text/plain")
+
+
 def _create_chat_job(cda: Any, session_id: str, user_id: str, request_id: str) -> ChatJobState:
     log_path = _chat_log_root(cda) / f"web_chat_{request_id}.log"
     job = ChatJobState(
@@ -99,6 +138,24 @@ def _job_trace_callback(job: ChatJobState, event_type: str, data: Dict[str, Any]
         }
         job.trace.append(item)
     _append_chat_job_log(job, item["eventType"], payload)
+
+
+def _associate_runtime_log(cda: Any, chat_id: Optional[int], job: ChatJobState) -> None:
+    if not chat_id:
+        return
+    conn = _conn(cda)
+    try:
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(ChatHistory)")
+        columns = {str(row[1]) for row in cur.fetchall()}
+        if {"runtime_log_path", "runtime_request_id"}.issubset(columns):
+            cur.execute(
+                "UPDATE ChatHistory SET runtime_log_path=?, runtime_request_id=? WHERE id=?",
+                (job.log_path, job.request_id, int(chat_id)),
+            )
+            conn.commit()
+    finally:
+        conn.close()
 
 
 def _job_status_callback(job: ChatJobState, message: str) -> None:
@@ -543,6 +600,13 @@ class SchedulerSaveRequest(BaseModel):
     run_day_of_month: int = 1
     timezone: str = "Asia/Calcutta"
     is_enabled: bool = True
+    schedule_mode: str = "recurring"
+    run_at: str = ""
+    end_at: str = ""
+    job_spec: Dict[str, Any] = Field(default_factory=dict)
+    delivery_spec: List[Dict[str, Any]] = Field(default_factory=list)
+    security_spec: Dict[str, Any] = Field(default_factory=dict)
+    retry_spec: Dict[str, Any] = Field(default_factory=dict)
 
 
 def _run_schedule_manager_request(
@@ -603,21 +667,22 @@ def tab_manifest() -> Dict[str, Any]:
 
 
 @router.get("/history")
-def history_list(request: Request, limit: int = Query(default=100, ge=1, le=500)) -> Dict[str, Any]:
+def history_list(
+    request: Request,
+    limit: int = Query(default=100, ge=1, le=500),
+    _admin: Dict[str, Any] = Depends(auth._require_admin),
+) -> Dict[str, Any]:
     cda = _get_cda(request)
-    user_id = _request_user_id(request)
-    include_all = _request_is_admin(request)
     conn = _conn(cda)
     try:
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(ChatHistory)")
         cols = {str(r[1]) for r in cur.fetchall()}
         interface_expr = "interface" if "interface" in cols else "'' as interface"
-        where_sql, params = _history_access_where(cols, user_id, include_all=include_all)
         rows = _fetch_rows(
             cur,
-            f"SELECT id, title, created_at, {interface_expr} FROM ChatHistory{where_sql} ORDER BY created_at DESC LIMIT ?",
-            (*params, int(limit)),
+            f"SELECT id, title, created_at, {interface_expr} FROM ChatHistory ORDER BY created_at DESC LIMIT ?",
+            (int(limit),),
         )
         return {"count": len(rows), "items": rows}
     finally:
@@ -625,20 +690,20 @@ def history_list(request: Request, limit: int = Query(default=100, ge=1, le=500)
 
 
 @router.get("/history/{chat_id}")
-def history_detail(chat_id: int, request: Request) -> Dict[str, Any]:
+def history_detail(
+    chat_id: int,
+    request: Request,
+    _admin: Dict[str, Any] = Depends(auth._require_admin),
+) -> Dict[str, Any]:
     cda = _get_cda(request)
-    user_id = _request_user_id(request)
-    include_all = _request_is_admin(request)
     conn = _conn(cda)
     try:
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(ChatHistory)")
         ch_cols = {str(r[1]) for r in cur.fetchall()}
-        where_sql, params = _history_access_where(ch_cols, user_id, include_all=include_all)
-        access_sql = f"id=?{where_sql.replace(' WHERE ', ' AND ', 1)}"
         cur.execute(
-            f"SELECT id, title, created_at, agent_activity FROM ChatHistory WHERE {access_sql} LIMIT 1",
-            (int(chat_id), *params),
+            "SELECT id, title, created_at, agent_activity FROM ChatHistory WHERE id=? LIMIT 1",
+            (int(chat_id),),
         )
         parent = cur.fetchone()
         if not parent:
@@ -654,11 +719,14 @@ def history_detail(chat_id: int, request: Request) -> Dict[str, Any]:
 
 
 @router.post("/history/{chat_id}/resume")
-def history_resume(chat_id: int, request: Request) -> Dict[str, Any]:
+def history_resume(
+    chat_id: int,
+    request: Request,
+    _admin: Dict[str, Any] = Depends(auth._require_admin),
+) -> Dict[str, Any]:
     cda = _get_cda(request)
     mgr = _get_conversation_manager(request)
     user_id = _request_user_id(request)
-    include_all = _request_is_admin(request)
     if not user_id:
         raise HTTPException(status_code=401, detail="User session missing")
 
@@ -667,11 +735,9 @@ def history_resume(chat_id: int, request: Request) -> Dict[str, Any]:
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(ChatHistory)")
         ch_cols = {str(r[1]) for r in cur.fetchall()}
-        where_sql, params = _history_access_where(ch_cols, user_id, include_all=include_all)
-        access_sql = f"id=?{where_sql.replace(' WHERE ', ' AND ', 1)}"
         cur.execute(
-            f"SELECT id, title, created_at, agent_activity FROM ChatHistory WHERE {access_sql} LIMIT 1",
-            (int(chat_id), *params),
+            "SELECT id, title, created_at, agent_activity FROM ChatHistory WHERE id=? LIMIT 1",
+            (int(chat_id),),
         )
         parent = cur.fetchone()
         if not parent:
@@ -979,6 +1045,7 @@ def chat_send(payload: WebChatRequest, request: Request) -> Dict[str, Any]:
                 for feedback in ui_feedback:
                     _job_ui_callback(job, feedback)
         _append_chat_job_log(job, "completion", {"status": job.status, "content": content})
+        _associate_runtime_log(cda, mgr.get_history_chat_id(session_id), job)
 
     mgr.submit(
         InboundRequest(
@@ -1036,6 +1103,23 @@ def chat_status(request_id: str, request: Request) -> Dict[str, Any]:
             "log_path": job.log_path,
             "created_at": job.created_at,
         }
+
+
+@router.get("/chat/status/{request_id}/trace-file")
+def chat_trace_file(
+    request_id: str,
+    request: Request,
+    path: str = Query(min_length=1, max_length=4096),
+) -> FileResponse:
+    user_id = _request_user_id(request)
+    with _CHAT_JOBS_LOCK:
+        job = _CHAT_JOBS.get(str(request_id or "").strip())
+        if job is None:
+            raise HTTPException(status_code=404, detail="Chat request not found")
+        if str(job.user_id) != str(user_id):
+            raise HTTPException(status_code=403, detail="Chat request access denied")
+        known_paths = _trace_filepaths(list(job.trace))
+    return _trace_file_response(_get_cda(request), known_paths, path)
 
 
 
@@ -1358,12 +1442,15 @@ def scheduler_stop(request: Request, _admin: Dict[str, Any] = Depends(auth._requ
 
 
 @router.get("/scheduler")
-def scheduler_list(request: Request) -> Dict[str, Any]:
+def scheduler_list(request: Request, session: Dict[str, Any] = Depends(auth._require_session)) -> Dict[str, Any]:
     cda = _get_cda(request)
     conn = _conn(cda)
     try:
         cur = conn.cursor()
-        rows = _fetch_rows(cur, "SELECT * FROM Schedules ORDER BY id DESC")
+        if bool(session.get("is_admin")):
+            rows = _fetch_rows(cur, "SELECT * FROM Schedules ORDER BY id DESC")
+        else:
+            rows = _fetch_rows(cur, "SELECT * FROM Schedules WHERE owner=? OR created_by=? ORDER BY id DESC", (str(session.get("user_id") or ""), str(session.get("user_id") or "")))
         return {"count": len(rows), "items": rows}
     finally:
         conn.close()
@@ -1374,6 +1461,21 @@ def scheduler_validate(payload: SchedulerValidateRequest, request: Request) -> D
     cda = _get_cda(request)
     parsed = validate_schedule_request(payload.request, cda)
     return parsed
+
+
+@router.post("/scheduler/preview")
+def scheduler_preview(payload: SchedulerSaveRequest, request: Request) -> Dict[str, Any]:
+    """Validate a schedule configuration without writing it or sending anything."""
+    rec = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
+    mode = str(rec.get("schedule_mode") or "recurring").lower()
+    if mode not in {"once", "recurring"}:
+        raise HTTPException(status_code=422, detail="schedule_mode must be once or recurring")
+    task = str(rec.get("job_spec", {}).get("task_prompt") or rec.get("task_prompt") or "").strip()
+    if not task: raise HTTPException(status_code=422, detail="Task prompt is required")
+    external = [d for d in rec.get("delivery_spec", []) if str(d.get("channel", "")).lower() in {"telegram", "whatsapp"}]
+    if bool(rec.get("security_spec", {}).get("approval_required")) and external:
+        return {"ok": True, "requires_approval": True, "preview": rec}
+    return {"ok": True, "requires_approval": False, "preview": rec}
 
 
 @router.post("/scheduler/agent-create")
@@ -1414,7 +1516,11 @@ def scheduler_create(payload: SchedulerSaveRequest, request: Request, session: D
         "run_day_of_week": payload.run_day_of_week,
         "run_day_of_month": payload.run_day_of_month,
     }
-    next_run = _schedule_next_run_text(rec)
+    mode = str(payload.schedule_mode or "recurring").lower()
+    if mode not in {"once", "recurring"}: raise HTTPException(status_code=422, detail="schedule_mode must be once or recurring")
+    rec["schedule_mode"] = mode
+    next_run = str(payload.run_at).strip() if mode == "once" and str(payload.run_at).strip() else _schedule_next_run_text(rec)
+    job_spec = dict(payload.job_spec or {}); job_spec.setdefault("action_type", "agent_task"); job_spec.setdefault("task_prompt", payload.task_prompt.strip())
 
     conn = _conn(cda)
     try:
@@ -1424,31 +1530,72 @@ def scheduler_create(payload: SchedulerSaveRequest, request: Request, session: D
             INSERT INTO Schedules (
                 title, nl_request, task_prompt, schedule_type,
                 interval_minutes, run_hour, run_minute, run_day_of_week, days_of_week, run_day_of_month,
-                timezone, is_enabled, status, next_run_at, owner, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+                timezone, is_enabled, status, next_run_at, owner, created_by,
+                schedule_mode, run_at, end_at, job_spec, delivery_spec, security_spec, retry_spec
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                payload.title.strip(),
-                str(payload.nl_request or "").strip(),
-                payload.task_prompt.strip(),
-                payload.schedule_type.strip().lower(),
-                int(payload.interval_minutes),
-                int(payload.run_hour),
-                int(payload.run_minute),
-                int(payload.run_day_of_week),
-                str(payload.days_of_week or "").strip(),
-                int(payload.run_day_of_month),
-                payload.timezone.strip(),
-                1 if payload.is_enabled else 0,
-                next_run,
-                str(session.get("user_id") or ""),
-                str(session.get("user_id") or ""),
+                payload.title.strip(), str(payload.nl_request or "").strip(), payload.task_prompt.strip(), payload.schedule_type.strip().lower(),
+                int(payload.interval_minutes), int(payload.run_hour), int(payload.run_minute), int(payload.run_day_of_week),
+                str(payload.days_of_week or "").strip(), int(payload.run_day_of_month), payload.timezone.strip(), 1 if payload.is_enabled else 0,
+                next_run, str(session.get("user_id") or ""), str(session.get("user_id") or ""), mode,
+                str(payload.run_at or "").strip() or None, str(payload.end_at or "").strip() or None,
+                json.dumps(job_spec), json.dumps(payload.delivery_spec or []), json.dumps(payload.security_spec or {}), json.dumps(payload.retry_spec or {}),
             ),
         )
         conn.commit()
         return {"ok": True, "id": int(cur.lastrowid)}
     finally:
         conn.close()
+
+
+@router.get("/history/{chat_id}/runtime-log")
+def history_runtime_log(
+    chat_id: int,
+    request: Request,
+    _admin: Dict[str, Any] = Depends(auth._require_admin),
+) -> Dict[str, Any]:
+    cda = _get_cda(request)
+    conn = _conn(cda)
+    try:
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(ChatHistory)")
+        columns = {str(row[1]) for row in cur.fetchall()}
+        if "runtime_log_path" not in columns:
+            return {"trace": [], "available": False}
+        cur.execute("SELECT runtime_log_path FROM ChatHistory WHERE id=? LIMIT 1", (int(chat_id),))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Chat history not found")
+        log_path = str(row[0] or "").strip()
+    finally:
+        conn.close()
+
+    candidate = Path(log_path).resolve() if log_path else None
+    if candidate is None or not _path_within(_chat_log_root(cda), candidate) or not candidate.is_file():
+        return {"trace": [], "available": False}
+
+    trace: List[Dict[str, Any]] = []
+    for index, line in enumerate(candidate.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError:
+            item = {"eventType": "log", "payload": {"value": line}}
+        if isinstance(item, dict):
+            item.setdefault("idx", index)
+            trace.append(item)
+    return {"trace": trace, "available": True}
+
+
+@router.get("/history/{chat_id}/runtime-file")
+def history_runtime_file(
+    chat_id: int,
+    request: Request,
+    path: str = Query(min_length=1, max_length=4096),
+    _admin: Dict[str, Any] = Depends(auth._require_admin),
+) -> FileResponse:
+    runtime_log = history_runtime_log(chat_id, request, _admin)
+    return _trace_file_response(cda=_get_cda(request), known_paths=_trace_filepaths(runtime_log["trace"]), requested_path=path)
 
 
 @router.put("/scheduler/{schedule_id}")
@@ -1462,7 +1609,10 @@ def scheduler_update(schedule_id: int, payload: SchedulerSaveRequest, request: R
         "run_day_of_week": payload.run_day_of_week,
         "run_day_of_month": payload.run_day_of_month,
     }
-    next_run = _schedule_next_run_text(rec)
+    mode = str(payload.schedule_mode or "recurring").lower()
+    if mode not in {"once", "recurring"}: raise HTTPException(status_code=422, detail="schedule_mode must be once or recurring")
+    next_run = str(payload.run_at).strip() if mode == "once" and str(payload.run_at).strip() else _schedule_next_run_text(rec)
+    job_spec = dict(payload.job_spec or {}); job_spec.setdefault("action_type", "agent_task"); job_spec.setdefault("task_prompt", payload.task_prompt.strip())
 
     conn = _conn(cda)
     try:
@@ -1472,7 +1622,8 @@ def scheduler_update(schedule_id: int, payload: SchedulerSaveRequest, request: R
             UPDATE Schedules
             SET title=?, nl_request=?, task_prompt=?, schedule_type=?,
                 interval_minutes=?, run_hour=?, run_minute=?, run_day_of_week=?, days_of_week=?, run_day_of_month=?,
-                timezone=?, is_enabled=?, next_run_at=?, owner=?, updated_at=CURRENT_TIMESTAMP
+                timezone=?, is_enabled=?, next_run_at=?, owner=?, schedule_mode=?, run_at=?, end_at=?,
+                job_spec=?, delivery_spec=?, security_spec=?, retry_spec=?, updated_at=CURRENT_TIMESTAMP
             WHERE id=?
             """,
             (
@@ -1490,6 +1641,8 @@ def scheduler_update(schedule_id: int, payload: SchedulerSaveRequest, request: R
                 1 if payload.is_enabled else 0,
                 next_run,
                 str(session.get("user_id") or ""),
+                mode, str(payload.run_at or "").strip() or None, str(payload.end_at or "").strip() or None,
+                json.dumps(job_spec), json.dumps(payload.delivery_spec or []), json.dumps(payload.security_spec or {}), json.dumps(payload.retry_spec or {}),
                 int(schedule_id),
             ),
         )
@@ -1520,6 +1673,54 @@ def scheduler_run_now(schedule_id: int, request: Request, _admin: Dict[str, Any]
         return {"ok": False, "error": "Scheduler service not initialized"}
     result = svc.run_schedule_now(int(schedule_id))
     return {"ok": True, "result": result}
+
+
+@router.post("/scheduler/{schedule_id}/pause")
+def scheduler_pause(schedule_id: int, request: Request, _admin: Dict[str, Any] = Depends(auth._require_admin)) -> Dict[str, Any]:
+    conn = _conn(_get_cda(request))
+    try:
+        cur = conn.execute("UPDATE Schedules SET status='paused',paused_at=CURRENT_TIMESTAMP WHERE id=? AND status!='completed'", (int(schedule_id),)); conn.commit()
+        return {"ok": cur.rowcount > 0}
+    finally: conn.close()
+
+
+@router.post("/scheduler/{schedule_id}/resume")
+def scheduler_resume(schedule_id: int, request: Request, _admin: Dict[str, Any] = Depends(auth._require_admin)) -> Dict[str, Any]:
+    conn = _conn(_get_cda(request))
+    try:
+        cur = conn.execute("UPDATE Schedules SET status='active',is_enabled=1,paused_at=NULL WHERE id=? AND status='paused'", (int(schedule_id),)); conn.commit()
+        return {"ok": cur.rowcount > 0}
+    finally: conn.close()
+
+
+@router.get("/scheduler/runs")
+def scheduler_runs(request: Request, schedule_id: Optional[int] = None, status: str = "", limit: int = Query(100, ge=1, le=500)) -> Dict[str, Any]:
+    conn = _conn(_get_cda(request))
+    try:
+        sql, params = "SELECT r.*,s.title AS schedule_title FROM ScheduleRuns r JOIN Schedules s ON s.id=r.schedule_id WHERE 1=1", []
+        if schedule_id: sql += " AND r.schedule_id=?"; params.append(int(schedule_id))
+        if status: sql += " AND r.status=?"; params.append(status)
+        sql += " ORDER BY COALESCE(r.started_at,r.created_at) DESC LIMIT ?"; params.append(limit)
+        return {"items": _fetch_rows(conn.cursor(), sql, tuple(params))}
+    finally: conn.close()
+
+
+@router.get("/scheduler/runs/{run_id}")
+def scheduler_run_detail(run_id: int, request: Request) -> Dict[str, Any]:
+    conn = _conn(_get_cda(request))
+    try:
+        run = _fetch_rows(conn.cursor(), "SELECT r.*,s.title AS schedule_title FROM ScheduleRuns r JOIN Schedules s ON s.id=r.schedule_id WHERE r.id=?", (int(run_id),))
+        if not run: raise HTTPException(status_code=404, detail="Schedule run not found")
+        deliveries = _fetch_rows(conn.cursor(), "SELECT * FROM ScheduleDeliveries WHERE run_id=? ORDER BY delivery_index,attempt", (int(run_id),))
+        return {"run": run[0], "deliveries": deliveries}
+    finally: conn.close()
+
+
+@router.post("/scheduler/runs/{run_id}/retry")
+def scheduler_retry_run(run_id: int, request: Request, _admin: Dict[str, Any] = Depends(auth._require_admin)) -> Dict[str, Any]:
+    svc = _get_cda(request).get_runtime("scheduler_service")
+    if not svc: return {"ok": False, "error": "Scheduler service not initialized"}
+    return {"ok": True, "result": svc.retry_run(int(run_id))}
 
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__tool_exports__ = ['validate_schedule', 'create_schedule', 'list_schedules', 'update_schedule', 'delete_schedule', 'run_schedule_now']
+__tool_exports__ = ['validate_schedule', 'preview_schedule', 'create_schedule', 'list_schedules', 'list_schedule_runs', 'update_schedule', 'delete_schedule', 'run_schedule_now', 'retry_schedule_run']
 
 import sqlite3
 from datetime import datetime
@@ -51,6 +51,14 @@ def validate_schedule(nl_request: str) -> Dict[str, Any]:
     cda = CommonDataArea()
     parsed = validate_schedule_request(str(nl_request or ""), cda=cda)
     return {"success": bool(parsed.get("is_valid", False)), "parsed": parsed}
+
+
+def preview_schedule(nl_request: str) -> Dict[str, Any]:
+    """Return a safe, reviewable schedule proposal without creating a schedule."""
+    parsed = validate_schedule_request(str(nl_request or ""), cda=CommonDataArea())
+    if not parsed.get("is_valid"):
+        return {"success": False, "error": parsed.get("reason", "Invalid schedule request"), "parsed": parsed}
+    return {"success": True, "proposal": {"title": parsed["title"], "original_request": nl_request, "task_prompt": parsed["task_prompt"], "recurrence": parsed["schedule_type"], "timing": parsed}}
 
 
 def create_schedule(
@@ -164,6 +172,18 @@ def list_schedules(include_disabled: bool = True, limit: int = 200) -> Dict[str,
     finally:
         conn.close()
     return {"success": True, "schedules": rows, "count": len(rows)}
+
+
+def list_schedule_runs(schedule_id: int = 0, status: str = "", limit: int = 100) -> Dict[str, Any]:
+    """List newest-first audited scheduler runs, optionally for one schedule."""
+    cda = CommonDataArea(); conn = sqlite3.connect(str(_db_path(cda))); conn.row_factory = sqlite3.Row
+    try:
+        sql, params = "SELECT * FROM ScheduleRuns WHERE 1=1", []
+        if int(schedule_id or 0) > 0: sql += " AND schedule_id=?"; params.append(int(schedule_id))
+        if status: sql += " AND status=?"; params.append(str(status))
+        sql += " ORDER BY COALESCE(started_at,created_at) DESC LIMIT ?"; params.append(max(1, min(int(limit or 100), 500)))
+        return {"success": True, "runs": [dict(r) for r in conn.execute(sql, params).fetchall()]}
+    finally: conn.close()
 
 
 def update_schedule(
@@ -286,5 +306,13 @@ def run_schedule_now(schedule_id: int) -> Dict[str, Any]:
     except Exception as exc:
         return {"success": False, "error": str(exc), "schedule_id": sid}
     return {"success": True, "schedule_id": sid, "result": result}
+
+
+def retry_schedule_run(run_id: int) -> Dict[str, Any]:
+    """Retry a failed schedule run as a new audited execution."""
+    cda = CommonDataArea(); svc = cda.get_runtime("scheduler_service")
+    if svc is None: return {"success": False, "error": "Scheduler service not initialized"}
+    try: return {"success": True, "result": svc.retry_run(int(run_id))}
+    except Exception as exc: return {"success": False, "error": str(exc)}
 
 

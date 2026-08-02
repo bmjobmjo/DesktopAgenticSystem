@@ -16,6 +16,7 @@ from agents.registry import get_agent
 from core.common_data_area import CommonDataArea
 from core.session_context import SessionContext
 from llm.mock_client import MockLLMClient
+from llm.factory import get_llm_trace_metadata
 from llm.response_validator import InvalidJSONError, parse_json
 from execution_logger import log_tool_call, log_prompt, log_execution_step, log_exception, log_chat_history, ExecutionLogger
 from tools.tool_registry import call_tool, list_tool_metadata
@@ -712,7 +713,8 @@ class Executor:
                     'response': response_text,
                     'response_file': ExecutionLogger.save_trace_file(f"{agent_name}_response_step{{{loop_idx+1}}}", response_text),
                     'time_taken': time_taken,
-                    'tokens_used': usage.get('total', 0)
+                    'tokens_used': usage.get('total', 0),
+                    **get_llm_trace_metadata(self.cda),
                 },
             )
 

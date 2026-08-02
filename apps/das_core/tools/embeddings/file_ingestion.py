@@ -582,9 +582,9 @@ def ingest_file(file_path: str, category: str = None, user_description: str = No
             # Update metadata
             cursor.execute("UPDATE Files SET file_hash=?, file_size=?, upload_date=CURRENT_TIMESTAMP WHERE id=?", 
                            (file_hash, file_size, file_id))
-            # Clear old embeddings/expenses
+            # Refresh only ingestion-owned derived data. Domain records linked to this
+            # file (for example Expenses) remain owned by their respective agents.
             cursor.execute("DELETE FROM Embeddings WHERE source_type='file' AND source_id=?", (file_id,))
-            cursor.execute("DELETE FROM Expenses WHERE file_id=?", (file_id,))
         else:
             cursor.execute("INSERT INTO Files (file_path, filename, file_type, file_size, file_hash) VALUES (?, ?, ?, ?, ?)",
                            (db_path_str, final_path.name, final_path.suffix, file_size, file_hash))

@@ -106,3 +106,35 @@ def test_revoke_user_sessions_can_keep_current_session(tmp_path):
 
     assert db.resolve_session(cda, keep_token) is not None
     assert db.resolve_session(cda, revoke_token) is None
+
+
+def test_existing_admin_without_role_is_backfilled_to_admin_role(tmp_path):
+    cda = _init_auth_db(tmp_path)
+    conn = db.connect(cda)
+    try:
+        conn.execute("ALTER TABLE Users ADD COLUMN role_id INTEGER")
+        conn.execute(
+            "CREATE TABLE Roles (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL)"
+        )
+        conn.execute("INSERT INTO Roles(name) VALUES ('Admin')")
+        conn.commit()
+    finally:
+        conn.close()
+    user_id = _create_user(cda)
+
+    result = db.ensure_default_admin(
+        cda,
+        username="admin",
+        email="admin@local",
+        password_hash_value=hash_password("unused"),
+    )
+
+    conn = db.connect(cda)
+    try:
+        role_id = conn.execute("SELECT role_id FROM Users WHERE id=?", (user_id,)).fetchone()["role_id"]
+        admin_role_id = conn.execute("SELECT id FROM Roles WHERE name='Admin'").fetchone()["id"]
+    finally:
+        conn.close()
+
+    assert role_id == admin_role_id
+    assert result["role_id"] == admin_role_id

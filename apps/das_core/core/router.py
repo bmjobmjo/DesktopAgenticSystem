@@ -12,6 +12,7 @@ from agents.registry import ROUTER_PROMPT_PATH, list_agents
 from tools.tool_registry import list_tool_metadata
 from core.common_data_area import CommonDataArea
 from llm.mock_client import MockLLMClient
+from llm.factory import get_llm_trace_metadata
 from llm.response_validator import InvalidJSONError, parse_json
 from prompts.renderer import render
 from execution_logger import log_router_decision, log_prompt, log_execution_step, log_chat_history, ExecutionLogger
@@ -205,93 +206,6 @@ class Router:
             except Exception:
                 pass
         return hint
-
-    @staticmethod
-    def _normalize_file_routes(
-        data: List[Dict[str, Any]],
-        attachment_paths: List[str],
-        tool_output: str | None = None,
-    ) -> List[Dict[str, Any]]:
-        if not attachment_paths:
-            return data
-
-        handoff_hint = Router._parse_handoff_hint(tool_output)
-        source_agent = handoff_hint.get('source_agent', '')
-        requested_agent = handoff_hint.get('requested_agent', '')
-
-        # Critical loop guard:
-        # If we are re-routing after incoming_file_processor already requested a handoff,
-        # do not force incoming_file_processor again just because attachments exist.
-        if source_agent == 'incoming_file_processor':
-            rewritten: List[Dict[str, Any]] = []
-            for item in data:
-                if not isinstance(item, dict):
-                    continue
-                if (
-                    str(item.get('type', '') or '').strip() == 'agent_call'
-                    and str(item.get('selected_agent', '') or '').strip() == 'incoming_file_processor'
-                    and requested_agent
-                ):
-                    cloned = dict(item)
-                    cloned['selected_agent'] = requested_agent
-                    reason = str(cloned.get('reason', '') or '').strip()
-                    guard_note = (
-                        "incoming_file_processor has already ingested/processed attachments; "
-                        "continuing downstream to avoid re-entry loop."
-                    )
-                    cloned['reason'] = f"{reason} {guard_note}".strip()
-                    rewritten.append(cloned)
-                else:
-                    rewritten.append(dict(item))
-            return rewritten
-
-        has_incoming = any(
-            isinstance(item, dict)
-            and str(item.get('type', '') or '') == 'agent_call'
-            and str(item.get('selected_agent', '') or '') == 'incoming_file_processor'
-            for item in data
-        )
-        if has_incoming:
-            return data
-
-        # Compatibility path:
-        # If the model already selected direct ingestion tool calls, do not
-        # force-prepend incoming_file_processor.
-        has_direct_ingestion_tool = any(
-            isinstance(item, dict)
-            and str(item.get('type', '') or '').strip() == 'tool_call'
-            and str(item.get('tool_name', '') or '').strip() in {'file_embedding_tool', 'file_ingestion', 'ingest_file'}
-            for item in data
-        )
-        if has_direct_ingestion_tool:
-            return data
-
-        incoming_task: Dict[str, Any] = {
-            'type': 'agent_call',
-            'selected_agent': 'incoming_file_processor',
-            "instruction": "First inspect/process the attached file using the exact path from [ATTACHED FILES] and the user's request.",
-            'confidence': 'high',
-            'reason': 'Attached files must always go to the dedicated file processor first.',
-            'response_to_user': 'I am processing the attached file.',
-            'priority': 1,
-        }
-
-        downstream: List[Dict[str, Any]] = []
-        for idx, item in enumerate(data, start=2):
-            if not isinstance(item, dict):
-                continue
-            item_type = str(item.get('type', '') or '').strip()
-            if item_type not in ('agent_call', 'tool_call', 'continue'):
-                continue
-            cloned = dict(item)
-            cloned['priority'] = idx
-            if item_type == 'agent_call':
-                instruction = str(cloned.get('instruction', '') or '').strip()
-                prefix = 'After incoming_file_processor runs, continue using the same attached file path(s), the same file content, and the file processor findings.'
-                cloned['instruction'] = f"{prefix} {instruction}".strip()
-            downstream.append(cloned)
-
-        return [incoming_task, *downstream] if downstream else [incoming_task]
 
     def _emit_trace(self, event_type: str, payload: Dict[str, Any]) -> None:
         handler = self.cda.get_runtime('executor_trace_handler')
@@ -673,7 +587,8 @@ class Router:
                     'attempt': attempt + 1,
                     'response_file': response_file,
                     'time_taken': time_taken,
-                    'tokens_used': usage.get('total', 0)
+                    'tokens_used': usage.get('total', 0),
+                    **get_llm_trace_metadata(self.cda),
                 },
             )
             log_execution_step('ROUTER_TRACE_FILE', f"Response file: {response_file}")
@@ -692,9 +607,6 @@ class Router:
                 validate_router_response(data)
 
                 attachment_paths = extract_attachment_paths(llm_attachments) if llm_attachments else []
-                if attachment_paths:
-                    data = self._normalize_file_routes(data, attachment_paths, tool_output=tool_output)
-
                 # Log the parsed decision (detailed log)
                 if llm_attachments:
                     for item in data:

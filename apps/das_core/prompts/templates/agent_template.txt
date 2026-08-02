@@ -21,6 +21,14 @@ USER_ROLE_ID: {{USER_ROLE_ID}}
 USERNAME: {{USER_NAME}}
 SYSTEM_TIME: {{DATE_TIME}}
 INTERFACE: {{INTERFACE_TYPE}}
+LAST_TOOL_RESULT: {{TOOL_DATA}}
+LAST_CREATED_FILE: {{LAST_CREATED_FILE}}
+CREATED_FILES: {{CREATED_FILES}}
+
+`LAST_TOOL_RESULT` contains only the most recent tool response. When a workflow
+creates a file and then performs another tool call, retain and reuse the exact
+path from `LAST_CREATED_FILE` or `CREATED_FILES`. Do not ask the user to provide
+or upload a generated file whose path is present in this context.
 
 ====================================================
 DATABASE SCHEMA REFERENCE

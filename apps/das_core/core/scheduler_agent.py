@@ -171,7 +171,15 @@ def _fallback_parse(nl_request: str) -> Dict[str, Any]:
         "run_day_of_week": 0,
         "run_day_of_month": 1,
         "days_of_week": days_of_week,
+        "schedule_mode": "recurring",
+        "run_at": "",
     }
+
+    if "tomorrow" in lower:
+        hour, minute = parsed_time if parsed_time is not None else (9, 0)
+        run_at = (datetime.now() + timedelta(days=1)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+        parsed.update({"is_valid": True, "reason": "Parsed as one-time schedule tomorrow.", "schedule_type": "other", "interval_minutes": 1, "schedule_mode": "once", "run_at": run_at.strftime("%Y-%m-%d %H:%M:%S")})
+        return parsed
 
     m_every_min = re.search(r"every\s+(\d+)\s*minute", lower)
     if m_every_min:
@@ -294,7 +302,7 @@ Rules:
 - If unclear, set is_valid=false with reason.
 
 Return JSON only with keys:
-is_valid, reason, title, task_prompt, schedule_type, interval_minutes, run_hour, run_minute, run_day_of_week, run_day_of_month, days_of_week
+is_valid, reason, title, task_prompt, schedule_type, interval_minutes, run_hour, run_minute, run_day_of_week, run_day_of_month, days_of_week, schedule_mode, run_at
 
 User request:
 {nl_request}
@@ -334,6 +342,8 @@ def _normalize_schedule_payload(payload: Dict[str, Any], source_text: str = "") 
         "run_day_of_week": int(payload.get("run_day_of_week", 0) or 0),
         "run_day_of_month": int(payload.get("run_day_of_month", 1) or 1),
         "days_of_week": str(payload.get("days_of_week", "") or inferred_days or "").strip(),
+        "schedule_mode": str(payload.get("schedule_mode", "recurring") or "recurring").strip().lower(),
+        "run_at": str(payload.get("run_at", "") or "").strip(),
     }
 
     out["run_hour"] = max(0, min(out["run_hour"], 23))
@@ -342,6 +352,8 @@ def _normalize_schedule_payload(payload: Dict[str, Any], source_text: str = "") 
     out["run_day_of_month"] = max(1, min(out["run_day_of_month"], 31))
     if out["interval_minutes"] < 0:
         out["interval_minutes"] = 0
+    if out["schedule_mode"] not in {"once", "recurring"}:
+        out["schedule_mode"] = "recurring"
 
     if out["days_of_week"] and out["schedule_type"] in {"daily", "weekly"}:
         out["schedule_type"] = "daily"

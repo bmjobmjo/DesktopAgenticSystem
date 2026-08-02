@@ -25,6 +25,7 @@ KNOWN_TOOL_MODULE_NAMES = {
     'tools.render_image',
     'tools.scheduler_tools',
     'tools.sqlite_tools',
+    'tools.project_file_delivery',
     'tools.telegram_tools',
     'tools.whatsapp_tools',
     'tools.embeddings.file_ingestion',

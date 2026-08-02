@@ -1,4 +1,4 @@
-﻿"""Agent registry and prompt paths."""
+"""Agent registry and prompt paths."""
 
 from __future__ import annotations
 
@@ -16,21 +16,33 @@ ROUTER_PROMPT_PATH = _ROOT / 'router' / 'router.prompt'
 
 _BUILTIN_DESCRIPTIONS = {
     'agent_creation': 'Helps admins design and create new AI agents by checking tools, planning DB schemas, and writing prompts.',
-    'attendance_manager': 'Manage the acting user\'s attendance check-in, check-out, open-session status, and recent attendance history. Not leave or break management.',
+    'attendance_manager': 'Manage attendance check-in, check-out, open-session status, and attendance history. Managers and admins may view organization-wide attendance, generate CSV/PDF reports, and deliver those reports through configured WhatsApp or Telegram channels. Not leave or break management.',
     'database_manager': 'Manage SQLite database records and schema using controlled SQL operations.',
-    'dailytask_manager': 'Manage a user\'s personal daily working list, including today, yesterday, last-week views, restricted deletion, and optional project linkage. Not formal task ownership.',
-    'employee_manager': 'Manage employee self-profile and employee master/profile records, including requests like my profile, my personal details, my employment details, my name, my email, my phone number, emergency contacts, employee documents, and flexible employee details. Not users, roles, departments, or project membership.',
-    'expense_manager': 'Manage expense entries, receipts, project and user linking, and expense reports. No approval workflow.',
+    'dailytask_manager': 'Manage daily operational tasks when the request explicitly concerns daily tasks, today\'s tasks, yesterday\'s tasks, last-week daily tasks, or daily-task roll-forward. Managers and admins may view team daily-task reports, generate CSV/PDF exports, and deliver them through configured WhatsApp or Telegram channels. Do not select this agent for a generic request such as "list my tasks".',
+    'employee_manager': 'Manage employee self-profile and employee master/profile records, including organizational job-title and designation lookups such as who is the CTO, as well as requests like my profile, personal details, employment details, name, email, phone number, emergency contacts, employee documents, and flexible employee details. Use Employees.designation for job titles, not access-control roles.',
+    'expense_manager': (
+        'Create expense entries directly from user-provided details or receipts, using safe defaults for omitted '
+        'category, date, currency, project, purchaser, status, and file linkage. Treat "mark/log/record this expense" '
+        'as creation unless the user clearly identifies an existing expense to update. Also manage expense updates '
+        'and reports. No approval workflow.'
+    ),
     'file_manager': 'Handle filesystem listing, inspection, reading, copy/move operations, and file ingestion. Not semantic document question answering.',
     'holiday_manager': 'Manage the company-wide holiday calendar only: create, list, update, and delete holidays.',
+    'incoming_file_processor': (
+        'Own inbound user-attached files that must be stored and analyzed before another business '
+        'agent can act. Ingest each exact attachment path, extract text or image details, create a '
+        'reusable file summary/index with file_id and stored_path, then request a handoff with that '
+        'result to the appropriate domain agent. This agent does not create expenses, employees, '
+        'tasks, projects, purchase requests, or other domain records.'
+    ),
     'leave_manager': 'Manage leave requests, manager or admin approvals, leave balances, discrepancy corrections, and approved-leave staff notifications.',
-    'organization_management_agent': 'Manage users, roles, role-agent access, departments, project master records, and explicit project team membership only. Not employee self-profile or employee detail requests such as my profile, my personal details, my employment details, my name, my email, or my phone number.',
-    'project_manager': 'Manage project-specific documents, notes, meeting minutes, project memory, project knowledge facts, reports, and project-specific knowledge retrieval.',
+    'organization_management_agent': 'Manage users, roles, role-agent access, departments, project master records, and explicit project team membership, including membership prerequisites handed off from task assignment workflows. Not employee self-profile, employee-detail, or organizational job-title requests such as who is the CTO; those belong to employee_manager and use Employees.designation.',
+    'project_manager': 'Own project-specific documents, project schedules, timelines, milestones, plans, and project task schedules, plus notes, meeting minutes, project memory, project knowledge facts, reports, and task retrieval. Route requests to create, update, maintain, review, or view a named project\'s schedule, timeline, milestones, plan, or task schedule here. Timed or recurring automation belongs to schedule_manager. Route generic task-list requests such as "list my tasks" here unless the user explicitly asks for daily tasks or today\'s tasks; also handle tasks for a named project.',
     'purchase_request_manager': 'Manage purchase requests that require manager approval, escalation forwarding, and supporting documents.',
     'rag_gen': 'RAG Knowledge Assistant for general non-project documents, policies, manuals, SOPs, and file knowledge.',
-    'schedule_manager': 'Validate natural-language schedule requests and create or manage recurring schedules.',
-    'task_manager': 'Manage formal general and project-linked tasks and issues, including backlog, assignment, notes, reopen, inactivation, and status updates. Not daily-task planning.',
-    'work_diary_manager': 'Manage a user\'s work diary entries, recent diary views, limited updates, and optional project linkage. Not task assignment or backlog management.',
+    'schedule_manager': 'Validate natural-language requests for timed or recurring automation schedules and create or manage those schedules. Project schedules, timelines, milestones, and project plans belong to project_manager unless the user explicitly requests timed or recurring automation.',
+    'task_manager': 'Manage formal general and project-linked tasks and issues, including backlog, assignment, membership-prerequisite coordination, notes, reopen, inactivation, and status updates. Not daily-task planning.',
+    'work_diary_manager': 'Manage work diary entries, recent diary views, limited updates, and optional project linkage. Managers and admins may view team work-diary reports, generate CSV/PDF exports, and deliver them through configured WhatsApp or Telegram channels. Not task assignment or backlog management.',
 }
 
 _LEGACY_AGENT_ALIASES = {
@@ -74,9 +86,9 @@ AGENTS: Dict[str, Dict[str, Any]] = {
 
 ROLE_AGENT_POLICY = {
     'Admin': set(BUILTIN_AGENTS.keys()),
-    'User': {'dailytask_manager', 'employee_manager', 'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
-    'Manager': {'dailytask_manager', 'employee_manager', 'expense_manager', 'file_manager', 'database_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
-    'Employee': {'dailytask_manager', 'employee_manager', 'expense_manager', 'file_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
+    'User': {'dailytask_manager', 'employee_manager', 'file_manager', 'incoming_file_processor', 'database_manager', 'attendance_manager', 'leave_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
+    'Manager': {'dailytask_manager', 'employee_manager', 'expense_manager', 'file_manager', 'incoming_file_processor', 'database_manager', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
+    'Employee': {'dailytask_manager', 'employee_manager', 'expense_manager', 'file_manager', 'incoming_file_processor', 'attendance_manager', 'leave_manager', 'project_manager', 'purchase_request_manager', 'rag_gen', 'schedule_manager', 'task_manager', 'work_diary_manager'},
 }
 
 

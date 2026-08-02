@@ -128,6 +128,136 @@ def ensure_api_schema(cda: Any) -> None:
                 last_seen_at DATETIME,
                 revoked_at DATETIME,
                 FOREIGN KEY(user_id) REFERENCES Users(id) ON DELETE CASCADE
+"""SQLite persistence helpers for API gateway."""
+
+from __future__ import annotations
+
+import re
+import sqlite3
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+from security import token_hash
+
+
+def _resolve_db_path(cda: Any) -> Path:
+    configured = str(cda.get_setting("sqlite_db_path", "backend.db") or "backend.db").strip()
+    return Path(configured).resolve()
+
+
+def _parse_db_datetime(value: Any) -> Optional[datetime]:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception:
+        try:
+            parsed = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def connect(cda: Any) -> sqlite3.Connection:
+    db_path = _resolve_db_path(cda)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path), timeout=20)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 5000")
+    return conn
+
+
+def _users_columns(cur: sqlite3.Cursor) -> set[str]:
+    cur.execute("PRAGMA table_info(Users)")
+    return {str(row[1]) for row in cur.fetchall()}
+
+
+def _ensure_user_column(cur: sqlite3.Cursor, cols: set[str], column: str, ddl: str) -> None:
+    if column in cols:
+        return
+    cur.execute(f"ALTER TABLE Users ADD COLUMN {ddl}")
+    cols.add(column)
+
+
+def _normalize_base_username(value: str, fallback: str) -> str:
+    raw = str(value or "").strip().lower()
+    raw = re.sub(r"[^a-z0-9_]+", "_", raw)
+    raw = raw.strip("_")
+    if not raw:
+        raw = fallback
+    return raw[:40]
+
+
+def _unique_username(cur: sqlite3.Cursor, desired: str, current_id: int) -> str:
+    candidate = desired
+    suffix = 1
+    while True:
+        cur.execute(
+            "SELECT id FROM Users WHERE lower(COALESCE(username,''))=lower(?) AND id<>? LIMIT 1",
+            (candidate, int(current_id)),
+        )
+        if not cur.fetchone():
+            return candidate
+        suffix += 1
+        candidate = f"{desired}_{suffix}"
+
+
+def ensure_api_schema(cda: Any) -> None:
+    conn = connect(cda)
+    try:
+        cur = conn.cursor()
+
+        cols = _users_columns(cur)
+        _ensure_user_column(cur, cols, "username", "username TEXT")
+        _ensure_user_column(cur, cols, "password_hash", "password_hash TEXT")
+        _ensure_user_column(cur, cols, "is_active", "is_active INTEGER NOT NULL DEFAULT 1")
+        _ensure_user_column(cur, cols, "is_admin", "is_admin INTEGER NOT NULL DEFAULT 0")
+        _ensure_user_column(cur, cols, "force_password_change", "force_password_change INTEGER NOT NULL DEFAULT 0")
+        _ensure_user_column(cur, cols, "password_updated_at", "password_updated_at DATETIME")
+        _ensure_user_column(cur, cols, "last_login", "last_login DATETIME")
+        _ensure_user_column(cur, cols, "created_at", "created_at DATETIME")
+        _ensure_user_column(cur, cols, "whatsapp_number", "whatsapp_number TEXT")
+
+        if "registration_timestamp" in cols:
+            cur.execute(
+                """
+                UPDATE Users
+                SET created_at = registration_timestamp
+                WHERE (created_at IS NULL OR TRIM(COALESCE(created_at, ''))='')
+                  AND registration_timestamp IS NOT NULL
+                """
+            )
+
+        name_source_expr = "COALESCE(email, full_name, '')" if "full_name" in cols else "COALESCE(email, '')"
+        cur.execute(
+            f"SELECT id, {name_source_expr} as name_source FROM Users WHERE username IS NULL OR TRIM(username)=''"
+        )
+        for row in cur.fetchall():
+            uid = int(row["id"])
+            source = str(row["name_source"] or "")
+            if "@" in source:
+                source = source.split("@", 1)[0]
+            base = _normalize_base_username(source, fallback=f"user{uid}")
+            username = _unique_username(cur, base, uid)
+            cur.execute("UPDATE Users SET username=? WHERE id=?", (username, uid))
+
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ApiSessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME NOT NULL,
+                last_seen_at DATETIME,
+                revoked_at DATETIME,
+                FOREIGN KEY(user_id) REFERENCES Users(id) ON DELETE CASCADE
             )
             """
         )
@@ -157,32 +287,68 @@ def ensure_default_admin(cda: Any, *, username: str, email: str, password_hash_v
     conn = connect(cda)
     try:
         cur = conn.cursor()
+        user_cols = _users_columns(cur)
+        admin_role_id: Optional[int] = None
+        cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='Roles'")
+        if cur.fetchone() and "role_id" in user_cols:
+            cur.execute("SELECT id FROM Roles WHERE lower(name)='admin' LIMIT 1")
+            role_row = cur.fetchone()
+            if role_row:
+                admin_role_id = int(role_row["id"])
+
         cur.execute("SELECT id, username, email, is_admin FROM Users WHERE is_admin=1 ORDER BY id ASC LIMIT 1")
         row = cur.fetchone()
         if row:
-            return dict(row)
+            data = dict(row)
+            if admin_role_id is not None:
+                cur.execute(
+                    "UPDATE Users SET role_id=? WHERE id=?",
+                    (admin_role_id, int(row["id"])),
+                )
+                conn.commit()
+                data["role_id"] = admin_role_id
+            return data
 
         admin_username = _normalize_base_username(username, fallback="admin")
         admin_email = str(email or "").strip() or f"{admin_username}@local"
 
-        cur.execute(
-            """
-            INSERT INTO Users (
-                username, email, password_hash,
-                is_active, is_admin, force_password_change,
-                password_updated_at, created_at
+        if admin_role_id is not None:
+            cur.execute(
+                """
+                INSERT INTO Users (
+                    username, email, password_hash,
+                    is_active, is_admin, force_password_change, role_id,
+                    password_updated_at, created_at
+                )
+                VALUES (?, ?, ?, 1, 1, 1, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (admin_username, admin_email, password_hash_value, admin_role_id),
             )
-            VALUES (?, ?, ?, 1, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            """,
-            (admin_username, admin_email, password_hash_value),
-        )
+        else:
+            cur.execute(
+                """
+                INSERT INTO Users (
+                    username, email, password_hash,
+                    is_active, is_admin, force_password_change,
+                    password_updated_at, created_at
+                )
+                VALUES (?, ?, ?, 1, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (admin_username, admin_email, password_hash_value),
+            )
         user_id = int(cur.lastrowid)
         cur.execute(
             "INSERT INTO AuthAuditLog(action, actor_user_id, target_user_id, target_email, detail) VALUES (?, ?, ?, ?, ?)",
             ("seed_admin", user_id, user_id, admin_email, "Initial admin account seeded"),
         )
         conn.commit()
-        return {"id": user_id, "username": admin_username, "email": admin_email, "is_admin": 1}
+        return {
+            "id": user_id,
+            "username": admin_username,
+            "email": admin_email,
+            "is_admin": 1,
+            "role_id": admin_role_id,
+        }
     finally:
         conn.close()
 

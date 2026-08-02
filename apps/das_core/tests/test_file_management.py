@@ -25,12 +25,9 @@ class TestFileManagement(unittest.TestCase):
         self.mock_llm = MagicMock()
         self.mock_llm.generate.return_value = json.dumps({
             "description": "A test receipt for office supplies.",
-            "is_expense": True,
-            "amount": 123.45,
-            "currency": "USD",
-            "vendor": "Office Depot",
-            "date": "2023-10-27",
-            "category": "Office Supplies"
+            "keywords": ["receipt", "office supplies"],
+            "document_type": "receipt",
+            "matched_project_id": None
         })
         self.cda.set_runtime('llm_client', self.mock_llm)
         
@@ -97,7 +94,9 @@ class TestFileManagement(unittest.TestCase):
             print(f"Ingest Result: {result}")
             
             self.assertTrue(result['success'])
-            self.assertTrue(result['is_expense'])
+            self.assertGreater(result['file_id'], 0)
+            self.assertIn('receipt', result['description'].lower())
+            self.assertNotIn('is_expense', result)
             
             # Verify Copy
             stored_path = Path(result['stored_path'])
@@ -121,22 +120,27 @@ class TestFileManagement(unittest.TestCase):
         file_row = cursor.fetchone()
         self.assertIsNotNone(file_row)
         self.assertIn("receipt", file_row[1])
-        self.assertEqual(str(file_row[2]), str(stored_path))
+        self.assertEqual(Path(file_row[2]).resolve(), stored_path.resolve())
         
-        # Check Expenses
-        cursor.execute("SELECT amount, vendor FROM Expenses WHERE file_id = ?", (file_row[0],))
-        expense_row = cursor.fetchone()
-        self.assertIsNotNone(expense_row)
-        self.assertEqual(expense_row[0], 123.45)
-        self.assertEqual(expense_row[1], 'Office Depot')
+        # Ingestion creates reusable file context only. Expense creation belongs
+        # to expense_manager and must never happen as an ingestion side effect.
+        cursor.execute("SELECT COUNT(*) FROM Expenses WHERE file_id = ?", (file_row[0],))
+        self.assertEqual(cursor.fetchone()[0], 0)
         
         # Check Embeddings
-        cursor.execute("SELECT COUNT(*) FROM FileEmbeddings WHERE file_id = ?", (file_row[0],))
+        cursor.execute(
+            "SELECT COUNT(*) FROM Embeddings WHERE source_type='file' AND source_id = ?",
+            (file_row[0],),
+        )
         count = cursor.fetchone()[0]
         self.assertGreater(count, 1) # Description + Content
         
         # Check specific description chunk
-        cursor.execute("SELECT chunk_type FROM FileEmbeddings WHERE file_id = ? AND chunk_type = 'description'", (file_row[0],))
+        cursor.execute(
+            "SELECT type FROM Embeddings "
+            "WHERE source_type='file' AND source_id = ? AND type = 'file_description'",
+            (file_row[0],),
+        )
         self.assertIsNotNone(cursor.fetchone())
         
         conn.close()

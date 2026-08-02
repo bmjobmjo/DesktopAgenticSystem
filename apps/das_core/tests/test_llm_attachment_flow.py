@@ -226,11 +226,10 @@ def test_router_passes_file_content_to_llm(mock_list_agents, tmp_path):
 
     assert llm.attachments
     assert llm.attachments[0]['content'].startswith('router visible text')
-    assert tasks[0]['selected_agent'] == 'incoming_file_processor'
+    assert len(tasks) == 1
+    assert tasks[0]['selected_agent'] == 'file_manager'
     assert tasks[0]['_llm_attachments'][0]['content'].startswith('router visible text')
     assert tasks[0]['_attached_file_paths'] == [str(sample)]
-    assert tasks[1]['selected_agent'] == 'file_manager'
-    assert tasks[1]['_llm_attachments'][0]['content'].startswith('router visible text')
 
 
 @patch('core.router.list_agents', return_value=[{'name': 'file_manager', 'description': 'Handles files.'}])
@@ -291,11 +290,10 @@ def test_router_passes_image_payload_to_llm(mock_list_agents, tmp_path):
     assert llm.attachments[0]['kind'] == 'image'
     assert llm.attachments[0]['readable'] is True
     assert llm.attachments[0]['data_url'].startswith('data:image/jpeg;base64,')
-    assert tasks[0]['selected_agent'] == 'incoming_file_processor'
+    assert len(tasks) == 1
+    assert tasks[0]['selected_agent'] == 'file_manager'
     assert tasks[0]['_llm_attachments'][0]['kind'] == 'image'
     assert tasks[0]['_attached_file_paths'] == [str(sample)]
-    assert tasks[1]['selected_agent'] == 'file_manager'
-    assert tasks[1]['_llm_attachments'][0]['kind'] == 'image'
 
 
 def test_executor_passes_file_content_to_llm(tmp_path):
@@ -392,7 +390,7 @@ class HighUsageExecutorLLM:
 
 
 @patch('core.router.list_agents', return_value=[{'name': 'incoming_file_processor', 'description': 'Handles inbound files.'}])
-def test_router_forces_incoming_file_processor_for_image_only_prompt(mock_list_agents, tmp_path):
+def test_router_does_not_override_model_route_for_image_only_prompt(mock_list_agents, tmp_path):
     cda = CommonDataArea()
     cda.reset()
     cda.set_setting('current_user_id', '42')
@@ -408,7 +406,7 @@ def test_router_forces_incoming_file_processor_for_image_only_prompt(mock_list_a
     assert llm.attachments
     assert llm.attachments[0]['kind'] == 'image'
     assert len(tasks) == 1
-    assert tasks[0]['selected_agent'] == 'incoming_file_processor'
+    assert tasks[0]['type'] == 'greeting'
 
 def test_controller_preserves_attachments_across_handoff(tmp_path):
     cda = CommonDataArea()

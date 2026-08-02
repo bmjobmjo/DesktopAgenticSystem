@@ -283,6 +283,24 @@ class ConversationManager:
             return True
         return False
 
+    def get_history_chat_id(self, conversation_id: str) -> Optional[int]:
+        """Return the persisted chat-history ID for a conversation session."""
+        conv_id = str(conversation_id or "").strip() or "default"
+        with self._lock:
+            runtime = self._runtimes.get(conv_id)
+        if runtime is None:
+            return None
+        session = runtime.controller.session_store.get(
+            runtime.user_id,
+            runtime.interface,
+            runtime.conversation_id,
+        )
+        chat_id = getattr(session, "current_chat_id", None)
+        try:
+            return int(chat_id) if chat_id is not None else None
+        except (TypeError, ValueError):
+            return None
+
     def close_inactive(self, interface: str | None = None, timeout_seconds: int = 3600) -> List[dict]:
         iface = str(interface or "").strip().lower()
         now = datetime.now(timezone.utc)

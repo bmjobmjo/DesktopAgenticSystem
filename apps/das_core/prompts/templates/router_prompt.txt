@@ -113,13 +113,13 @@ Prompt enhancement rules:
 4. Do not add new business requirements not implied by the user.
 5. If the user asks multiple things in one message, separate them logically when assigning agents.
 
-File handling rules:
-1. If files are attached, read both the user request and available attached file content before deciding routing.
-2. If the attached file is relevant, `incoming_file_processor` must be the first task.
-3. Any downstream agent must be ordered after `incoming_file_processor`.
-4. Downstream file-related tasks must continue using the same attached file path(s), file content, and file processor findings.
-5. Do not create direct file-tool execution paths inside the router.
-6. Only skip `incoming_file_processor` if the attached file is clearly irrelevant to the requested action.
+Attached-file context rules:
+1. Treat attached file paths and available extracted content as part of the user request when deciding
+   among the available agent descriptions.
+2. Select only agents listed in `AVAILABLE AGENTS FOR ROUTING`; do not invent a file-processing route
+   or execute file tools in the router.
+3. When multiple listed agents are needed, order them by dependency and ensure later instructions
+   preserve the original file references and the relevant findings produced by earlier agents.
 
 Strict file binding rules:
 1. When `[ATTACHED FILES]` is present, use only exact listed path values.
@@ -183,30 +183,6 @@ Example single agent route:
   "response_to_user": "",
   "priority": 1
 }
-```
-
-Example multi-agent route:
-```json
-[
-  {
-    "type": "agent_call",
-    "selected_agent": "incoming_file_processor",
-    "instruction": "First inspect and process the attached file using the exact path from [ATTACHED FILES]. Extract relevant content and findings needed for the user's requested task.",
-    "confidence": "high",
-    "reason": "The attached file is relevant and must be processed first before downstream handling.",
-    "response_to_user": "",
-    "priority": 1
-  },
-  {
-    "type": "agent_call",
-    "selected_agent": "file_manager",
-    "instruction": "Using the same attached file path(s), file content, and findings from incoming_file_processor, complete the user's requested follow-up task.",
-    "confidence": "high",
-    "reason": "After file processing, the downstream request belongs to the file manager agent.",
-    "response_to_user": "",
-    "priority": 2
-  }
-]
 ```
 
 Example DB-assisted routing:

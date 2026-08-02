@@ -736,6 +736,8 @@ def init_db(db_path: str | Path | None = None):
         agent_activity TEXT,
         user_id TEXT,
         interface TEXT,
+        runtime_log_path TEXT,
+        runtime_request_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """)
@@ -748,6 +750,10 @@ def init_db(db_path: str | Path | None = None):
         cursor.execute("ALTER TABLE ChatHistory ADD COLUMN user_id TEXT")
     if 'interface' not in ch_cols:
         cursor.execute("ALTER TABLE ChatHistory ADD COLUMN interface TEXT")
+    if 'runtime_log_path' not in ch_cols:
+        cursor.execute("ALTER TABLE ChatHistory ADD COLUMN runtime_log_path TEXT")
+    if 'runtime_request_id' not in ch_cols:
+        cursor.execute("ALTER TABLE ChatHistory ADD COLUMN runtime_request_id TEXT")
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ChatLog (
@@ -861,8 +867,72 @@ def init_db(db_path: str | Path | None = None):
         cursor.execute("ALTER TABLE Schedules ADD COLUMN created_by TEXT")
     if 'updated_at' not in sch_cols:
         cursor.execute("ALTER TABLE Schedules ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+    # Durable scheduler v2 fields.  These are deliberately additive so an existing
+    # desktop database can be upgraded in place without losing legacy schedules.
+    scheduler_v2_columns = {
+        'schedule_mode': "TEXT NOT NULL DEFAULT 'recurring'",
+        'run_at': 'DATETIME',
+        'end_at': 'DATETIME',
+        'job_spec': "TEXT NOT NULL DEFAULT '{}'",
+        'delivery_spec': "TEXT NOT NULL DEFAULT '[]'",
+        'security_spec': "TEXT NOT NULL DEFAULT '{}'",
+        'retry_spec': "TEXT NOT NULL DEFAULT '{}'",
+        'last_run_id': 'INTEGER',
+        'failure_count': 'INTEGER NOT NULL DEFAULT 0',
+        'paused_at': 'DATETIME',
+        'completed_at': 'DATETIME',
+        'claimed_at': 'DATETIME',
+        'claim_token': 'TEXT',
+    }
+    cursor.execute("PRAGMA table_info(Schedules)")
+    sch_cols = {row[1] for row in cursor.fetchall()}
+    for name, ddl in scheduler_v2_columns.items():
+        if name not in sch_cols:
+            cursor.execute(f"ALTER TABLE Schedules ADD COLUMN {name} {ddl}")
+    cursor.execute("UPDATE Schedules SET job_spec=json_object('action_type','agent_task','task_prompt',task_prompt) WHERE job_spec IS NULL OR job_spec='' OR job_spec='{}'")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ScheduleRuns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        schedule_id INTEGER NOT NULL,
+        attempt INTEGER NOT NULL DEFAULT 1,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        correlation_id TEXT,
+        claimed_at DATETIME,
+        started_at DATETIME,
+        finished_at DATETIME,
+        status TEXT NOT NULL DEFAULT 'queued',
+        prompt_snapshot TEXT,
+        result_summary TEXT,
+        error_text TEXT,
+        attachments_json TEXT NOT NULL DEFAULT '[]',
+        next_retry_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(schedule_id) REFERENCES Schedules(id) ON DELETE CASCADE
+    )
+    """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ScheduleDeliveries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_id INTEGER NOT NULL,
+        delivery_index INTEGER NOT NULL,
+        channel TEXT NOT NULL,
+        recipient_ref TEXT NOT NULL,
+        attempt INTEGER NOT NULL DEFAULT 1,
+        started_at DATETIME,
+        finished_at DATETIME,
+        status TEXT NOT NULL DEFAULT 'queued',
+        provider_response_id TEXT,
+        error_text TEXT,
+        attachments_json TEXT NOT NULL DEFAULT '[]',
+        UNIQUE(run_id, delivery_index, attempt),
+        FOREIGN KEY(run_id) REFERENCES ScheduleRuns(id) ON DELETE CASCADE
+    )
+    """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_schedules_enabled_next_run ON Schedules(is_enabled, next_run_at)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_schedules_type ON Schedules(schedule_type)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_schedule_runs_schedule_started ON ScheduleRuns(schedule_id, started_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_schedule_runs_retry ON ScheduleRuns(status, next_retry_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_schedule_deliveries_run ON ScheduleDeliveries(run_id, delivery_index)")
 
     conn.commit()
     conn.close()

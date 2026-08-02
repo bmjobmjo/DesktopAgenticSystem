@@ -112,3 +112,59 @@ def test_sync_tools_to_db_registers_create_zip_metadata():
         assert "bundled file count" in output_schema.lower()
         assert "project_bundle" in example_call
         assert get_tool("create_zip") is not None
+
+
+def test_expense_prompt_preserves_created_zip_path_after_later_tool_result():
+    cda = CommonDataArea()
+    cda.reset()
+    cda.set_setting("sqlite_db_path", "__missing_prompt_context_test__.db")
+    executor = Executor(cda)
+    executor._init_execution_context("expense_manager", "send the expense ZIP")
+
+    zip_path = "/storage/files/archives/july_expenses.zip"
+    executor._record_tool_result(
+        {
+            "success": True,
+            "file_path": zip_path,
+            "format": "zip",
+            "mode": "bundle",
+            "bytes_written": 1234,
+            "message": "ZIP archive created successfully.",
+        }
+    )
+    executor._record_tool_result(
+        {
+            "success": True,
+            "rows": [{"id": 6, "whatsapp_number": "+919999999999"}],
+        }
+    )
+
+    prompt_path = (
+        Path(__file__).resolve().parents[1]
+        / "agents"
+        / "expense_manager"
+        / "expense_manager.prompt"
+    )
+    rendered = executor._prepare_prompt(
+        prompt_path.read_text(encoding="utf-8"),
+        "send the expense ZIP",
+        0,
+    )
+
+    assert zip_path in rendered
+    assert '"whatsapp_number": "+919999999999"' in rendered
+    assert "TOOL_DATA- not available" not in rendered
+
+
+def test_generic_agent_template_exposes_persistent_created_file_context():
+    template_path = (
+        Path(__file__).resolve().parents[1]
+        / "prompts"
+        / "templates"
+        / "agent_template.txt"
+    )
+    template = template_path.read_text(encoding="utf-8")
+
+    assert "LAST_TOOL_RESULT: {{TOOL_DATA}}" in template
+    assert "LAST_CREATED_FILE: {{LAST_CREATED_FILE}}" in template
+    assert "CREATED_FILES: {{CREATED_FILES}}" in template

@@ -148,6 +148,13 @@ Boundary rules:
   - A person may be a system user without being an employee, and may be an employee with or without a linked user account.
   - When listing, counting, searching, or explaining employees, use `Employees` as the source of truth.
 
+- Job-title and designation lookup rule:
+  - Questions such as "Who is the CTO?", "Who is the Software Lead?", "Find the Android Developer", or "Who heads R&D?" are employee lookup requests, not platform-role requests.
+  - Resolve these requests from `Employees.designation`; never search `Users.role`, `Users.role_id`, `Roles`, or `RoleAgents` for an organizational job title.
+  - First perform a case-insensitive exact designation match. If it returns no rows and the wording is not an exact stored title, perform a case-insensitive partial match on `Employees.designation`.
+  - Return the matched employee's `full_name`, `designation`, and, when useful, the linked username through `Employees.linked_user_id`.
+  - Example: for "Who is the CTO?", query `Employees` with `LOWER(designation) = 'cto'`; do not look for a user or platform role named `CTO`.
+
 ====================================================
 DEFAULT TOOLS REQUIRED FOR AGENT TO PERFORM ITS TASK
 ====================================================
@@ -303,7 +310,7 @@ For unsupported requests:
 INTERNAL WORKFLOW
 ====================================================
 1. **Parse Request:**
-   - Identify the intended operation: create_employee, update_employee, upsert_emergency_contacts, add_skills, list_skills, link_resume, link_id_card, retrieve_employee_profile, retrieve_targeted_employee_data, retrieve_current_user_profile, search_employees, link_employee_to_user, import_employees_from_file, handoff_org_master_request, handoff_task_request.
+   - Identify the intended operation: create_employee, update_employee, upsert_emergency_contacts, add_skills, list_skills, link_resume, link_id_card, retrieve_employee_profile, retrieve_targeted_employee_data, retrieve_current_user_profile, search_employees, find_employee_by_designation, link_employee_to_user, import_employees_from_file, handoff_org_master_request, handoff_task_request.
 
 2. **Perform Operation:**
    - `create_employee`:
@@ -376,6 +383,13 @@ INTERNAL WORKFLOW
      - Else use case-insensitive partial match on `full_name`.
      - If zero rows match, complete with a no-match message.
      - If more than one row matches, use `request_user_input` to ask for a precise identifier such as employee code, email, or mobile number.
+
+   - `find_employee_by_designation`:
+     - Use `Employees.designation` as the source of truth for organizational titles, including C-level titles, department heads, leads, managers, and developer titles.
+     - First query case-insensitive exact equality, for example: `SELECT e.full_name, e.designation, u.username FROM Employees e LEFT JOIN Users u ON u.id = e.linked_user_id WHERE LOWER(TRIM(e.designation)) = LOWER(TRIM('CTO'));`.
+     - Only if exact equality returns no rows, query a case-insensitive partial designation match.
+     - Do not query `Users.role`, `Roles`, or `RoleAgents` for these requests. Those describe application access, not a person's job title.
+     - If one employee matches, report that employee directly. If multiple employees match, list the matches or ask for clarification only when necessary.
 
    - `link_employee_to_user`:
      - Resolve exactly one employee first.

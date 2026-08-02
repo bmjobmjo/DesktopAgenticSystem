@@ -55,6 +55,12 @@ export type HistoryDetail = {
   messages: Array<{ id: number; role: string; content: string; timestamp: string }>;
 };
 
+export type RuntimeTraceItem = {
+  idx?: number;
+  eventType: string;
+  payload: Record<string, unknown>;
+};
+
 export type HistoryResumeResponse = HistoryDetail & {
   ok: boolean;
   session_id: string;
@@ -310,6 +316,43 @@ export async function getHistory(token: string, chatId: number): Promise<History
   return request(`/uiport/history/${chatId}`, { method: "GET" }, token);
 }
 
+export async function getHistoryRuntimeLog(token: string, chatId: number): Promise<{ trace: RuntimeTraceItem[]; available: boolean }> {
+  return request(`/uiport/history/${chatId}/runtime-log`, { method: "GET" }, token);
+}
+
+async function downloadTraceFile(token: string, path: string): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    let message = `${res.status} ${res.statusText}`;
+    try {
+      const body = await res.json();
+      message = String(body?.detail || message);
+    } catch {
+      // no-op
+    }
+    throw new Error(message);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const filename = /filename=\"?([^\";]+)\"?/i.exec(disposition)?.[1] || "runtime-trace.txt";
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadChatTraceFile(token: string, requestId: string, filepath: string): Promise<void> {
+  return downloadTraceFile(token, `/uiport/chat/status/${encodeURIComponent(requestId)}/trace-file?path=${encodeURIComponent(filepath)}`);
+}
+
+export async function downloadHistoryTraceFile(token: string, chatId: number, filepath: string): Promise<void> {
+  return downloadTraceFile(token, `/uiport/history/${chatId}/runtime-file?path=${encodeURIComponent(filepath)}`);
+}
+
 export async function resumeHistory(token: string, chatId: number): Promise<HistoryResumeResponse> {
   return request(`/uiport/history/${chatId}/resume`, { method: "POST" }, token);
 }
@@ -515,6 +558,14 @@ export async function deleteSchedule(token: string, id: number): Promise<Record<
 
 export async function runScheduleNow(token: string, id: number): Promise<Record<string, unknown>> {
   return request(`/uiport/scheduler/${id}/run`, { method: "POST" }, token);
+}
+
+export async function listScheduleRuns(token: string): Promise<{ items: Record<string, unknown>[] }> {
+  return request("/uiport/scheduler/runs", { method: "GET" }, token);
+}
+
+export async function retryScheduleRun(token: string, id: number): Promise<Record<string, unknown>> {
+  return request(`/uiport/scheduler/runs/${id}/retry`, { method: "POST" }, token);
 }
 
 

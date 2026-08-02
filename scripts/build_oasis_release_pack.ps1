@@ -239,6 +239,7 @@ Invoke-RobocopyCopy `
 New-Item -ItemType Directory -Path (Join-Path $StageDir "scripts") -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $RepoRoot "scripts\serve_oasis_ui.py") -Destination (Join-Path $StageDir "scripts\serve_oasis_ui.py") -Force
 Copy-Item -LiteralPath (Join-Path $RepoRoot "scripts\prepare_release_instance.py") -Destination (Join-Path $StageDir "scripts\prepare_release_instance.py") -Force
+Copy-Item -LiteralPath (Join-Path $RepoRoot "scripts\sync_builtin_agent_prompts.py") -Destination (Join-Path $StageDir "scripts\sync_builtin_agent_prompts.py") -Force
 
 Invoke-RobocopyCopy `
     -Source (Join-Path $RepoRoot "infra\release_pack") `
